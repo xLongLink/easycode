@@ -93,7 +93,7 @@ test("scopes sessions to the active session location", async () => {
                           <DataProvider directory={process.cwd()}>
                             <LocationProvider>
                               <SessionTabsProvider>
-                                <ThemeProvider mode="dark">
+                                <ThemeProvider>
                                   <LocalProvider>
                                     <DialogProvider>
                                       <Probe />

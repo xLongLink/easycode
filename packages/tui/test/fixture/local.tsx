@@ -62,7 +62,7 @@ export async function renderLocal(
         <ArgsProvider {...input.args}>
           <ConfigProvider config={createTuiResolvedConfig()}>
             <Keymap.Provider>
-              <ThemeProvider mode="dark">
+              <ThemeProvider>
                 <ToastProvider>
                   <RouteProvider initialRoute={{ type: "home" }}>
                     <ClientProvider api={createApi(calls.fetch)}>

@@ -232,7 +232,7 @@ async function renderFrame(component: () => JSX.Element, mode: "dark" | "light" 
     () => (
       <TestTuiContexts>
         <ConfigProvider config={createTuiResolvedConfig()}>
-          <ThemeProvider mode={mode}>
+          <ThemeProvider>
             {component()}
           </ThemeProvider>
         </ConfigProvider>

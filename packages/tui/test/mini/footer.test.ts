@@ -7,7 +7,7 @@ import { Writable } from "node:stream"
 import { coalesceProgressCommit, resolveRunAgent, RunFooter } from "../../src/mini/footer"
 import { createRunDemo } from "../../src/mini/demo"
 import { resolveMiniSettings } from "../../src/mini/runtime.boot"
-import { RUN_THEME_FALLBACK, RUN_THEME_FALLBACK_LIGHT, RUN_THEME_MONO } from "../../src/mini/theme"
+import { RUN_THEME_FALLBACK, RUN_THEME_MONO } from "../../src/mini/theme"
 import type { MiniSettingChange, MiniSettings, RunAgent, StreamCommit } from "../../src/mini/types"
 import { createTuiResolvedConfig } from "../fixture/tui-runtime"
 import { tmpdir } from "../fixture/fixture"
@@ -393,7 +393,7 @@ test("explicit theme refresh ignores custom colors", async () => {
   }
 })
 
-test("default theme follows physical mode changes when palette queries remain unavailable", async () => {
+test("default theme stays dark after physical mode changes when palette queries remain unavailable", async () => {
   const app = await setup({ mono: false })
   app.renderer.getPalette = async () => {
     throw new Error("no OSC palette response")
@@ -404,16 +404,15 @@ test("default theme follows physical mode changes when palette queries remain un
     expect(app.footer.currentTheme()).toBe(RUN_THEME_FALLBACK)
     await app.mockInput.pressKeys(["\x1b]10;rgb:0000/0000/0000\x07", "\x1b]11;rgb:ffff/ffff/ffff\x07"])
     expect(app.renderer.themeMode).toBe("light")
-    await app.waitFor(() => app.footer.currentTheme() === RUN_THEME_FALLBACK_LIGHT)
     await app.flush()
-    expect(app.footer.currentTheme()).toBe(RUN_THEME_FALLBACK_LIGHT)
+    expect(app.footer.currentTheme()).toBe(RUN_THEME_FALLBACK)
     expect(
       app
         .captureSpans()
         .lines.flatMap((line) => line.spans)
         .find((span) => span.text.includes("draft"))
         ?.fg.toInts(),
-    ).toEqual((RUN_THEME_FALLBACK_LIGHT.footer.text as RGBA).toInts())
+    ).toEqual((RUN_THEME_FALLBACK.footer.text as RGBA).toInts())
   } finally {
     app.footer.destroy()
     app.renderer.destroy()

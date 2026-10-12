@@ -2,7 +2,6 @@ import { RGBA, SyntaxStyle, type CliRenderer, type ColorInput, type TerminalColo
 import { generateSyntax, resolveThemeDocument, type ResolvedTheme } from "@opencode/theme/tui"
 import { getOpenCodeTheme } from "../theme"
 import { ansiToRgba } from "../theme/color"
-import { terminalMode } from "../theme/system"
 import { dedupeWith } from "effect/Array"
 import type { EntryKind } from "./types"
 
@@ -177,11 +176,10 @@ function map(theme: ResolvedTheme, indexed: RGBA[], syntax?: SyntaxStyle): RunTh
 }
 
 export const RUN_THEME_FALLBACK = map(resolveThemeDocument(getOpenCodeTheme(), "dark"), ansiPalette)
-export const RUN_THEME_FALLBACK_LIGHT = map(resolveThemeDocument(getOpenCodeTheme(), "light"), ansiPalette)
 
-function monoTheme(mode: "dark" | "light"): RunTheme {
-  const foreground = RGBA.defaultForeground(mode === "light" ? "#000000" : "#ffffff")
-  const background = RGBA.defaultBackground(mode === "light" ? "#ffffff" : "#000000")
+function monoTheme(): RunTheme {
+  const foreground = RGBA.defaultForeground("#ffffff")
+  const background = RGBA.defaultBackground("#000000")
   return {
     background,
     footer: {
@@ -233,14 +231,10 @@ function monoTheme(mode: "dark" | "light"): RunTheme {
   }
 }
 
-export const RUN_THEME_MONO = monoTheme("dark")
-const RUN_THEME_MONO_LIGHT = monoTheme("light")
+export const RUN_THEME_MONO = monoTheme()
 
 export async function resolveRunTheme(renderer: CliRenderer, mono = false): Promise<RunTheme> {
-  if (mono) {
-    const mode = renderer.themeMode ?? (await renderer.waitForThemeMode(300))
-    return mode === "light" ? RUN_THEME_MONO_LIGHT : RUN_THEME_MONO
-  }
+  if (mono) return RUN_THEME_MONO
 
   const detected = await renderer.getPalette({ size: 256 }).catch(() => undefined)
   // A transient OSC timeout must not remap immutable scrollback against an unrelated ANSI palette.
@@ -249,10 +243,8 @@ export async function resolveRunTheme(renderer: CliRenderer, mono = false): Prom
       ? detected
       : palettes.get(renderer)
   if (colors) palettes.set(renderer, colors)
-  // Mini stays transparent: fresh OSC 11 wins, but cached colors must not override a new renderer mode.
-  const mode = (detected && terminalMode(detected)) ?? renderer.themeMode ?? (colors && terminalMode(colors)) ?? "dark"
-  if (!colors) return mode === "light" ? RUN_THEME_FALLBACK_LIGHT : RUN_THEME_FALLBACK
-  const theme = resolveThemeDocument(getOpenCodeTheme(), mode)
+  if (!colors) return RUN_THEME_FALLBACK
+  const theme = resolveThemeDocument(getOpenCodeTheme(), "dark")
   const indexed = colors
     ? ansiPalette.map((color, index) => (colors.palette[index] ? RGBA.fromIndex(index, colors.palette[index]!) : color))
     : ansiPalette

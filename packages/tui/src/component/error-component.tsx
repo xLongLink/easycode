@@ -7,39 +7,25 @@ import { useExit } from "../context/exit"
 import { useTuiApp } from "../context/runtime"
 import { describeOS, describeTerminal } from "../util/system"
 
-export function ErrorComponent(props: { error: Error; reset: () => void; mode?: "dark" | "light" }) {
+export function ErrorComponent(props: { error: Error; reset: () => void }) {
   const term = useTerminalDimensions()
   const exit = useExit()
   const clipboard = useClipboard()
   const app = useTuiApp()
   const [copyState, setCopyState] = createSignal<"idle" | "copied" | "failed">("idle")
 
-  // Safe fallback palette per mode (mirrors theme/assets/opencode.json) since the
-  // theme context may be the thing that crashed.
-  const isLight = props.mode === "light"
-  const colors = isLight
-    ? {
-        bg: "#ffffff",
-        element: "#f5f5f5",
-        borderSubtle: "#d4d4d4",
-        text: "#1a1a1a",
-        muted: "#8a8a8a",
-        primary: "#3b7dd8",
-        onPrimary: "#ffffff",
-        error: "#d1383d",
-        success: "#3d9a57",
-      }
-    : {
-        bg: "#0a0a0a",
-        element: "#1e1e1e",
-        borderSubtle: "#3c3c3c",
-        text: "#eeeeee",
-        muted: "#808080",
-        primary: "#fab283",
-        onPrimary: "#0a0a0a",
-        error: "#e06c75",
-        success: "#7fd88f",
-      }
+  // The theme context may be the thing that crashed, so use a standalone dark palette.
+  const colors = {
+    bg: "#0a0a0a",
+    element: "#1e1e1e",
+    borderSubtle: "#3c3c3c",
+    text: "#eeeeee",
+    muted: "#808080",
+    primary: "#fab283",
+    onPrimary: "#0a0a0a",
+    error: "#e06c75",
+    success: "#7fd88f",
+  }
 
   const message = props.error.message || "An unknown error occurred."
   const stack = props.error.stack || "No stack trace available."

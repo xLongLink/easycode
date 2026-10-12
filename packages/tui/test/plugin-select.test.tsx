@@ -30,7 +30,7 @@ async function mount(root: string) {
       <TestTuiContexts directory={root} paths={{ home: root, state, worktree: root }}>
         <ConfigProvider config={createTuiResolvedConfig()}>
           <Keymap.Provider>
-            <ThemeProvider mode="dark">
+            <ThemeProvider>
               <ToastProvider>
                 <DialogProvider>
                   <Fixture />

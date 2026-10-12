@@ -74,7 +74,7 @@ async function setup(width: number, output = "") {
               <RouteProvider initialRoute={{ type: "session", sessionID: "ses_fixture" }}>
                 <ClientProvider api={api}>
                   <DataProvider directory={temporary.path}>
-                    <ThemeProvider mode={width === 40 ? "light" : "dark"}>
+                    <ThemeProvider>
                       <Keymap.Provider>
                         <ToastProvider>
                           <DialogProvider>

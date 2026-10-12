@@ -393,7 +393,7 @@ async function renderMove(input: {
                 <ClientProvider api={createApi(calls.fetch)}>
                   <DataProvider directory={launch}>
                     <LocationProvider>
-                      <ThemeProvider mode="dark">
+                      <ThemeProvider>
                         <DialogProvider>
                           <Probe />
                         </DialogProvider>

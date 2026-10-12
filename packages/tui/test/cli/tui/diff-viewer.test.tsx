@@ -2053,7 +2053,7 @@ async function renderDiffViewer(
             >
               <Keymap.Provider>
                 <ToastProvider>
-                  <ThemeProvider mode={options.mode ?? "dark"}>
+                  <ThemeProvider>
                     <DialogProvider>
                       <Content />
                     </DialogProvider>

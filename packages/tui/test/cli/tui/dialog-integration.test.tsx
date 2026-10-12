@@ -364,7 +364,7 @@ async function renderIntegration(activeLocation?: LocationRef, form?: FormFields
               <ClientProvider api={createApi(calls.fetch)}>
                 <DataProvider directory={process.cwd()}>
                   <LocationProvider>
-                    <ThemeProvider mode="dark">
+                    <ThemeProvider>
                       <DialogProvider>
                         <Probe />
                       </DialogProvider>

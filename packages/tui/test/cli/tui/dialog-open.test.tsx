@@ -992,7 +992,7 @@ async function renderOpen(
                       <DataProvider directory={process.cwd()}>
                         <LocationProvider>
                           <SessionTabsProvider>
-                            <ThemeProvider mode="dark">
+                            <ThemeProvider>
                               <DialogProvider>
                                 <Probe />
                               </DialogProvider>

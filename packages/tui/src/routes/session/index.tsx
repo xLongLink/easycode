@@ -2233,9 +2233,7 @@ function UserMessage(props: { message: SessionMessageUser }) {
       file.mime.startsWith("image/") ? [{ uri: `data:${file.mime};base64,${file.data}` }] : [],
     ),
   )
-  const themes = useThemes()
   const theme = useTheme()
-  const mode = themes.mode
   const [hover, setHover] = createSignal(false)
   const color = createMemo(() => local.agent.color(data.session.get(ctx.sessionID)?.agent ?? "build"))
   const delivery = createMemo(() => ctx.pendingDelivery(props.message.id))
@@ -2304,7 +2302,7 @@ function UserMessage(props: { message: SessionMessageUser }) {
                   <text fg={theme.text.base}>
                     <span
                       style={{
-                        bg: theme.hue.accent[mode() === "light" ? 300 : 200],
+                        bg: theme.hue.accent[200],
                         fg: theme.background.raised.base,
                         bold: true,
                       }}
@@ -2328,7 +2326,7 @@ function UserMessage(props: { message: SessionMessageUser }) {
                     <text fg={theme.text.base}>
                       <span
                         style={{
-                          bg: theme.hue.accent[mode() === "light" ? 300 : 200],
+                          bg: theme.hue.accent[200],
                           fg: theme.background.raised.base,
                           bold: true,
                         }}

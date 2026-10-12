@@ -1,27 +1,30 @@
-import { CliRenderEvents, SyntaxStyle } from "@opentui/core"
+import { SyntaxStyle } from "@opentui/core"
 import { useRenderer } from "@opentui/solid"
 import { generateSyntax, resolveThemeDocument, type SurfaceName } from "@opencode/theme/tui"
 import { getOpenCodeTheme } from "../theme"
 import { createComponentTheme, type ComponentTheme } from "../theme/component"
-import { createEffect, createMemo, createSignal, onCleanup, type ParentProps } from "solid-js"
+import { createEffect, createMemo, onCleanup, type ParentProps } from "solid-js"
 import { createSimpleContext } from "./helper"
 
 const themeContext = createSimpleContext({
   name: "Theme",
-  init: (props: { mode: "dark" | "light" }) => {
+  init: () => {
     const renderer = useRenderer()
-    const [mode, setMode] = createSignal(renderer.themeMode ?? props.mode)
-    renderer.on(CliRenderEvents.THEME_MODE, setMode)
-    onCleanup(() => renderer.off(CliRenderEvents.THEME_MODE, setMode))
-
-    const tokens = createMemo(() => resolveThemeDocument(getOpenCodeTheme(), mode()))
+    const tokens = createMemo(() => resolveThemeDocument(getOpenCodeTheme(), "dark"))
     const current = createComponentTheme(tokens)
     const currentSyntax = createSyntaxStyleMemo(() => generateSyntax(tokens()))
     createEffect(() => renderer.setBackgroundColor(tokens().background.base))
 
     return {
       current,
-      themes: { current, currentTokens: tokens, currentSyntax, mode, selected: "opencode", ready: true },
+      themes: {
+        current,
+        currentTokens: tokens,
+        currentSyntax,
+        mode: () => "dark" as const,
+        selected: "opencode",
+        ready: true,
+      },
       ready: true,
     }
   },

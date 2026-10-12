@@ -1,7 +1,5 @@
 import { expect, test } from "bun:test"
-import type { TerminalColors } from "@opentui/core"
 import { getOpenCodeTheme, parseTheme, resolveTheme } from "../src/theme"
-import { terminalMode } from "../src/theme/system"
 import opencodeSource from "../src/theme/assets/opencode.json" with { type: "json" }
 import type { ThemeV1Json } from "@opencode/theme/tui/v1"
 
@@ -79,28 +77,4 @@ test("resolveTheme preserves full theme numeric color and marker semantics", () 
   expect(theme.primary.intent).toBe("rgb")
   expect(theme.selectedListItemText).toBe(theme.background)
   expect(theme._hasSelectedListItemText).toBe(false)
-})
-
-function terminalColors(defaultBackground: string | null, palette: Array<string | null> = []): TerminalColors {
-  return {
-    palette,
-    defaultForeground: null,
-    defaultBackground,
-    cursorColor: null,
-    mouseForeground: null,
-    mouseBackground: null,
-    tekForeground: null,
-    tekBackground: null,
-    highlightBackground: null,
-    highlightForeground: null,
-  }
-}
-
-test("terminalMode derives mode from refreshed background", () => {
-  expect(terminalMode(terminalColors("#fbf1c7"))).toBe("light")
-  expect(terminalMode(terminalColors("#1a1b26"))).toBe("dark")
-})
-
-test("terminalMode does not derive mode from ANSI slot zero", () => {
-  expect(terminalMode(terminalColors(null, ["#000000"]))).toBeUndefined()
 })

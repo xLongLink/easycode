@@ -15,7 +15,6 @@ import {
   MouseButton,
   type CliRenderer,
   type CliRendererConfig,
-  type ThemeMode,
 } from "@opentui/core"
 import { RouteProvider, useRoute } from "./context/route"
 import {
@@ -184,7 +183,6 @@ export type TuiInput = {
   terminalHandoff?: () => Promise<
     | {
         readonly renderer: CliRenderer
-        readonly mode: ThemeMode | null
         readonly complete: () => void
       }
     | undefined
@@ -278,7 +276,6 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
       )
       renderer.once("destroy", () => shutdown.openUnsafe())
       yield* Effect.tryPromise(async () => {
-        const mode = handoff?.mode ?? (await renderer.waitForThemeMode(1000)) ?? "dark"
         if (renderer.isDestroyed) return
 
         await render(() => {
@@ -296,7 +293,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
                     <ErrorBoundary
                       fallback={(error, reset) => (
                         <ClipboardProvider value={clipboard}>
-                          <ErrorComponent error={error} reset={reset} mode={mode} />
+                          <ErrorComponent error={error} reset={reset} />
                         </ClipboardProvider>
                       )}
                     >
@@ -356,7 +353,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
                                                   <LocationProvider>
                                                     <SessionTabsProvider>
                                                       <SessionTerminalsProvider>
-                                                        <ThemeProvider mode={mode}>
+                                                        <ThemeProvider>
                                                           <LocalProvider>
                                                             <PromptStashProvider>
                                                               <DialogProvider>

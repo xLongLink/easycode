@@ -318,7 +318,6 @@ export class RunFooter implements FooterApi {
     this.renderer.on(CliRenderEvents.RESIZE, this.handleResize)
     this.renderer.on(CliRenderEvents.EXTERNAL_OUTPUT, this.handleExternalOutput)
     this.renderer.on(CliRenderEvents.PALETTE, this.handlePalette)
-    this.renderer.on(CliRenderEvents.THEME_MODE, this.handleThemeRefresh)
     this.renderer.prependInputHandler(this.handleThemeNotification)
     this.unsubscribeThemeSignal = options.subscribeThemeSignal(this.handleThemeSignal)
 
@@ -1136,7 +1135,6 @@ export class RunFooter implements FooterApi {
     this.renderer.off(CliRenderEvents.RESIZE, this.handleResize)
     this.renderer.off(CliRenderEvents.EXTERNAL_OUTPUT, this.handleExternalOutput)
     this.renderer.off(CliRenderEvents.PALETTE, this.handlePalette)
-    this.renderer.off(CliRenderEvents.THEME_MODE, this.handleThemeRefresh)
     this.renderer.removeInputHandler(this.handleThemeNotification)
     this.unsubscribeThemeSignal()
     for (const timeout of this.themeRefreshTimeouts) clearTimeout(timeout)

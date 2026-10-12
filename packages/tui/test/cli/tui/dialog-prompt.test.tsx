@@ -58,7 +58,7 @@ async function mountPrompt(input: {
       >
         <ConfigProvider config={resolvedConfig}>
           <Keymap.Provider>
-            <ThemeProvider mode="dark">
+            <ThemeProvider>
               <ToastProvider>
                 <DialogProvider>
                   <Prompt />

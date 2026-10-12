@@ -312,7 +312,7 @@ function mount(input: {
     () => (
       <TestTuiContexts>
         <ConfigProvider config={input.config}>
-          <ThemeProvider mode="dark">
+          <ThemeProvider>
             <context.Provider
               value={{
                 width: 40,

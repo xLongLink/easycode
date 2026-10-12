@@ -98,7 +98,7 @@ async function renderPlugins(
               <DataProvider directory={root}>
                 <LocationProvider>
                   <Keymap.Provider>
-                    <ThemeProvider mode="dark">
+                    <ThemeProvider>
                       <ToastProvider>
                         <DialogProvider>
                           <Content />

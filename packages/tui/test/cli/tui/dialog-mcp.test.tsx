@@ -144,7 +144,7 @@ async function renderMcp(options?: { failed?: boolean; location?: { directory: s
                 <ClientProvider api={createApi(calls.fetch)}>
                   <DataProvider directory={process.cwd()}>
                     <LocationProvider>
-                      <ThemeProvider mode="dark">
+                      <ThemeProvider>
                         <DialogProvider>
                           <Probe />
                         </DialogProvider>

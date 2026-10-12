@@ -28,7 +28,9 @@ function renderer(input: { themeMode?: "light" | "dark"; colors?: TerminalColors
     get themeMode() {
       return input.themeMode
     },
-    waitForThemeMode: async () => input.themeMode ?? null,
+    waitForThemeMode: async (): Promise<"light" | "dark" | null> => {
+      throw new Error("Must not wait for terminal mode")
+    },
     getPalette: async () => {
       if (input.fail) throw new Error("Palette unavailable")
       return input.colors ?? terminalColors()
@@ -42,11 +44,11 @@ function rgba(color: unknown) {
 }
 
 test.each(["light", "dark"] as const)(
-  "uses the default %s theme with terminal background and indexed scrollback",
+  "uses the dark theme with a %s terminal background and indexed scrollback",
   async (mode) => {
     const colors = terminalColors(mode)
     const theme = await resolveRunTheme(renderer({ colors }))
-    const expected = resolveThemeDocument(getOpenCodeTheme(), mode)
+    const expected = resolveThemeDocument(getOpenCodeTheme(), "dark")
     try {
       expect(rgba(theme.footer.text).toInts()).toEqual(expected.text.base.toInts())
       expect(rgba(theme.footer.surface).toInts()).toEqual(expected.background.raised.base.toInts())
@@ -68,7 +70,7 @@ test.each(["light", "dark"] as const)(
 )
 
 test.each(["light", "dark"] as const)(
-  "preserves %s monochrome terminal defaults without querying the palette",
+  "uses dark monochrome fallbacks in a %s terminal without querying the palette",
   async (mode) => {
     const term = renderer({ themeMode: mode })
     term.getPalette = async () => {
@@ -76,27 +78,27 @@ test.each(["light", "dark"] as const)(
     }
     const theme = await resolveRunTheme(term, true)
     expect(theme.block.syntax).toBeUndefined()
-    expect(rgba(theme.footer.text).toInts().slice(0, 3)).toEqual(mode === "light" ? [0, 0, 0] : [255, 255, 255])
+    expect(rgba(theme.footer.text).toInts().slice(0, 3)).toEqual([255, 255, 255])
     expect(rgba(theme.footer.text).intent).toBe("default")
     expect(rgba(theme.background).intent).toBe("default")
-    if (mode === "dark") expect(theme).toBe(RUN_THEME_MONO)
+    expect(theme).toBe(RUN_THEME_MONO)
   },
 )
 
-test.each(["light", "dark"] as const)("uses detected %s mode when palette queries fail", async (mode) => {
+test.each(["light", "dark"] as const)("uses dark colors when palette queries fail in %s mode", async (mode) => {
   const theme = await resolveRunTheme(renderer({ themeMode: mode, fail: true }))
   try {
-    expect(rgba(theme.footer.text).toInts()).toEqual(resolveThemeDocument(getOpenCodeTheme(), mode).text.base.toInts())
+    expect(rgba(theme.footer.text).toInts()).toEqual(resolveThemeDocument(getOpenCodeTheme(), "dark").text.base.toInts())
   } finally {
     theme.block.syntax?.destroy()
   }
 })
 
-test("prefers fresh background brightness over stale renderer mode", async () => {
+test("a light background does not select light theme colors", async () => {
   const theme = await resolveRunTheme(renderer({ themeMode: "dark", colors: terminalColors("light") }))
   try {
     expect(rgba(theme.footer.text).toInts()).toEqual(
-      resolveThemeDocument(getOpenCodeTheme(), "light").text.base.toInts(),
+      resolveThemeDocument(getOpenCodeTheme(), "dark").text.base.toInts(),
     )
   } finally {
     theme.block.syntax?.destroy()
@@ -117,7 +119,7 @@ test("retains and refreshes the scrollback palette across probe failures", async
   try {
     expect(rgba(retained.entry.reasoning.body).toInts()).toEqual(rgba(initial.entry.reasoning.body).toInts())
     expect(rgba(light.footer.text).toInts()).toEqual(
-      resolveThemeDocument(getOpenCodeTheme(), "light").text.base.toInts(),
+      resolveThemeDocument(getOpenCodeTheme(), "dark").text.base.toInts(),
     )
     expect(rgba(refreshed.entry.reasoning.body).toInts()).not.toEqual(rgba(initial.entry.reasoning.body).toInts())
   } finally {

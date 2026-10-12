@@ -41,7 +41,7 @@ test("compact rail renders and controls session tabs", async () => {
       <TestTuiContexts>
         <ConfigProvider config={createTuiResolvedConfig({ tabs: { indicators: "status" } })}>
           <Keymap.Provider>
-            <ThemeProvider mode="dark">
+            <ThemeProvider>
               <box width="100%" height="100%" flexDirection="row">
                 <SessionTabs
                   controller={controller}

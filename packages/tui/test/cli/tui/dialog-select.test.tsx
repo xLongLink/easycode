@@ -66,7 +66,7 @@ async function renderSelect(
       <TestTuiContexts directory={root} paths={{ home: root, state, worktree: root }}>
         <ConfigProvider config={config}>
           <Keymap.Provider>
-            <ThemeProvider mode="dark">
+            <ThemeProvider>
               <ToastProvider>
                 <DialogProvider>
                   <Select />
@@ -148,7 +148,7 @@ async function mountSelect<T>(
       <TestTuiContexts directory={root} paths={{ home: root, state, worktree: root }}>
         <ConfigProvider config={config}>
           <Keymap.Provider>
-            <ThemeProvider mode="dark">
+            <ThemeProvider>
               <ToastProvider>
                 <DialogProvider>
                   <Fixture />

@@ -6,7 +6,7 @@ import { resolveThemeDocument } from "@opencode/theme/tui"
 import { getOpenCodeTheme } from "../../../src/theme"
 import { ThemeContextProvider, ThemeProvider, useTheme, useThemes } from "../../../src/context/theme"
 
-test.each(["light", "dark"] as const)("uses the default theme and follows %s terminal mode", async (mode) => {
+test.each(["light", "dark"] as const)("keeps the dark theme when the terminal reports %s mode", async (mode) => {
   let themes: ReturnType<typeof useThemes> | undefined
   function Probe() {
     themes = useThemes()
@@ -14,7 +14,7 @@ test.each(["light", "dark"] as const)("uses the default theme and follows %s ter
   }
   const app = await testRender(
     () => (
-      <ThemeProvider mode={mode}>
+      <ThemeProvider>
         <Probe />
       </ThemeProvider>
     ),
@@ -23,16 +23,15 @@ test.each(["light", "dark"] as const)("uses the default theme and follows %s ter
   try {
     await app.renderOnce()
     expect(themes?.selected).toBe("opencode")
-    expect(themes?.mode()).toBe(mode)
+    expect(themes?.mode()).toBe("dark")
     expect(themes?.currentTokens().text.base.toInts()).toEqual(
-      resolveThemeDocument(getOpenCodeTheme(), mode).text.base.toInts(),
+      resolveThemeDocument(getOpenCodeTheme(), "dark").text.base.toInts(),
     )
-    const next = mode === "dark" ? "light" : "dark"
-    app.renderer.emit(CliRenderEvents.THEME_MODE, next)
+    app.renderer.emit(CliRenderEvents.THEME_MODE, mode)
     await app.renderOnce()
-    expect(themes?.mode()).toBe(next)
+    expect(themes?.mode()).toBe("dark")
     expect(themes?.currentTokens().text.base.toInts()).toEqual(
-      resolveThemeDocument(getOpenCodeTheme(), next).text.base.toInts(),
+      resolveThemeDocument(getOpenCodeTheme(), "dark").text.base.toInts(),
     )
   } finally {
     app.renderer.destroy()
@@ -58,7 +57,7 @@ test("dialog surfaces are absolute and can be inherited through the theme contex
   }
   const app = await testRender(
     () => (
-      <ThemeProvider mode="dark">
+      <ThemeProvider>
         <Probe />
       </ThemeProvider>
     ),

@@ -47,7 +47,7 @@ for (const mode of ["dark", "light"] as const) {
       () => (
         <TestTuiContexts>
           <ConfigProvider config={createTuiResolvedConfig()}>
-            <ThemeProvider mode={mode}>
+            <ThemeProvider>
               <Pane />
             </ThemeProvider>
           </ConfigProvider>

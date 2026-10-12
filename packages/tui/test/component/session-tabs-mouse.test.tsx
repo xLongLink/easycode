@@ -28,7 +28,7 @@ test("releasing a transcript selection over tab controls does not activate them"
     () => (
       <TestTuiContexts>
         <ConfigProvider config={createTuiResolvedConfig({ tabs: { mode: "on" } })}>
-          <ThemeProvider mode="dark">
+          <ThemeProvider>
             <box flexDirection="column">
               <SessionTabs controller={controller} animations={false} />
               <text>selectable transcript text</text>
@@ -79,7 +79,7 @@ test("middle-click closes a session tab without selecting it", async () => {
     () => (
       <TestTuiContexts>
         <ConfigProvider config={createTuiResolvedConfig({ tabs: { mode: "on" } })}>
-          <ThemeProvider mode="dark">
+          <ThemeProvider>
             <SessionTabs controller={controller} animations={false} />
           </ThemeProvider>
         </ConfigProvider>
@@ -127,7 +127,7 @@ test("keeps consecutive close controls fixed across overflow window changes", as
     () => (
       <TestTuiContexts>
         <ConfigProvider config={createTuiResolvedConfig({ tabs: { mode: "on" } })}>
-          <ThemeProvider mode="dark">
+          <ThemeProvider>
             <SessionTabs controller={controller} animations={false} />
           </ThemeProvider>
         </ConfigProvider>
@@ -180,7 +180,7 @@ test("reflows held tabs when the pointer leaves the strip", async () => {
     () => (
       <TestTuiContexts>
         <ConfigProvider config={createTuiResolvedConfig({ tabs: { mode: "on" } })}>
-          <ThemeProvider mode="dark">
+          <ThemeProvider>
             <box flexDirection="column">
               <SessionTabs controller={controller} animations={false} />
               <text>outside</text>

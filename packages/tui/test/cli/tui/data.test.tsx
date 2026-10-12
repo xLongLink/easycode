@@ -2239,7 +2239,7 @@ test("keeps shell state scoped to location", async () => {
     return (
       <RouteProvider initialRoute={{ type: "session", sessionID: "ses_shared" }}>
         <Keymap.Provider>
-          <ThemeProvider mode="dark">
+          <ThemeProvider>
             <ToastProvider>
               <DialogProvider>
                 <Composer sessionID="ses_shared" open={true} defaultTab="shell" />

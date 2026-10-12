@@ -94,7 +94,7 @@ for (const orientation of ["horizontal", "vertical"] as const) {
                     <DataProvider directory={temporary.path}>
                       <LocationProvider>
                         <SessionTabsProvider>
-                          <ThemeProvider mode="dark">
+                          <ThemeProvider>
                             <Colors />
                             <Keymap.Provider>
                               <ToastProvider>

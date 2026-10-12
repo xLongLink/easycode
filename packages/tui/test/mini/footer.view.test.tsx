@@ -27,7 +27,7 @@ import {
 import { RunFooterView } from "../../src/mini/footer.view"
 import { RunFooter } from "../../src/mini/footer"
 import { RunEntryContent } from "../../src/mini/scrollback.writer"
-import { RUN_THEME_FALLBACK, RUN_THEME_FALLBACK_LIGHT, resolveRunTheme, type RunTheme } from "../../src/mini/theme"
+import { RUN_THEME_FALLBACK, resolveRunTheme, type RunTheme } from "../../src/mini/theme"
 import { BLOCK_SOFT_SLIDE, SEED_MONO, WORK_SPINNERS } from "../../src/ui/one-cell-motion"
 import { resolveMiniSettings } from "../../src/mini/runtime.boot"
 import { applyMiniSettingChange } from "../../src/mini/verbosity"
@@ -2038,28 +2038,24 @@ test.each([false, true])("working marker stays visible with animations=%s and st
   }
 })
 
-test.each(["Build", "Plan"])("working marker matches the %s label and prompt rail across themes", async (agent) => {
-  const [theme, setTheme] = createSignal(RUN_THEME_FALLBACK)
+test.each(["Build", "Plan"])("working marker matches the %s label and prompt rail", async (agent) => {
   const app = await renderFooter({
     currentAgent: agent,
     agents: [
       { id: "build", name: "Build", mode: "primary", hidden: false },
       { id: "plan", name: "Plan", mode: "primary", hidden: false },
     ],
-    theme,
+    theme: () => RUN_THEME_FALLBACK,
     tuiConfig: createTuiResolvedConfig({ animations: false }),
     state: { phase: "running" },
   })
   try {
-    for (const current of [RUN_THEME_FALLBACK, RUN_THEME_FALLBACK_LIGHT]) {
-      setTheme(current)
-      await app.renderOnce()
-      const spans = app.captureSpans().lines.flatMap((line) => line.spans)
-      const expected = (current.footer.categorical[agent === "Build" ? 0 : 1] as RGBA).toInts()
-      expect(spans.find((span) => span.text.includes(agent))?.fg.toInts()).toEqual(expected)
-      expect(spans.find((span) => span.text.includes("\u2503"))?.fg.toInts()).toEqual(expected)
-      expect(spans.find((span) => span.text === "\u25aa")?.fg.toInts()).toEqual(expected)
-    }
+    await app.renderOnce()
+    const spans = app.captureSpans().lines.flatMap((line) => line.spans)
+    const expected = (RUN_THEME_FALLBACK.footer.categorical[agent === "Build" ? 0 : 1] as RGBA).toInts()
+    expect(spans.find((span) => span.text.includes(agent))?.fg.toInts()).toEqual(expected)
+    expect(spans.find((span) => span.text.includes("\u2503"))?.fg.toInts()).toEqual(expected)
+    expect(spans.find((span) => span.text === "\u25aa")?.fg.toInts()).toEqual(expected)
   } finally {
     app.cleanup()
   }
