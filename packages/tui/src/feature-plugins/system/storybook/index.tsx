@@ -2,7 +2,6 @@ import { Plugin } from "@opencode/plugin/tui"
 import { useTerminalDimensions } from "@opentui/solid"
 import { createSignal, For, type JSX } from "solid-js"
 import { StoryFooter } from "./footer"
-import { mermanLayoutsStory } from "./merman-layouts"
 import { sessionTabsStory } from "./session-tabs"
 import { sessionLocationMissingStory } from "./session-location-missing"
 import { oneCellSpinnerStory } from "./one-cell-spinner"
@@ -19,7 +18,6 @@ export type Story = {
 }
 
 const stories: Story[] = [
-  mermanLayoutsStory,
   sessionTabsStory,
   sessionLocationMissingStory,
   oneCellSpinnerStory,

@@ -568,7 +568,7 @@ test("automatic rename refreshes the displayed title before settling, even witho
   }
 })
 
-test.each([80, 120])("completes custom Markdown and ordinary fences in a session at width %s", async (width) => {
+test.each([80, 120])("completes Markdown code fences in a session at width %s", async (width) => {
   await using state = await tmpdir()
   const session = {
     id: "ses_markdown",
@@ -627,8 +627,8 @@ test.each([80, 120])("completes custom Markdown and ordinary fences in a session
       frame.includes("initial") &&
       frame.includes("DiagramStart") &&
       frame.includes("DiagramEnd") &&
-      frame.includes("x\u00b2") &&
-      frame.includes("y\u00b2"),
+      frame.includes("x^2") &&
+      frame.includes("y^2"),
   )
   expect(streaming).toContain("Compaction")
   expect(streaming).not.toContain("initial final")
@@ -665,12 +665,10 @@ test.each([80, 120])("completes custom Markdown and ordinary fences in a session
   )
   expect(frame).toContain("DiagramStart")
   expect(frame).toContain("DiagramEnd")
-  expect(frame).toContain("x\u00b2")
-  expect(frame).toContain("y\u00b2")
+  expect(frame).toContain("x^2")
+  expect(frame).toContain("y^2")
   expect(frame).toContain("initial final")
-  expect(frame).not.toContain("graph LR")
-  expect(frame).not.toContain("x^2")
-  expect(frame).not.toContain("y^2")
+  expect(frame).toContain("graph LR")
   expect(frame).not.toContain("```")
 })
 

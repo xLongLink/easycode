@@ -236,35 +236,6 @@
         "@typescript/native-preview": "catalog:",
       },
     },
-    "packages/latex": {
-      "name": "@opencode/latex",
-      "version": "2.0.27",
-      "dependencies": {
-        "@opencode/plugin": "workspace:*",
-        "@opentui/core": "catalog:",
-        "string-width": "catalog:",
-      },
-      "devDependencies": {
-        "@tsconfig/bun": "catalog:",
-        "@types/bun": "catalog:",
-        "@typescript/native-preview": "catalog:",
-      },
-    },
-    "packages/merman": {
-      "name": "@opencode/merman",
-      "version": "2.0.27",
-      "dependencies": {
-        "@opencode/plugin": "workspace:*",
-        "@opentui/core": "catalog:",
-        "entities": "7.0.1",
-        "string-width": "catalog:",
-      },
-      "devDependencies": {
-        "@tsconfig/bun": "catalog:",
-        "@types/bun": "catalog:",
-        "@typescript/native-preview": "catalog:",
-      },
-    },
     "packages/plugin": {
       "name": "@opencode/plugin",
       "version": "2.0.27",
@@ -404,8 +375,6 @@
       "dependencies": {
         "@opencode/client": "workspace:*",
         "@opencode/core": "workspace:*",
-        "@opencode/latex": "workspace:*",
-        "@opencode/merman": "workspace:*",
         "@opencode/plugin": "workspace:*",
         "@opencode/schema": "workspace:*",
         "@opencode/simulation": "workspace:*",
@@ -930,10 +899,6 @@
     "@opencode/http-recorder": ["@opencode/http-recorder@workspace:packages/http-recorder"],
 
     "@opencode/httpapi-codegen": ["@opencode/httpapi-codegen@workspace:packages/httpapi-codegen"],
-
-    "@opencode/latex": ["@opencode/latex@workspace:packages/latex"],
-
-    "@opencode/merman": ["@opencode/merman@workspace:packages/merman"],
 
     "@opencode/plugin": ["@opencode/plugin@workspace:packages/plugin"],
 

@@ -110,8 +110,6 @@ export const run: Run = Effect.fn("Tui.vite")(function* (input: Parameters<Run>[
                 /^@solid-primitives\//,
                 "@opencode/plugin",
                 "@opencode/client",
-                "@opencode/latex",
-                "@opencode/merman",
               ],
               // Exact subpaths are needed for workspace TypeScript exports.
               external: [
