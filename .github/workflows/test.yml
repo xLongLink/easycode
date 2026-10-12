@@ -165,10 +165,10 @@ jobs:
         working-directory: packages/client
         run: bun run check:generated
 
-      - name: Check generated documentation
+      - name: Check generated CLI schema
         if: runner.os == 'Linux'
-        working-directory: services/www
-        run: bun run check:generated
+        working-directory: packages/cli
+        run: bun script/schema.ts cli.schema.json --check
 
   e2e:
     name: e2e (${{ matrix.settings.name }})

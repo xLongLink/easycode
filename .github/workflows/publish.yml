@@ -600,19 +600,6 @@ jobs:
           path: packages/cli/dist/node
           merge-multiple: true
 
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        if: needs.version.outputs.release
-        with:
-          pattern: latest-yml-*
-          path: /tmp/latest-yml
-
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        if: needs.version.outputs.release
-        with:
-          pattern: opencode-desktop-*
-          path: /tmp/desktop
-          merge-multiple: true
-
       - name: Setup git committer
         id: committer
         uses: ./.github/actions/setup-git-committer
@@ -648,12 +635,8 @@ jobs:
           GITHUB_TOKEN: ${{ steps.committer.outputs.token }}
           GH_REPO: ${{ needs.version.outputs.repo }}
           NPM_CONFIG_PROVENANCE: false
-          LATEST_YML_DIR: /tmp/latest-yml
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          OPENCODE_DESKTOP_DIST: /tmp/desktop
-          CLOUDFLARE_ACCOUNT_ID: 15d29c8639fd3733b1b5486a2acfd968
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
   notify-discord-v2:
     needs:

@@ -13,7 +13,6 @@
     "dev:vite:live": "sh -c 'OPENCODE_TUI_CHANNEL=dev OPENCODE_PASSWORD=\"$(opencode service get password)\" exec bun run dev:vite \"$@\" --server \"$(opencode service status)\"' --",
     "dev:desktop": "bun --cwd packages/desktop dev",
     "dev:web": "bun --cwd packages/app dev",
-    "dev:www": "bun run --cwd services/www dev",
     "dev:storybook": "bun --cwd packages/storybook storybook",
     "bench:devex": "bun run --cwd packages/app test:bench:devex",
     "lint": "oxlint && ast-grep scan -c script/ast-grep/gui-extensions/sgconfig.yml && bun script/sdk-docs.ts",
@@ -35,8 +34,7 @@
   },
   "workspaces": {
     "packages": [
-      "packages/*",
-      "services/*"
+      "packages/*"
     ],
     "catalog": {
       "@effect/opentelemetry": "4.0.1",
@@ -46,7 +44,6 @@
       "@npmcli/arborist": "9.4.0",
       "@types/bun": "1.4.0",
       "@types/cross-spawn": "6.0.6",
-      "@octokit/rest": "22.0.0",
       "@hono/zod-validator": "0.4.2",
       "@opentui/core": "0.5.17",
       "@opentui/keymap": "0.5.17",
@@ -57,12 +54,9 @@
       "ulid": "3.0.1",
       "@kobalte/core": "0.13.13",
       "@corvu/drawer": "0.2.4",
-      "@types/luxon": "3.7.1",
       "@types/node": "24.12.2",
-      "@types/semver": "7.7.1",
       "@tsconfig/node22": "22.0.2",
       "@tsconfig/bun": "1.0.9",
-      "@cloudflare/workers-types": "4.20251008.0",
       "@pierre/diffs": "1.5.1",
       "opentui-spinner": "0.0.7",
       "@solid-primitives/event-listener": "2.4.6",
@@ -80,12 +74,10 @@
       "cross-spawn": "7.0.6",
       "fuzzysort": "3.1.0",
       "get-east-asian-width": "1.6.0",
-      "luxon": "3.6.1",
       "marked": "18.0.11",
       "marked-shiki": "1.2.1",
       "remend": "1.3.1",
       "@playwright/test": "1.59.1",
-      "semver": "7.7.4",
       "typescript": "5.8.2",
       "@typescript/native-preview": "7.0.0-dev.20251207.1",
       "zod": "4.1.8",
@@ -124,7 +116,6 @@
     "turbo": "2.10.2"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.933.0",
     "@opencode/plugin": "workspace:*",
     "@opencode/script": "workspace:*",
     "heap-snapshot-toolkit": "1.1.3",

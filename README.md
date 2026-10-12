@@ -1,9 +1,9 @@
 <p align="center">
   <a href="https://opencode.ai">
     <picture>
-      <source srcset="packages/web/src/assets/logo-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="packages/web/src/assets/logo-light.svg" media="(prefers-color-scheme: light)">
-      <img src="packages/web/src/assets/logo-light.svg" alt="OpenCode logo">
+      <source srcset="assets/logo-dark.svg" media="(prefers-color-scheme: dark)">
+      <source srcset="assets/logo-light.svg" media="(prefers-color-scheme: light)">
+      <img src="assets/logo-light.svg" alt="OpenCode logo">
     </picture>
   </a>
 </p>
@@ -14,7 +14,7 @@
   <a href="https://github.com/anomalyco/opencode/actions/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/publish.yml?style=flat-square&branch=dev" /></a>
 </p>
 
-[![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
+[![OpenCode Terminal UI](assets/screenshot.png)](https://opencode.ai)
 
 ---
 

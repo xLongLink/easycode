@@ -4,7 +4,6 @@ import { $ } from "bun"
 import { mkdir, rm } from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { UpdateArtifact } from "../../../script/update-artifact"
 
 if (Script.channel !== "beta" && Script.channel !== "latest") {
   throw new Error("AUR publishing requires the beta or latest channel")
@@ -90,10 +89,3 @@ if ((await $`git diff --cached --quiet`.cwd(outdir).nothrow()).exitCode !== 0) {
   await $`git commit -m ${`chore: update ${name} to ${pkgver}`}`.cwd(outdir)
   await $`git push origin master`.cwd(outdir)
 }
-await UpdateArtifact.publish({
-  channel: Script.channel,
-  name: "cli",
-  distribution: "aur",
-  version: Script.version,
-  metadata: { package: name },
-})

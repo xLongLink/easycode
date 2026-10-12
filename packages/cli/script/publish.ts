@@ -4,9 +4,7 @@ import pkg from "../package.json"
 import { Script } from "@opencode/script"
 import { fileURLToPath } from "url"
 import { existsSync } from "fs"
-import { chmod, rm, utimes } from "node:fs/promises"
 import path from "node:path"
-import { UpdateArtifact } from "../../../script/update-artifact"
 
 const dir = fileURLToPath(new URL("..", import.meta.url))
 const root = path.resolve(process.env.OPENCODE_CLI_DIST ?? path.join(dir, "dist"))
@@ -33,7 +31,6 @@ async function publishDistribution(input: {
   legacyCommand?: string
   binary: string
   packagePrefix: string
-  artifact: string
 }) {
   const binaries: Record<string, string> = {}
   for (const filepath of new Bun.Glob("*/package.json").scanSync({ cwd: input.root })) {
@@ -88,39 +85,6 @@ async function publishDistribution(input: {
     ),
   )
   await publish(`${input.root}/${input.name}`, input.name, version)
-  const files = await UpdateArtifact.upload({
-    version,
-    files: await Promise.all(
-      Object.keys(binaries).map((name) =>
-        archive(
-          path.join(input.root, name.replace("@opencode/", ""), "bin"),
-          name.slice(input.packagePrefix.length),
-          input.binary,
-          input.root,
-        ),
-      ),
-    ),
-    dryRun,
-  })
-  const artifact = {
-    channel: Script.channel,
-    name: input.artifact,
-    distribution: "opencode",
-    version,
-    metadata: { files },
-  }
-  if (dryRun) {
-    console.log(`dry-run artifact: ${JSON.stringify(artifact)}`)
-    return
-  }
-  await UpdateArtifact.publish({
-    channel: Script.channel,
-    name: input.artifact,
-    distribution: "npm",
-    version,
-    metadata: { package: input.name },
-  })
-  await UpdateArtifact.publish(artifact)
 }
 
 await publishDistribution({
@@ -130,7 +94,6 @@ await publishDistribution({
   legacyCommand: "opencode2",
   binary: "opencode",
   packagePrefix: "@opencode/cli-",
-  artifact: "cli",
 })
 if (Script.channel !== "latest" && existsSync(path.join(root, "node"))) {
   await publishDistribution({
@@ -139,7 +102,6 @@ if (Script.channel !== "latest" && existsSync(path.join(root, "node"))) {
     command: "opencode2-node",
     binary: "opencode2-node",
     packagePrefix: "@opencode/cli-node-",
-    artifact: "cli-node",
   })
 }
 
@@ -149,25 +111,4 @@ if (Script.channel === "latest" && Script.release && !dryRun) {
 
 if ((Script.channel === "beta" || Script.channel === "latest") && Script.release) {
   await $`bun ./script/publish-aur.ts ${dryRun ? ["--dry-run"] : []}`.env({ ...process.env, OPENCODE_CLI_DIST: root })
-  await $`bun ./script/publish-homebrew.ts ${dryRun ? ["--dry-run"] : []}`.env({
-    ...process.env,
-    OPENCODE_CLI_DIST: root,
-  })
-}
-
-async function archive(bin: string, target: string, binary: string, directory: string) {
-  const executable = `${binary}${target.startsWith("windows-") ? ".exe" : ""}`
-  const source = path.join(bin, executable)
-  if (!(await Bun.file(source).exists()) || !Bun.file(source).size) throw new Error(`Missing binary: ${source}`)
-  // GitHub artifact downloads lose execute bits. Fixed timestamps make retries reproducible.
-  await chmod(source, 0o755)
-  await utimes(source, new Date("1980-01-01T00:00:00Z"), new Date("1980-01-01T00:00:00Z"))
-  const extension = target.startsWith("linux-") ? "tar.gz" : "zip"
-  const output = path.join(directory, `${binary}-${target}.${extension}`)
-  await rm(output, { force: true })
-  if (extension === "tar.gz") {
-    await $`tar --mtime=@0 --owner=0 --group=0 --numeric-owner -czf ${output} -C ${bin} ${executable}`
-  }
-  if (extension === "zip") await $`zip -X -q ${output} ${executable}`.cwd(bin)
-  return output
 }
