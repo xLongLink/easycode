@@ -90,10 +90,9 @@ if (fixed.removed.length > 0) {
   }
 }
 
-const stale = findStaleLockfileEntriesInText(fixed.text)
-if (stale.length > 0) {
+if (fixed.stale.length > 0) {
   console.error(`bun.lock still contains stale opentui versions after upgrading to ${ver}:`)
-  for (const item of stale) {
+  for (const item of fixed.stale) {
     console.error(`- ${item.entry}: ${item.pkg}@${item.version}`)
   }
   process.exit(1)
@@ -105,7 +104,7 @@ async function fixKnownLockfileIssues() {
   const txt = await Bun.file(lockfile).text()
   const stale = findStaleLockfileEntriesInText(txt)
   if (stale.length === 0 || stale.some((item) => !item.entry.startsWith("opentui-spinner/@opentui/"))) {
-    return { text: txt, removed: [] }
+    return { stale, removed: [] }
   }
 
   const removed = txt
@@ -113,14 +112,14 @@ async function fixKnownLockfileIssues() {
     .map((line) => line.match(/^    "(opentui-spinner\/@opentui\/[^\"]+)": /)?.[1])
     .filter((item): item is string => item !== undefined)
 
-  if (removed.length === 0) return { text: txt, removed }
+  if (removed.length === 0) return { stale, removed }
 
   const text = txt
     .split("\n")
     .filter((line) => !line.match(/^    "opentui-spinner\/@opentui\//))
     .join("\n")
   await Bun.write(lockfile, text)
-  return { text, removed }
+  return { stale: [], removed }
 }
 
 function findStaleLockfileEntriesInText(txt: string) {

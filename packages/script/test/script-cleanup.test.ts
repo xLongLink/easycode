@@ -130,6 +130,16 @@ test.each([
     repairs: true,
   },
   {
+    name: "consistent and stale spinner peers",
+    entries: [
+      '    "@opentui/core": ["@opentui/core@1.2.3"],',
+      '    "opentui-spinner/@opentui/core": ["@opentui/core@0.9.0"],',
+      '    "opentui-spinner/@opentui/solid": ["@opentui/solid@1.2.3"],',
+    ],
+    code: 0,
+    repairs: true,
+  },
+  {
     name: "mixed stale entries",
     entries: [
       '    "@opentui/core": ["@opentui/core@0.9.0"],',
@@ -207,6 +217,5 @@ test.each([false, true])("generation dispatch preserves ordering and failures (f
   expect((await Bun.file(path.join(fixture, "commands.log")).text()).trim().split("\n")).toEqual([
     `${fixture}/packages/protocol|run generate`,
     `${fixture}/packages/cli|script/schema.ts cli.schema.json`,
-    ...(fail ? [] : [`${fixture}|run prettier --ignore-unknown --write .`]),
   ])
 })

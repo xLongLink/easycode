@@ -5,5 +5,3 @@ import { $ } from "bun"
 await $`bun run generate`.cwd("packages/protocol")
 
 await $`bun script/schema.ts cli.schema.json`.cwd("packages/cli")
-
-await $`bun run prettier --ignore-unknown --write .`

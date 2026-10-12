@@ -10,7 +10,7 @@ export function workspaceTasks(pkg: { name: string; scripts: Record<string, stri
             ([name]) =>
               ["typecheck", "build"].includes(name) ||
               (name === "test" &&
-                ["ai", "codemode", "core", "httpapi-codegen", "server", "cli", "tui", "latex"].some(
+                ["ai", "codemode", "core", "httpapi-codegen", "server", "cli", "tui"].some(
                   (name) => pkg.name === `@opencode/${name}`,
                 )),
           )
@@ -22,10 +22,7 @@ export function workspaceTasks(pkg: { name: string; scripts: Record<string, stri
                 name === "typecheck" &&
                 ["cli", "server", "simulation", "tui"].some((name) => pkg.name === `@opencode/${name}`)
                   ? ["@opencode/core#check:types"]
-                  : name === "test" &&
-                      ["ai", "codemode", "core", "server", "cli", "tui", "latex"].some(
-                        (name) => pkg.name === `@opencode/${name}`,
-                      )
+                  : name === "test" && pkg.name !== "@opencode/httpapi-codegen"
                     ? [{ task: "workspace:build", from: ["dependencies", "devDependencies"] as const }]
                     : [],
               cache: {

@@ -64,6 +64,16 @@ describe("workspace tasks", () => {
       "workspace:test": { dependsOn: [] },
     })
   })
+
+  test.each(["ai", "codemode", "core", "server", "cli", "tui"])("%s tests build dependencies", (name) => {
+    expect(workspaceTasks({ name: `@opencode/${name}`, scripts: { test: "bun test" } }).run?.tasks).toMatchObject({
+      "workspace:test": { dependsOn: [{ task: "workspace:build", from: ["dependencies", "devDependencies"] }] },
+    })
+  })
+
+  test.each(["latex", "simulation", "client"])("does not select %s tests", (name) => {
+    expect(workspaceTasks({ name: `@opencode/${name}`, scripts: { test: "bun test" } }).run?.tasks).toEqual({})
+  })
 })
 
 test("keeps custom lint plugins and formatting outside the canonical check", () => {
@@ -150,3 +160,63 @@ test("task cache restores builds and invalidates global inputs and environment",
   expect(await run("second")).toContain("Cache miss")
   expect(await run("second")).toContain("Cache hit - output replayed")
 }, 30000)
+
+test.each([
+  {
+    name: "wrapped const array aliases",
+    source: `const values = [1, 2]
+const alias = values
+{ (alias as number[]).filter(Boolean).map(String) }`,
+    diagnostic: "anti-slop(no-array-filter-map)",
+  },
+  {
+    name: "shadowed and reassigned array bindings",
+    source: `const values = [1, 2]
+function inspect(values: Iterable<number>) {
+  values.filter(Boolean).map(String)
+}
+let alias = values
+alias = unknownValues
+alias.filter(Boolean).map(String)
+makeValues().filter(Boolean).map(String)`,
+    diagnostic: undefined,
+  },
+  {
+    name: "wrapped const accumulator aliases",
+    source: `[1, 2].reduce((acc, item) => {
+  const alias = (acc as number[])
+  { return (alias!).concat(item) }
+}, [])`,
+    diagnostic: "anti-slop(no-reduce-accumulator-copy)",
+  },
+  {
+    name: "shadowed, reassigned, and non-identifier accumulators",
+    source: `[1, 2].reduce((acc, item) => {
+  { const acc = []; acc.concat(item) }
+  let alias = acc
+  alias = []
+  alias.concat(item)
+  return [].concat(item)
+}, [])`,
+    diagnostic: undefined,
+  },
+])("array lint preserves binding semantics: $name", async (input) => {
+  const root = path.resolve(import.meta.dir, "../../..")
+  const fixture = await mkdtemp(path.join(import.meta.dir, "fixtures/array-lint-"))
+  await using cleanup = { [Symbol.asyncDispose]: () => rm(fixture, { recursive: true, force: true }) }
+  await Bun.write(path.join(fixture, "input.ts"), input.source)
+  const proc = Bun.spawn(
+    [
+      path.join(root, "node_modules/.bin/vp"),
+      "lint",
+      "--config",
+      path.join(root, "packages/script/test/fixtures/array-lint.config.mjs"),
+      path.join(fixture, "input.ts"),
+    ],
+    { cwd: root, stdout: "pipe", stderr: "pipe" },
+  )
+  const [stdout, stderr, exitCode] = await Promise.all([proc.stdout.text(), proc.stderr.text(), proc.exited])
+  expect(exitCode, stdout + stderr).toBe(input.diagnostic ? 1 : 0)
+  if (input.diagnostic) expect(stdout + stderr).toContain(input.diagnostic)
+  expect(stdout + stderr).not.toContain("No files found")
+})
