@@ -2,7 +2,6 @@
 
 An open source AI coding agent with a core runtime and terminal UI, based on OpenCode.
 
----
 
 ### Installation
 
@@ -11,6 +10,14 @@ curl -fsSL https://github.com/xLongLink/easycode/releases/latest/download/instal
 ```
 
 #### Installation Directory
+
+For local development, build and install from this repository:
+
+```bash
+make install
+make easycode
+make uninstall
+```
 
 The install script respects the following priority order for the installation path:
 
@@ -35,20 +42,3 @@ easycode includes two built-in agents you can switch between with the `Tab` key.
 
 Also included is a **general** subagent for complex searches and multistep tasks.
 This is used internally and can be invoked using `@general` in messages.
-
-Learn more about [agents](https://opencode.ai/docs/agents).
-
-### Releases
-
-The initial easycode version is **0.0.0**. Push a matching `v0.0.0` tag or run
-**Release easycode** in GitHub Actions with version `0.0.0`. The workflow checks
-the repository, builds binaries for Linux and macOS, and publishes a
-GitHub Release with the installer and `SHA256SUMS`. Binaries are not signed or
-notarized. No npm packages are published.
-
-For subsequent releases, update the root and CLI package versions before tagging.
-
-The command is `easycode`. Runtime data is isolated under the `easycode` XDG
-directories. Existing `opencode.json(c)`, `.opencode` project configuration,
-`OPENCODE_*` runtime variables, and internal `@opencode/*` imports remain
-compatible; existing OpenCode data is not migrated automatically.
