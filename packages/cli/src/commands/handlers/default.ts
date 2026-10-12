@@ -4,10 +4,8 @@ import { run } from "@opencode/tui"
 import { Commands } from "../commands"
 import { Runtime } from "../../framework/runtime"
 import { Config } from "../../config"
-import { Context, Effect, FileSystem, Option, Queue, Schedule, Semaphore } from "effect"
+import { Context, Effect, FileSystem, Option, Queue } from "effect"
 import { ServerConnection } from "../../services/server-connection"
-import { Updater } from "../../services/updater"
-import { UpdatePreflight } from "../../services/update-preflight"
 import { Npm } from "@opencode/util/npm"
 import { OPENCODE_ARTIFACT, OPENCODE_CHANNEL, OPENCODE_VERSION } from "../../version"
 import { Env } from "../../env"
@@ -21,8 +19,6 @@ export default Runtime.handler(Commands, (input) =>
     const requestedDirectory = Option.getOrUndefined(input.directory)
     const requestedServer = Option.getOrUndefined(input.server)
     if (requestedDirectory !== undefined) process.chdir(requestedDirectory)
-    const preflight = UpdatePreflight.make()
-    yield* Effect.addFinalizer(() => Effect.promise(() => preflight.close()))
     const serviceStarts = yield* Queue.unbounded<{
       readonly reason: "missing" | "version-mismatch"
       readonly previousVersion?: string
@@ -38,18 +34,13 @@ export default Runtime.handler(Commands, (input) =>
       mismatch: "replace",
       onStart: (reason, previousVersion) => {
         Queue.offerUnsafe(serviceStarts, { reason, previousVersion })
-        if (reason === "version-mismatch" && preflight.begin(previousVersion)) return
         process.stderr.write(
           reason === "version-mismatch"
             ? "Restarting background server (version mismatch)...\n"
             : "Starting background server...\n",
         )
       },
-    }).pipe(
-      Effect.tapError(() =>
-        Effect.promise(() => preflight.fail("easycode update could not start the new background service")),
-      ),
-    )
+    })
     const session = Option.getOrUndefined(input.session)
     // A missing --session ID becomes the ID of the session the first prompt creates.
     const sessionExists =
@@ -59,32 +50,6 @@ export default Runtime.handler(Commands, (input) =>
           findSession(OpenCode.make({ baseUrl: server.endpoint.url, headers: Service.headers(server.endpoint) }), session),
         catch: (cause) => new Error(errorMessage(cause)),
       })) !== undefined
-    const updater = yield* Updater.Service
-    let installing: string | undefined
-    let latest: Updater.RunResult | undefined
-    const installListeners = new Set<(version: string) => void>()
-    const resultListeners = new Set<(result: Updater.RunResult) => void>()
-    // Background checks, `/update` lookups, and manual installs take turns so two installs never overlap.
-    const checking = yield* Semaphore.make(1)
-    yield* updater
-      .run((version) => {
-        installing = version
-        installListeners.forEach((notify) => notify(version))
-      })
-      .pipe(
-        Effect.ensuring(Effect.sync(() => (installing = undefined))),
-        Effect.tap((result) =>
-          Effect.sync(() => {
-            if (!result || (result.type === latest?.type && result.version === latest.version)) return
-            latest = result
-            resultListeners.forEach((notify) => notify(result))
-          }),
-        ),
-        checking.withPermits(1),
-        Effect.repeat(Schedule.spaced("10 minutes")),
-        Effect.forkScoped({ startImmediately: true }),
-      )
-    preflight.loading()
     const config = yield* Config.Service
     const npm = yield* Npm.Service
     const fileSystem = yield* FileSystem.FileSystem
@@ -120,27 +85,10 @@ export default Runtime.handler(Commands, (input) =>
         get: () => runPromise(config.get()),
         update: (update) => runPromise(config.update(update)),
       },
-      updater: {
-        remote: requestedServer !== undefined,
-        subscribe: (notify) => {
-          if (latest) notify(latest)
-          resultListeners.add(notify)
-          return () => resultListeners.delete(notify)
-        },
-        check: (signal, notify) => {
-          if (installing) notify(installing)
-          installListeners.add(notify)
-          return runPromise(checking.withPermits(1)(updater.check()), { signal }).finally(() =>
-            installListeners.delete(notify),
-          )
-        },
-        apply: (version) => runPromise(checking.withPermits(1)(updater.apply(version))),
-      },
       packages: {
         prepare: (spec, install = true) => runPromise(install ? npm.add(spec) : npm.resolve(spec)),
       },
       environment: requestedServer === undefined ? Env.session() : undefined,
-      terminalHandoff: () => preflight.finish(),
       log: (level, message, tags) => {
         const effect =
           level === "debug"

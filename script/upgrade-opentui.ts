@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import path from "node:path"
+import { editVersions } from "./opentui"
 
 const args = process.argv.slice(2)
 const usage = "Usage: bun run script/upgrade-opentui.ts [--snapshot] <version>"
@@ -36,64 +37,10 @@ const ver = raw.replace(/^v/, "")
 const root = path.resolve(import.meta.dir, "..")
 const lockfile = path.join(root, "bun.lock")
 const skip = new Set([".git", ".opencode", ".turbo", "dist", "node_modules"])
-const keys = ["@opentui/core", "@opentui/keymap", "@opentui/solid"] as const
 
 const files = (await Array.fromAsync(new Bun.Glob("**/package.json").scan({ cwd: root }))).filter(
   (file) => !file.split("/").some((part) => skip.has(part)),
 )
-
-const setVersion = (cur: string, kind: "dep" | "peer") => {
-  if (cur === "catalog:" || cur.startsWith("workspace:")) return cur
-  if (snapshot) return ver
-  if (kind === "peer") return `>=${ver}`
-  if (cur.startsWith(">=")) return `>=${ver}`
-  if (cur.startsWith("^")) return `^${ver}`
-  if (cur.startsWith("~")) return `~${ver}`
-  return ver
-}
-
-const editDeps = (obj: unknown, kind: "dep" | "peer") => {
-  if (!obj || typeof obj !== "object") return false
-  const map = obj as Record<string, unknown>
-  return keys
-    .map((key) => {
-      const cur = map[key]
-      if (typeof cur !== "string") return false
-      const next = setVersion(cur, kind)
-      if (next === cur) return false
-      map[key] = next
-      return true
-    })
-    .some(Boolean)
-}
-
-const editCatalog = (obj: unknown) => {
-  if (!obj || typeof obj !== "object") return false
-  const map = obj as Record<string, unknown>
-  return keys
-    .map((key) => {
-      const cur = map[key]
-      if (typeof cur !== "string" || cur === ver) return false
-      map[key] = ver
-      return true
-    })
-    .some(Boolean)
-}
-
-const editOverrides = (obj: unknown) => {
-  if (!obj || typeof obj !== "object") return false
-  const map = obj as Record<string, unknown>
-  return keys
-    .map((key) => {
-      const cur = map[key]
-      if (typeof cur !== "string") return false
-      const next = snapshot ? ver : "catalog:"
-      if (next === cur) return false
-      map[key] = next
-      return true
-    })
-    .some(Boolean)
-}
 
 const out = (
   await Promise.all(
@@ -102,11 +49,11 @@ const out = (
       const txt = await Bun.file(file).text()
       const json = JSON.parse(txt)
       const hit = [
-        editCatalog(json.workspaces?.catalog),
-        editOverrides(json.overrides),
-        editDeps(json.dependencies, "dep"),
-        editDeps(json.devDependencies, "dep"),
-        editDeps(json.peerDependencies, "peer"),
+        editVersions(json.workspaces?.catalog, "catalog", ver, snapshot),
+        editVersions(json.overrides, "override", ver, snapshot),
+        editVersions(json.dependencies, "dep", ver, snapshot),
+        editVersions(json.devDependencies, "dep", ver, snapshot),
+        editVersions(json.peerDependencies, "peer", ver, snapshot),
       ].some(Boolean)
       if (!hit) return null
       await Bun.write(file, `${JSON.stringify(json, null, 2)}\n`)

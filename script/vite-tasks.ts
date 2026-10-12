@@ -48,6 +48,7 @@ export function workspaceTasks(pkg: { name: string; scripts: Record<string, stri
                     "bun.lock",
                     "tsconfig.json",
                     "script/vite-tasks.ts",
+                    "script/build.ts",
                   ].map((pattern) => ({ pattern, base: "workspace" as const })),
                 ],
                 // Composite checks emit declarations needed by dependent projects.

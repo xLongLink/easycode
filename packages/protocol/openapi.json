@@ -13794,10 +13794,6 @@
           "default_agent": {
             "type": "string"
           },
-          "update": {
-            "type": "string",
-            "enum": ["disable", "notify", "auto"]
-          },
           "share": {
             "type": "string",
             "enum": ["manual", "auto", "disabled"]

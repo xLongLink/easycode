@@ -1,5 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "types": ["bun"] },
-  "include": ["vite.config.ts", "script/vite-tasks.ts", "packages/script/test/vite-tasks.test.ts"]
+  "include": [
+    "vite.config.ts",
+    "script/vite-tasks.ts",
+    "script/build.ts",
+    "script/opentui.ts",
+    "packages/script/test/vite-tasks.test.ts",
+    "packages/script/test/script-cleanup.test.ts"
+  ]
 }

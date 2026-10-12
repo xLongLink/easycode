@@ -21,7 +21,6 @@ const env = {
   OPENCODE_CHANNEL: process.env["OPENCODE_CHANNEL"],
   OPENCODE_BUMP: process.env["OPENCODE_BUMP"],
   OPENCODE_VERSION: process.env["OPENCODE_VERSION"],
-  OPENCODE_RELEASE: process.env["OPENCODE_RELEASE"],
 }
 const CHANNEL = await (async () => {
   if (env.OPENCODE_CHANNEL) return env.OPENCODE_CHANNEL
@@ -58,23 +57,12 @@ function previewBuildNumber() {
   return runNumber
 }
 
-const team = ["actions-user", "github-actions[bot]", "opencode", "opencode-agent[bot]"]
-
 export const Script = {
   get channel() {
     return CHANNEL
   },
   get version() {
     return VERSION
-  },
-  get preview() {
-    return IS_PREVIEW
-  },
-  get release(): boolean {
-    return !!env.OPENCODE_RELEASE
-  },
-  get team() {
-    return team
   },
 }
 console.log(`easycode script`, JSON.stringify(Script, null, 2))

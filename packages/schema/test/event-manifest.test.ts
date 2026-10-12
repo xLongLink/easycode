@@ -22,6 +22,14 @@ import { SessionMessage } from "../src/session-message.js"
 import { WorkspaceEvent } from "../src/workspace-event.js"
 
 describe("public event manifest", () => {
+  test("does not expose application updater events or configuration", () => {
+    expect(Config.Info.fields).not.toHaveProperty("update")
+    for (const type of ["installation.update-available", "installation.updated"]) {
+      expect(EventManifest.Server.has(type)).toBe(false)
+      expect(EventManifest.Latest.has(type)).toBe(false)
+    }
+  })
+
   test("owns the complete public event surface", () => {
     expect(EventManifest.ServerDefinitions).toContain(Agent.Event.Updated)
     expect(EventManifest.ServerDefinitions.filter((definition) => definition.type === "agent.updated")).toEqual([

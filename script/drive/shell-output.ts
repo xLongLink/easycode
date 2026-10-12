@@ -11,7 +11,7 @@ export default OpenCodeDriver.use(
     opencode: { dev: process.env.OPENCODE_DEV ?? process.cwd() },
     keepArtifacts: true,
     tui: { recording: true, keypressOverlay: true, viewport: { cols: 90, rows: 30 } },
-    config: { autoupdate: false, username: "Demo" },
+    config: { username: "Demo" },
     tuiConfig: { theme: { name: "opencode", mode: "dark" }, animations: false, tabs: { mode: "off" } },
     project: {
       git: true,

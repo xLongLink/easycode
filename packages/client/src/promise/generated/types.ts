@@ -1795,24 +1795,6 @@ export type TuiSessionSelect = {
   data: { sessionID: SessionID }
 }
 
-export type InstallationUpdated = {
-  id: EventID
-  created: number
-  metadata?: { [x: string]: any }
-  type: "installation.updated"
-  location?: LocationRef
-  data: { version: string }
-}
-
-export type InstallationUpdateAvailable = {
-  id: EventID
-  created: number
-  metadata?: { [x: string]: any }
-  type: "installation.update-available"
-  location?: LocationRef
-  data: { version: string }
-}
-
 export type VcsBranchUpdated = {
   id: EventID
   created: number
@@ -2129,7 +2111,6 @@ export type ConfigEntry =
         shell?: string
         model?: string | { providerID: string; model: string; variant?: string }
         default_agent?: string
-        update?: "disable" | "notify" | "auto"
         share?: "manual" | "auto" | "disabled"
         enterprise?: { url?: string }
         username?: string
@@ -2605,8 +2586,6 @@ export type V2Event =
   | TuiCommandExecute
   | TuiToastShow
   | TuiSessionSelect
-  | InstallationUpdated
-  | InstallationUpdateAvailable
   | VcsBranchUpdated
   | McpStatusChanged
   | McpResourcesChanged

@@ -15,7 +15,6 @@ export default OpenCodeDriver.use(
     keepArtifacts: true,
     tui: { recording: true, viewport: { cols: 100, rows: 30 } },
     config: {
-      autoupdate: false,
       username: "Demo",
       agents: { reviewer: { mode: "subagent", description: "Review the fixture" } },
     },

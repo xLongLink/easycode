@@ -838,20 +838,18 @@ describe("Config", () => {
     expect(migrateV1({ experimental: { subagent_depth: 2 } }).experimental?.subagent_depth).toBe(2)
   })
 
-  test("migrates the v1 update policy", () => {
-    expect(migrateV1({ autoupdate: false }).update).toBe("disable")
-    expect(migrateV1({ autoupdate: "notify" }).update).toBe("notify")
-    expect(migrateV1({ autoupdate: true }).update).toBe("auto")
-    expect(migrateV1({}).update).toBeUndefined()
-  })
-
-  test("normalizes the native auto update policy", () => {
-    expect(ConfigNormalize.normalize({ update: "auto" })).toEqual({
-      type: "normalized",
-      encoded: { update: "auto" },
-      diagnostics: [],
-    })
-  })
+  test.each([{ autoupdate: false }, { autoupdate: "notify" }, { autoupdate: true }, { update: "auto" }])(
+    "ignores obsolete update settings with a diagnostic: %j",
+    (input) => {
+      const result = ConfigNormalize.normalize(input)
+      expect(result.type).toBe("normalized")
+      if (result.type !== "normalized") throw new Error("Expected normalized configuration")
+      expect(result.encoded).toEqual({})
+      expect(result.diagnostics).toEqual([
+        expect.objectContaining({ kind: "unsupported", path: [Object.keys(input)[0]] }),
+      ])
+    },
+  )
 
   test("migrates v1 provider lists to policies", () => {
     expect(
@@ -1296,7 +1294,6 @@ describe("Config", () => {
                 shell: "/bin/bash",
                 model: "anthropic/claude",
                 default_agent: "reviewer",
-                update: "notify",
                 share: "disabled",
                 enterprise: { url: "https://share.example.com" },
                 username: "test-user",
@@ -1381,7 +1378,6 @@ describe("Config", () => {
             expect(documents[0]?.info.shell).toBe("/bin/bash")
             expect(documents[0]?.info.model).toEqual(selection("anthropic/claude"))
             expect(documents[0]?.info.default_agent).toBe("reviewer")
-            expect(documents[0]?.info.update).toBe("notify")
             expect(documents[0]?.info.share).toBe("disabled")
             expect(documents[0]?.info.enterprise).toEqual({ url: "https://share.example.com" })
             expect(documents[0]?.info.username).toBe("test-user")
@@ -1510,7 +1506,6 @@ describe("Config", () => {
               JSON.stringify({
                 shell: "/bin/zsh",
                 default_agent: "reviewer",
-                autoupdate: false,
                 snapshot: false,
                 autoshare: true,
                 permission: {
@@ -1598,7 +1593,6 @@ describe("Config", () => {
             expect(documents[0]?.info).toBeInstanceOf(Info)
             expect(documents[0]?.info.shell).toBe("/bin/zsh")
             expect(documents[0]?.info.default_agent).toBe("reviewer")
-            expect(documents[0]?.info.update).toBe("disable")
             expect(documents[0]?.info.snapshots).toBe(false)
             expect(documents[0]?.info.share).toBe("auto")
             expect(documents[0]?.info.permissions).toEqual([

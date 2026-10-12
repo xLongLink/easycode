@@ -6,7 +6,6 @@ import path from "node:path"
 import { Commands } from "../commands"
 import { Runtime } from "../../framework/runtime"
 import { ServerConnection } from "../../services/server-connection"
-import { Updater } from "../../services/updater"
 import { handlePromptErrors, prompt, requireInteractive } from "../../ui/prompt"
 import { errorMessage } from "../../util/error"
 
@@ -16,8 +15,10 @@ export default Runtime.handler(
     intro("Uninstall easycode")
     const fs = yield* FileSystem.FileSystem
     const global = yield* Global.Service
-    const updater = yield* Updater.Service
-    const method = yield* updater.method()
+    const executable = yield* fs.realPath(process.execPath).pipe(Effect.orElseSucceed(() => process.execPath))
+    const curlPath = path.resolve(global.home, ".easycode", "bin", "easycode")
+    const curlBinary = yield* fs.realPath(curlPath).pipe(Effect.orElseSucceed(() => curlPath))
+    const method = path.basename(executable) === "easycode" || executable === curlBinary ? "curl" : undefined
     // Data, config, and state hold sessions, credentials, settings, and prompt history; uninstall only removes the cache.
     // All channels share the cache. Stop background services before deleting it.
     // Read registrations directly: ServiceConfig.options() can migrate files even during a dry run.

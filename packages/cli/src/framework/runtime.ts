@@ -3,7 +3,6 @@ import { Command } from "effect/cli"
 import { PrintLogs } from "../commands/commands"
 import { Spec } from "./spec"
 import { Global } from "@opencode/util/global"
-import { Updater } from "../services/updater"
 import { Config } from "../config"
 import { Npm } from "@opencode/util/npm"
 
@@ -16,26 +15,18 @@ export type Input<Value> =
 
 type RuntimeHandler = (
   input: unknown,
-) => Effect.Effect<
-  void,
-  unknown,
-  FileSystem.FileSystem | Global.Service | Npm.Service | Updater.Service | Config.Service | Scope.Scope
->
+) => Effect.Effect<void, unknown, FileSystem.FileSystem | Global.Service | Npm.Service | Config.Service | Scope.Scope>
 type Loader<Node extends Spec.Any> = () => Promise<{
   default: (
     input: Input<Node>,
-  ) => Effect.Effect<
-    void,
-    any,
-    FileSystem.FileSystem | Global.Service | Npm.Service | Updater.Service | Config.Service | Scope.Scope
-  >
+  ) => Effect.Effect<void, any, FileSystem.FileSystem | Global.Service | Npm.Service | Config.Service | Scope.Scope>
 }>
 type ProvidedCommand = Command.Command<
   string,
   unknown,
   unknown,
   unknown,
-  FileSystem.FileSystem | Global.Service | Npm.Service | Updater.Service | Config.Service | Scope.Scope
+  FileSystem.FileSystem | Global.Service | Npm.Service | Config.Service | Scope.Scope
 >
 
 export type Handlers<Node extends Spec.Any> = keyof Node["commands"] extends never

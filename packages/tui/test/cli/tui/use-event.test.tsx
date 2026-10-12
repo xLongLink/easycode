@@ -35,17 +35,6 @@ function vcs(branch: string): OpenCodeEvent {
   }
 }
 
-function update(version: string): OpenCodeEvent {
-  return {
-    id: `evt_update_${version}`,
-    created: 0,
-    type: "installation.update-available",
-    data: {
-      version,
-    },
-  }
-}
-
 async function mount(reconnect?: (signal: AbortSignal) => Promise<{ api: OpenCodeClient }>, log?: LogSink) {
   const events = createEventStream()
   const calls = createFetch(undefined, events)
@@ -163,11 +152,11 @@ describe("useEvent", () => {
     const { app, emit, seen } = await mount()
 
     try {
-      emit(event(update("1.2.3"), { directory: "global" }))
+      emit(event(vcs("global"), { directory: "global" }))
 
       await wait(() => seen.length === 1)
 
-      expect(seen).toEqual([event(update("1.2.3"), { directory: "global" })])
+      expect(seen).toEqual([event(vcs("global"), { directory: "global" })])
     } finally {
       app.renderer.destroy()
     }

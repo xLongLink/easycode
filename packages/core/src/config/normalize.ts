@@ -42,7 +42,7 @@ export type Result =
   | { readonly type: "rejected"; readonly diagnostics: readonly Diagnostic[] }
 
 const options = { errors: "all", onExcessProperty: "ignore" } as const
-const unsupportedTopLevel = ["logLevel", "server", "subagent_depth", "layout"] as const
+const unsupportedTopLevel = ["logLevel", "server", "subagent_depth", "layout", "update", "autoupdate"] as const
 const unsupportedExperimental = [
   "disable_paste_summary",
   "batch_tool",
@@ -52,7 +52,6 @@ const unsupportedExperimental = [
 ] as const
 const unsupportedProvider = ["id", "whitelist", "blacklist"] as const
 const unsupportedModel = ["release_date", "attachment", "reasoning", "temperature", "experimental"] as const
-const LegacyAutoupdate = Schema.Literals([true, false, "notify"])
 
 export function normalize(input: unknown): Result {
   if (!isRecord(input))
@@ -70,12 +69,6 @@ export function normalize(input: unknown): Result {
   const legacySnapshots = own(input, "snapshot")
     ? decodeEncoded(Schema.Boolean, input.snapshot, ["snapshot"], diagnostics)
     : undefined
-  const legacyUpdate = own(input, "autoupdate")
-    ? decodeValue(LegacyAutoupdate, input.autoupdate, ["autoupdate"], diagnostics)
-    : undefined
-  const nativeUpdate = own(input, "update")
-    ? decodeEncoded(Info.fields.update, input.update, ["update"], diagnostics)
-    : undefined
   const legacyShare = own(input, "autoshare")
     ? decodeValue(Schema.Boolean, input.autoshare, ["autoshare"], diagnostics) === true
       ? "auto"
@@ -86,16 +79,6 @@ export function normalize(input: unknown): Result {
     : undefined
   if (legacyMedia !== undefined) encoded.media = legacyMedia
   if (legacySnapshots !== undefined) encoded.snapshots = legacySnapshots
-  const migratedUpdate =
-    legacyUpdate === false
-      ? "disable"
-      : legacyUpdate === "notify"
-        ? "notify"
-        : legacyUpdate === true
-          ? "auto"
-          : undefined
-  const update = prefer(migratedUpdate, nativeUpdate, ["update"], diagnostics)
-  if (update !== undefined) encoded.update = update
   if (legacyShare !== undefined) encoded.share = legacyShare
 
   const legacyReferences = decodeMap(input.reference, ConfigReference.Entry, ["reference"], diagnostics, decodeEncoded)

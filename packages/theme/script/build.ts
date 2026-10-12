@@ -1,9 +1,5 @@
 #!/usr/bin/env bun
 
-import { $ } from "bun"
-import { fileURLToPath } from "node:url"
+import { compile } from "../../../script/build.js"
 
-process.chdir(fileURLToPath(new URL("..", import.meta.url)))
-
-await $`rm -rf dist`
-await $`bun tsc -p tsconfig.build.json`
+await compile(new URL("..", import.meta.url))

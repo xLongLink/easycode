@@ -49,6 +49,7 @@ describe("workspace tasks", () => {
             { pattern: ".npmrc", base: "workspace" },
             { pattern: ".github/actions/setup-bun/**", base: "workspace" },
             { pattern: ".github/workflows/test.yml", base: "workspace" },
+            { pattern: "script/build.ts", base: "workspace" },
           ]),
         },
       },
@@ -145,4 +146,7 @@ test("task cache restores builds and invalidates global inputs and environment",
   expect(await Bun.file(path.join(fixture, "packages/ai/dist/result.txt")).text()).toBe("second")
   await Bun.write(path.join(fixture, "patches/global.patch"), "global input changed")
   expect(await run("second")).toContain("'global.patch' added in 'patches'")
+  await Bun.write(path.join(fixture, "script/build.ts"), "shared builder changed")
+  expect(await run("second")).toContain("Cache miss")
+  expect(await run("second")).toContain("Cache hit - output replayed")
 }, 30000)
