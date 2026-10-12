@@ -10,7 +10,6 @@ import { DialogProvider } from "../../../src/ui/dialog"
 import { ToastProvider } from "../../../src/ui/toast"
 import { DiffViewerImage, isDiffImageFile } from "../../../src/feature-plugins/system/diff-viewer-image"
 import { diffImageFixture } from "../../fixture/diff-image"
-import { emptyThemeSource } from "../../fixture/fixture"
 import { TestTuiContexts } from "../../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
 
@@ -153,7 +152,7 @@ function renderImage(
       <TestTuiContexts>
         <ConfigProvider config={createTuiResolvedConfig()}>
           <Keymap.Provider>
-            <ThemeProvider mode={options.mode} source={emptyThemeSource}>
+            <ThemeProvider mode={options.mode}>
               <ToastProvider>
                 <DialogProvider>{component()}</DialogProvider>
               </ToastProvider>

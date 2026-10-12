@@ -6,7 +6,6 @@ import { createSignal } from "solid-js"
 import { ConfigProvider } from "../../src/config"
 import { EMPTY_SESSION_TAB_STATUS, SessionTabs, type SessionTabsController } from "../../src/component/session-tabs"
 import { ThemeProvider } from "../../src/context/theme"
-import { emptyThemeSource } from "../fixture/fixture"
 import { TestTuiContexts } from "../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../fixture/tui-runtime"
 
@@ -29,7 +28,7 @@ test("releasing a transcript selection over tab controls does not activate them"
     () => (
       <TestTuiContexts>
         <ConfigProvider config={createTuiResolvedConfig({ tabs: { mode: "on" } })}>
-          <ThemeProvider mode="dark" source={emptyThemeSource}>
+          <ThemeProvider mode="dark">
             <box flexDirection="column">
               <SessionTabs controller={controller} animations={false} />
               <text>selectable transcript text</text>
@@ -80,7 +79,7 @@ test("middle-click closes a session tab without selecting it", async () => {
     () => (
       <TestTuiContexts>
         <ConfigProvider config={createTuiResolvedConfig({ tabs: { mode: "on" } })}>
-          <ThemeProvider mode="dark" source={emptyThemeSource}>
+          <ThemeProvider mode="dark">
             <SessionTabs controller={controller} animations={false} />
           </ThemeProvider>
         </ConfigProvider>
@@ -128,7 +127,7 @@ test("keeps consecutive close controls fixed across overflow window changes", as
     () => (
       <TestTuiContexts>
         <ConfigProvider config={createTuiResolvedConfig({ tabs: { mode: "on" } })}>
-          <ThemeProvider mode="dark" source={emptyThemeSource}>
+          <ThemeProvider mode="dark">
             <SessionTabs controller={controller} animations={false} />
           </ThemeProvider>
         </ConfigProvider>
@@ -181,7 +180,7 @@ test("reflows held tabs when the pointer leaves the strip", async () => {
     () => (
       <TestTuiContexts>
         <ConfigProvider config={createTuiResolvedConfig({ tabs: { mode: "on" } })}>
-          <ThemeProvider mode="dark" source={emptyThemeSource}>
+          <ThemeProvider mode="dark">
             <box flexDirection="column">
               <SessionTabs controller={controller} animations={false} />
               <text>outside</text>

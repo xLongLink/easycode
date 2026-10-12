@@ -22,7 +22,7 @@ import { StorageProvider } from "../../src/context/storage"
 import { ThemeProvider, useTheme } from "../../src/context/theme"
 import { DialogProvider } from "../../src/ui/dialog"
 import { ToastProvider } from "../../src/ui/toast"
-import { emptyThemeSource, tmpdir } from "../fixture/fixture"
+import { tmpdir } from "../fixture/fixture"
 import { createApi, createEventStream, createFetch } from "../fixture/tui-client"
 import { TestTuiContexts } from "../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../fixture/tui-runtime"
@@ -94,7 +94,7 @@ for (const orientation of ["horizontal", "vertical"] as const) {
                     <DataProvider directory={temporary.path}>
                       <LocationProvider>
                         <SessionTabsProvider>
-                          <ThemeProvider mode="dark" source={emptyThemeSource}>
+                          <ThemeProvider mode="dark">
                             <Colors />
                             <Keymap.Provider>
                               <ToastProvider>

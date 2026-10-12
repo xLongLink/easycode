@@ -9,7 +9,7 @@ import { Keymap } from "../../src/context/keymap"
 import { ThemeProvider } from "../../src/context/theme"
 import { DialogProvider } from "../../src/ui/dialog"
 import { ToastProvider } from "../../src/ui/toast"
-import { emptyThemeSource, tmpdir } from "../fixture/fixture"
+import { tmpdir } from "../fixture/fixture"
 import { TestTuiContexts } from "../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../fixture/tui-runtime"
 
@@ -21,7 +21,7 @@ test("installation progress replaces checking while the update job is still pend
     () => (
       <TestTuiContexts directory={temporary.path} paths={{ state: temporary.path }}>
         <ConfigProvider config={createTuiResolvedConfig()}>
-          <ThemeProvider mode="dark" source={emptyThemeSource}>
+          <ThemeProvider mode="dark">
             <Keymap.Provider>
               <ToastProvider>
                 <DialogProvider>

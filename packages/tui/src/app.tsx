@@ -64,7 +64,6 @@ import { DialogStatus } from "./component/dialog-status"
 import { DialogConfig } from "./component/dialog-config"
 import { DialogDebug } from "./component/dialog-debug"
 import { DialogPair } from "./component/dialog-pair"
-import { DialogThemeList } from "./component/dialog-theme-list"
 import { DialogHelp } from "./ui/dialog-help"
 import { DialogAgent } from "./component/dialog-agent"
 import { DialogSessionList } from "./component/dialog-session-list"
@@ -74,8 +73,7 @@ import { clampSessionTabsWidth, sessionTabsFitVertically, SESSION_SIDEBAR_WIDTH 
 import { createPaneResize } from "./ui/pane-resize"
 import { PaneResizeHandle } from "./ui/pane-resize-handle"
 import { clickedLink } from "./ui/link"
-import { ThemeErrorToast } from "./component/theme-error-toast"
-import { createThemeSource, ThemeProvider, useTheme, useThemes } from "./context/theme"
+import { ThemeProvider, useTheme } from "./context/theme"
 import { Home } from "./routes/home"
 import { PromptHistoryProvider } from "./prompt/history"
 import { FrecencyProvider } from "./prompt/frecency"
@@ -161,9 +159,6 @@ const appBindingCommands = [
   "service.restart",
   "location.reload",
   "opencode.debug",
-  "theme.switch",
-  "theme.switch_mode",
-  "theme.mode.lock",
   "help.show",
   "docs.open",
   "diff.open",
@@ -377,11 +372,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
                                                   <LocationProvider>
                                                     <SessionTabsProvider>
                                                       <SessionTerminalsProvider>
-                                                        <ThemeProvider
-                                                          mode={mode}
-                                                          source={createThemeSource(global.config)}
-                                                        >
-                                                          <ThemeErrorToast />
+                                                        <ThemeProvider mode={mode}>
                                                           <LocalProvider>
                                                             <PromptStashProvider>
                                                               <DialogProvider>
@@ -469,7 +460,6 @@ function App() {
   const toast = useToast()
   const updater = useUpdateNotification()
   const theme = useTheme()
-  const { mode, supports, setMode, locked, lock, unlock, afterPaint } = useThemes()
   const data = useData()
   const location = useLocation()
   const exit = useExit()
@@ -477,16 +467,6 @@ function App() {
   const plugins = usePlugin()
   const clipboard = useClipboard()
   const terminalEnvironment = useTuiTerminalEnvironment()
-  let paletteTimer: ReturnType<typeof setTimeout> | undefined
-  const afterFrame = () => {
-    // The native writer can still be flushing the frame when FRAME fires. Keep OSC probes behind visible app output.
-    paletteTimer = setTimeout(afterPaint, 50)
-  }
-  onMount(() => renderer.once(CliRenderEvents.FRAME, afterFrame))
-  onCleanup(() => {
-    renderer.off(CliRenderEvents.FRAME, afterFrame)
-    if (paletteTimer) clearTimeout(paletteTimer)
-  })
   createEffect(() => {
     if (client.connection.status() !== "connected") return
     if (route.data.type !== "session") return
@@ -1039,37 +1019,6 @@ function App() {
         slash: { name: "debug" },
         run: () => {
           dialog.replace(() => <DialogDebug />)
-        },
-        category: "System",
-      },
-      {
-        name: "theme.switch",
-        title: "Switch theme",
-        slash: { name: "themes" },
-        run: () => {
-          dialog.replace(() => <DialogThemeList />)
-        },
-        category: "System",
-      },
-      {
-        name: "theme.switch_mode",
-        title: mode() === "dark" ? "Switch to light mode" : "Switch to dark mode",
-        palette: undefined,
-        enabled: () => supports(mode() === "dark" ? "light" : "dark"),
-        run: () => {
-          setMode(mode() === "dark" ? "light" : "dark")
-          dialog.clear()
-        },
-        category: "System",
-      },
-      {
-        name: "theme.mode.lock",
-        title: locked() ? "Unlock theme mode" : "Lock theme mode",
-        palette: undefined,
-        run: () => {
-          if (locked()) unlock()
-          else lock()
-          dialog.clear()
         },
         category: "System",
       },

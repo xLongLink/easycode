@@ -1,6 +1,5 @@
 import { createMemo, createSignal } from "solid-js"
 import { useConfig } from "../config"
-import { useThemes } from "../context/theme"
 import { DialogSelect } from "../ui/dialog-select"
 import { useToast } from "../ui/toast"
 
@@ -19,21 +18,6 @@ type Setting = {
 }
 
 export const settings: Setting[] = [
-  {
-    title: "Theme",
-    category: "Appearance",
-    path: ["theme", "name"],
-    default: "opencode",
-    keywords: ["color scheme", "colors"],
-  },
-  {
-    title: "Color mode",
-    category: "Appearance",
-    path: ["theme", "mode"],
-    default: "system",
-    values: ["system", "dark", "light"],
-    keywords: ["dark mode", "light mode", "system theme"],
-  },
   {
     title: "Animations",
     category: "Appearance",
@@ -324,7 +308,6 @@ export function settingID(setting: Setting) {
 export function DialogConfig(props: { current?: string }) {
   const config = useConfig()
   const toast = useToast()
-  const themes = useThemes()
   const current = Math.max(
     0,
     settings.findIndex((setting) => settingID(setting) === props.current),
@@ -337,13 +320,8 @@ export function DialogConfig(props: { current?: string }) {
       if (!result || typeof result !== "object") return undefined
       return (result as Record<string, unknown>)[key]
     }, config.data)
-    if (setting.path.join(".") === "theme.name") return current ?? themes.selected
     return current ?? setting.default
   }
-  const values = (setting: Setting) =>
-    setting.path.join(".") === "theme.name"
-      ? Object.keys(themes.all()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
-      : setting.values
   const display = (setting: Setting) => {
     const current = value(setting)
     if (setting.format) return setting.format(current)
@@ -364,7 +342,7 @@ export function DialogConfig(props: { current?: string }) {
     if (saving()) return
     const setting = settings[index]
     const current = value(setting)
-    const choices = values(setting)
+    const choices = setting.values
     const next = choices
       ? choices[(choices.indexOf(current) + direction + choices.length) % choices.length]
       : Math.min(setting.max!, Math.max(setting.min!, Number(current) + direction * setting.step!))

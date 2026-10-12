@@ -11,7 +11,6 @@ import { SessionGroupView } from "../../../src/routes/session/group-view"
 import { createTimelineAnchors, groupID, type AnchorTarget } from "../../../src/routes/session/anchors"
 import { context } from "../../../src/routes/session/render-context"
 import type { SessionEntry, SessionGroup } from "../../../src/routes/session/grouping/session"
-import { emptyThemeSource } from "../../fixture/fixture"
 import { TestTuiContexts } from "../../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
 
@@ -313,7 +312,7 @@ function mount(input: {
     () => (
       <TestTuiContexts>
         <ConfigProvider config={input.config}>
-          <ThemeProvider mode="dark" source={emptyThemeSource}>
+          <ThemeProvider mode="dark">
             <context.Provider
               value={{
                 width: 40,

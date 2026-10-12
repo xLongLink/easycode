@@ -124,7 +124,7 @@ async function renderComposer(
                   <DataProvider directory={process.cwd()}>
                     <LocationProvider>
                       <RouteProvider initialRoute={{ type: "session", sessionID: "parent" }}>
-                        <ThemeProvider mode="dark" source={{ discover: async () => ({}) }}>
+                        <ThemeProvider mode="dark">
                           <ToastProvider>
                             <DialogProvider>
                               <Content />

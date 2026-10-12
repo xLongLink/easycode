@@ -13,7 +13,6 @@ import { ThemeProvider } from "../../../src/context/theme"
 import { DialogProvider } from "../../../src/ui/dialog"
 import { ToastProvider, useToast } from "../../../src/ui/toast"
 import { SessionLocationMissing } from "../../../src/routes/session/location-missing"
-import { emptyThemeSource } from "../../fixture/fixture"
 import { createApi, createEventStream, createFetch, json } from "../../fixture/tui-client"
 import { TestTuiContexts } from "../../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
@@ -394,7 +393,7 @@ async function renderMove(input: {
                 <ClientProvider api={createApi(calls.fetch)}>
                   <DataProvider directory={launch}>
                     <LocationProvider>
-                      <ThemeProvider mode="dark" source={emptyThemeSource}>
+                      <ThemeProvider mode="dark">
                         <DialogProvider>
                           <Probe />
                         </DialogProvider>

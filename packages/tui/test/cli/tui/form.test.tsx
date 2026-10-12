@@ -10,7 +10,7 @@ import { ThemeProvider } from "../../../src/context/theme"
 import { Keymap } from "../../../src/context/keymap"
 import { ConfigProvider } from "../../../src/config"
 import { ToastProvider } from "../../../src/ui/toast"
-import { emptyThemeSource, tmpdir } from "../../fixture/fixture"
+import { tmpdir } from "../../fixture/fixture"
 import { TestTuiContexts } from "../../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
 import { createApi, createEventStream, createFetch, json } from "../../fixture/tui-client"
@@ -107,7 +107,7 @@ async function mountForm(
           <Keymap.Provider>
             <ClientProvider api={createApi(transport.fetch)}>
               <DataProvider directory={process.cwd()}>
-                <ThemeProvider mode="dark" source={emptyThemeSource}>
+                <ThemeProvider mode="dark">
                   <ToastProvider>{response ? <CurrentForm /> : <FormPrompt form={form} />}</ToastProvider>
                 </ThemeProvider>
               </DataProvider>

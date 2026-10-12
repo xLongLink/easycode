@@ -1322,7 +1322,7 @@ test("configured app binding opens settings", async () => {
 
   setup.mockInput.pressKey("F6")
   const settings = await setup.waitForFrame((frame) => frame.includes("Settings"))
-  expect(settings).toContain("Color mode")
+  expect(settings).not.toContain("Color mode")
   expect(settings).toContain("Animations")
 })
 
@@ -1330,11 +1330,11 @@ test("ctrl+c dismisses autocomplete and shell mode before exiting", async () => 
   await using setup = await createAppFixture()
   await setup.ready
   await setup.waitForFrame((frame) => frame.includes("commands"))
-  await setup.mockInput.typeText("/theme")
-  await setup.waitForFrame((frame) => frame.includes("Switch theme"))
+  await setup.mockInput.typeText("/help")
+  await setup.waitForFrame((frame) => frame.includes("Help"))
 
   setup.mockInput.pressKey("c", { ctrl: true })
-  await setup.waitForFrame((frame) => !frame.includes("Switch theme"))
+  await setup.waitForFrame((frame) => !frame.includes("Help"))
   expect(setup.renderer.isDestroyed).toBe(false)
 
   await setup.mockInput.typeText("!")

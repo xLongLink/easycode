@@ -1,12 +1,10 @@
 import { RGBA, SyntaxStyle, type CliRenderer, type ColorInput, type TerminalColors } from "@opentui/core"
-import { generateSyntax, resolveThemeDocument, themeModes, type ResolvedTheme } from "@opencode/theme/tui"
-import { allThemes, getOpenCodeTheme, isThemeSource, parseTheme, type ThemeDocumentSource } from "../theme"
+import { generateSyntax, resolveThemeDocument, type ResolvedTheme } from "@opencode/theme/tui"
+import { getOpenCodeTheme } from "../theme"
 import { ansiToRgba } from "../theme/color"
-import { discoverThemes } from "../theme/discovery"
-import { generateSystem, terminalMode } from "../theme/system"
-import { configDirectories } from "../util/config-directories"
+import { terminalMode } from "../theme/system"
 import { dedupeWith } from "effect/Array"
-import type { EntryKind, RunTuiConfig } from "./types"
+import type { EntryKind } from "./types"
 
 type Tone = {
   body: ColorInput
@@ -108,22 +106,9 @@ function nearestIndexed(indexed: RGBA[], color: RGBA): RGBA {
   return RGBA.clone(hit.item)
 }
 
-function map(
-  theme: ResolvedTheme,
-  indexed: RGBA[],
-  syntax?: SyntaxStyle,
-  system = false,
-): RunTheme {
-  // V1 system migration serializes colors; restore terminal defaults before quantizing scrollback.
-  const exact = (color: RGBA) => {
-    if (system && color.equals(theme.text.base)) return RGBA.defaultForeground(color)
-    if (system && color.equals(theme.background.base)) return RGBA.defaultBackground(color)
-    return color
-  }
-  const scrollback = (color: RGBA) => {
-    const value = exact(color)
-    return value.a === 0 || value.intent !== "rgb" ? value : nearestIndexed(indexed, value)
-  }
+function map(theme: ResolvedTheme, indexed: RGBA[], syntax?: SyntaxStyle): RunTheme {
+  const scrollback = (color: RGBA) =>
+    color.a === 0 || color.intent !== "rgb" ? color : nearestIndexed(indexed, color)
   syntax?.getAllStyles().forEach((style, name) => {
     syntax.registerStyle(name, {
       ...style,
@@ -135,31 +120,31 @@ function map(
   return {
     background: RGBA.defaultBackground(theme.background.base),
     footer: {
-      actionSecondaryText: exact(theme.text.action.secondary.base),
-      actionFocusedBg: exact(theme.background.action.primary.focused),
-      actionFocusedText: exact(theme.text.action.primary.focused),
-      formfieldText: exact(theme.text.formfield.base),
-      formfieldFocusedBg: exact(theme.background.formfield.focused),
-      formfieldFocusedText: exact(theme.text.formfield.focused),
-      selection: exact(theme.text.formfield.selected),
-      running: exact(theme.hue.interactive[200]),
-      question: exact(theme.hue.accent[200]),
-      permission: exact(theme.hue.accent[200]),
-      success: exact(theme.text.feedback.success.base),
-      link: exact(theme.markdown.link),
+      actionSecondaryText: theme.text.action.secondary.base,
+      actionFocusedBg: theme.background.action.primary.focused,
+      actionFocusedText: theme.text.action.primary.focused,
+      formfieldText: theme.text.formfield.base,
+      formfieldFocusedBg: theme.background.formfield.focused,
+      formfieldFocusedText: theme.text.formfield.focused,
+      selection: theme.text.formfield.selected,
+      running: theme.hue.interactive[200],
+      question: theme.hue.accent[200],
+      permission: theme.hue.accent[200],
+      success: theme.text.feedback.success.base,
+      link: theme.markdown.link,
       categorical: dedupeWith(
-        theme.categorical.map((scale) => exact(scale[200])),
+        theme.categorical.map((scale) => scale[200]),
         (a, b) => a.equals(b),
       ),
-      warning: exact(theme.text.feedback.warning.base),
-      error: exact(theme.text.feedback.error.base),
-      muted: exact(theme.text.muted),
-      text: exact(theme.text.base),
-      shade: exact(theme.background.raised.base),
-      surface: exact(theme.background.raised.base),
-      pane: exact(theme.background.raised.high),
-      border: exact(theme.border.base),
-      line: exact(theme.background.raised.high),
+      warning: theme.text.feedback.warning.base,
+      error: theme.text.feedback.error.base,
+      muted: theme.text.muted,
+      text: theme.text.base,
+      shade: theme.background.raised.base,
+      surface: theme.background.raised.base,
+      pane: theme.background.raised.high,
+      border: theme.border.base,
+      line: theme.background.raised.high,
     },
     entry: {
       system: { body: scrollback(theme.text.muted) },
@@ -191,14 +176,8 @@ function map(
   }
 }
 
-export const RUN_THEME_FALLBACK = map(
-  resolveThemeDocument(parseTheme(getOpenCodeTheme()), "dark"),
-  ansiPalette,
-)
-export const RUN_THEME_FALLBACK_LIGHT = map(
-  resolveThemeDocument(parseTheme(getOpenCodeTheme()), "light"),
-  ansiPalette,
-)
+export const RUN_THEME_FALLBACK = map(resolveThemeDocument(getOpenCodeTheme(), "dark"), ansiPalette)
+export const RUN_THEME_FALLBACK_LIGHT = map(resolveThemeDocument(getOpenCodeTheme(), "light"), ansiPalette)
 
 function monoTheme(mode: "dark" | "light"): RunTheme {
   const foreground = RGBA.defaultForeground(mode === "light" ? "#000000" : "#ffffff")
@@ -257,13 +236,9 @@ function monoTheme(mode: "dark" | "light"): RunTheme {
 export const RUN_THEME_MONO = monoTheme("dark")
 const RUN_THEME_MONO_LIGHT = monoTheme("light")
 
-export async function resolveRunTheme(
-  renderer: CliRenderer,
-  config?: RunTuiConfig["theme"],
-  mono = false,
-): Promise<RunTheme> {
+export async function resolveRunTheme(renderer: CliRenderer, mono = false): Promise<RunTheme> {
   if (mono) {
-    const mode = renderer.themeMode ?? (await renderer.waitForThemeMode(300)) ?? config?.mode
+    const mode = renderer.themeMode ?? (await renderer.waitForThemeMode(300))
     return mode === "light" ? RUN_THEME_MONO_LIGHT : RUN_THEME_MONO
   }
 
@@ -275,43 +250,14 @@ export async function resolveRunTheme(
       : palettes.get(renderer)
   if (colors) palettes.set(renderer, colors)
   // Mini stays transparent: fresh OSC 11 wins, but cached colors must not override a new renderer mode.
-  const mode =
-    (detected && terminalMode(detected)) ??
-    renderer.themeMode ??
-    (colors && terminalMode(colors)) ??
-    (config?.mode === "light" ? "light" : "dark")
-  const name = config?.name ?? "opencode"
-  if (name === "system" && !colors) {
-    return mode === "light" ? RUN_THEME_FALLBACK_LIGHT : RUN_THEME_FALLBACK
-  }
-
-  const resolved = await themeSource(name, colors, mode)
-    .then((source) => {
-      const document = parseTheme(source, name)
-      // Mini keeps the terminal background, so the opposite theme mode is not a safe fallback.
-      if (themeModes(document).includes(mode)) return resolveThemeDocument(document, mode)
-    })
-    .catch(() => undefined)
-  const theme = resolved ?? resolveThemeDocument(parseTheme(getOpenCodeTheme()), mode)
+  const mode = (detected && terminalMode(detected)) ?? renderer.themeMode ?? (colors && terminalMode(colors)) ?? "dark"
+  if (!colors) return mode === "light" ? RUN_THEME_FALLBACK_LIGHT : RUN_THEME_FALLBACK
+  const theme = resolveThemeDocument(getOpenCodeTheme(), mode)
   const indexed = colors
     ? ansiPalette.map((color, index) => (colors.palette[index] ? RGBA.fromIndex(index, colors.palette[index]!) : color))
     : ansiPalette
   return {
-    ...map(theme, indexed, generateSyntax(theme), name === "system" && resolved !== undefined),
+    ...map(theme, indexed, generateSyntax(theme)),
     background: RGBA.defaultBackground(colors?.defaultBackground ?? theme.background.base),
   }
-}
-
-async function themeSource(
-  name: string,
-  colors: TerminalColors | undefined,
-  mode: "dark" | "light",
-): Promise<ThemeDocumentSource> {
-  if (name === "system" && colors) return generateSystem(colors, mode)
-  const { Global } = await import("@opencode/util/global")
-  const custom = await discoverThemes(
-    configDirectories(process.env.OPENCODE_CONFIG_DIR ?? Global.Path.config, process.cwd()),
-  )
-  const source = custom[name] ?? allThemes()[name] ?? getOpenCodeTheme()
-  return isThemeSource(source) ? source : getOpenCodeTheme()
 }

@@ -38,7 +38,8 @@ export function DevToolsBar() {
   const keymap = Keymap.use()
   const renderer = useRenderer()
   const dimensions = useTerminalDimensions()
-  const { current: theme, mode, supports, setMode } = themes
+  const theme = themes.current
+  const mode = themes.mode
   const elevatedTheme = useTheme()
   const [panel, setPanel] = createSignal<Panel>()
   const [dumping, setDumping] = createSignal(false)
@@ -49,10 +50,7 @@ export function DevToolsBar() {
   let focus: Renderable | null
   const connected = createMemo(() => client.connection.status() === "connected")
   const serverIndicator = createMemo(() => connectionIndicator(client.connection.status(), client.connection.attempt()))
-  const themePerformance = createMemo(
-    () => DevTools.data().find((group) => group.id === "theme-performance")?.entries ?? [],
-  )
-  const groups = createMemo(() => DevTools.data().filter((group) => group.id !== "theme-performance"))
+  const groups = DevTools.data
   const [server] = createResource(connected, async () => {
     const info = await client.api.server.info()
     return {
@@ -76,8 +74,6 @@ export function DevToolsBar() {
     }
     setPanel(next)
   }
-  const nextMode = () => (mode() === "dark" ? "light" : "dark")
-  const canSwitchMode = () => supports(nextMode())
   const runtime = createMemo(() => runtimeStatus(frontendSamples()))
   const timing = () => config.data.debug?.timing ?? false
   const turnTokens = () => config.data.debug?.turn_tokens ?? false
@@ -345,12 +341,6 @@ export function DevToolsBar() {
             <PanelTitle>Theme</PanelTitle>
             <Row label="Name" value={themes.selected} />
             <Row label="Mode" value={mode()} />
-            <For each={themePerformance()}>{(entry) => <Row label={entry.key} value={String(entry.value)} />}</For>
-            <Show when={canSwitchMode()}>
-              <Action onClick={() => setMode(nextMode())} hoverBackground>
-                Switch to {nextMode()}
-              </Action>
-            </Show>
           </PanelBox>
         </Show>
       </BarItem>

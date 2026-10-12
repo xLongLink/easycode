@@ -14,7 +14,7 @@ import { ThemeProvider } from "../../../src/context/theme"
 import { FormPrompt, FORM_MODE } from "../../../src/routes/session/form"
 import { PermissionPrompt } from "../../../src/routes/session/permission"
 import { ToastProvider } from "../../../src/ui/toast"
-import { emptyThemeSource, tmpdir } from "../../fixture/fixture"
+import { tmpdir } from "../../fixture/fixture"
 import { createApi, createEventStream, createFetch, json } from "../../fixture/tui-client"
 import { TestTuiContexts } from "../../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
@@ -79,7 +79,7 @@ async function mountPanes(root: string, render: () => JSX.Element, parentID?: st
             <ClientProvider api={createApi(transport.fetch)}>
               <DataProvider directory={root}>
                 <LocationProvider>
-                  <ThemeProvider mode="dark" source={emptyThemeSource}>
+                  <ThemeProvider mode="dark">
                     <ToastProvider>
                       <Panes />
                     </ToastProvider>

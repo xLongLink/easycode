@@ -13,7 +13,6 @@ import { ThemeProvider } from "../../../src/context/theme"
 import { DialogProvider, useDialog } from "../../../src/ui/dialog"
 import { ToastProvider } from "../../../src/ui/toast"
 import { createApi, createEventStream, createFetch, json } from "../../fixture/tui-client"
-import { emptyThemeSource } from "../../fixture/fixture"
 import { TestTuiContexts } from "../../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
 
@@ -145,7 +144,7 @@ async function renderMcp(options?: { failed?: boolean; location?: { directory: s
                 <ClientProvider api={createApi(calls.fetch)}>
                   <DataProvider directory={process.cwd()}>
                     <LocationProvider>
-                      <ThemeProvider mode="dark" source={emptyThemeSource}>
+                      <ThemeProvider mode="dark">
                         <DialogProvider>
                           <Probe />
                         </DialogProvider>

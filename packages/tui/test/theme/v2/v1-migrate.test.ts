@@ -7,7 +7,7 @@ import {
   type HueScale,
   type ResolvedTheme,
 } from "@opencode/theme/tui"
-import { DEFAULT_THEMES, getOpenCodeTheme, resolveTheme as resolveV1 } from "../../../src/theme"
+import { getOpenCodeTheme, resolveTheme as resolveV1 } from "../../../src/theme"
 import opencodeSource from "../../../src/theme/assets/opencode.json" with { type: "json" }
 import type { ThemeV1Json } from "@opencode/theme/tui/v1"
 
@@ -247,12 +247,10 @@ test("retains V1 circular reference errors", () => {
   expect(() => migrateV1(source)).toThrow("Circular color reference: one -> two -> one")
 })
 
-test("migrates every built-in V1 theme in its supported modes", () => {
-  for (const source of Object.values(DEFAULT_THEMES)) {
-    const migrated = migrateV1(source)
-    for (const mode of themeModes(migrated)) {
-      expect(resolveThemeDocument(migrated, mode).text.base).toBeDefined()
-    }
+test("migrates the default V1 theme in its supported modes", () => {
+  const migrated = migrateV1(opencodeV1)
+  for (const mode of themeModes(migrated)) {
+    expect(resolveThemeDocument(migrated, mode).text.base).toBeDefined()
   }
 })
 

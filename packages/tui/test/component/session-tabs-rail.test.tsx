@@ -10,7 +10,6 @@ import { Keymap } from "../../src/context/keymap"
 import { ThemeProvider } from "../../src/context/theme"
 import { SPINNER_FRAMES } from "../../src/component/spinner-frames"
 import { SESSION_TABS_COMPACT_WIDTH } from "../../src/ui/layout"
-import { emptyThemeSource } from "../fixture/fixture"
 import { TestTuiContexts } from "../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../fixture/tui-runtime"
 
@@ -42,7 +41,7 @@ test("compact rail renders and controls session tabs", async () => {
       <TestTuiContexts>
         <ConfigProvider config={createTuiResolvedConfig({ tabs: { indicators: "status" } })}>
           <Keymap.Provider>
-            <ThemeProvider mode="dark" source={emptyThemeSource}>
+            <ThemeProvider mode="dark">
               <box width="100%" height="100%" flexDirection="row">
                 <SessionTabs
                   controller={controller}

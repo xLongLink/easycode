@@ -19,7 +19,7 @@ import { ThemeProvider } from "../../../src/context/theme"
 import { DialogProvider, useDialog } from "../../../src/ui/dialog"
 import { ToastProvider } from "../../../src/ui/toast"
 import { createApi, createEventStream, createFetch, json } from "../../fixture/tui-client"
-import { emptyThemeSource, tmpdir } from "../../fixture/fixture"
+import { tmpdir } from "../../fixture/fixture"
 import { TestTuiContexts } from "../../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
 
@@ -93,7 +93,7 @@ test("scopes sessions to the active session location", async () => {
                           <DataProvider directory={process.cwd()}>
                             <LocationProvider>
                               <SessionTabsProvider>
-                                <ThemeProvider mode="dark" source={emptyThemeSource}>
+                                <ThemeProvider mode="dark">
                                   <LocalProvider>
                                     <DialogProvider>
                                       <Probe />

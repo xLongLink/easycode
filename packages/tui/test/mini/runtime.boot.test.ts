@@ -29,13 +29,11 @@ describe("run runtime boot", () => {
   test("preserves shared config while resolving independent Mini defaults", async () => {
     const result = await resolveRunTuiConfig(
       createTuiResolvedConfig({
-        theme: { mode: "light" },
         leader: { timeout: 450 },
         cursor: { style: "underline", blinking: false },
       }),
     )
 
-    expect(result.theme).toEqual({ mode: "light" })
     expect(result.leader.timeout).toBe(450)
     expect(result.cursor).toEqual({ style: "underline", blinking: false })
     expect(resolveMiniSettings(result)).toEqual({

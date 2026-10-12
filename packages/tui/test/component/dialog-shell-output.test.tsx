@@ -15,7 +15,7 @@ import { ThemeProvider } from "../../src/context/theme"
 import { Composer } from "../../src/routes/session/composer"
 import { DialogProvider } from "../../src/ui/dialog"
 import { ToastProvider } from "../../src/ui/toast"
-import { emptyThemeSource, tmpdir } from "../fixture/fixture"
+import { tmpdir } from "../fixture/fixture"
 import { createApi, createEventStream, createFetch, json } from "../fixture/tui-client"
 import { TestTuiContexts } from "../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../fixture/tui-runtime"
@@ -74,7 +74,7 @@ async function setup(width: number, output = "") {
               <RouteProvider initialRoute={{ type: "session", sessionID: "ses_fixture" }}>
                 <ClientProvider api={api}>
                   <DataProvider directory={temporary.path}>
-                    <ThemeProvider mode={width === 40 ? "light" : "dark"} source={emptyThemeSource}>
+                    <ThemeProvider mode={width === 40 ? "light" : "dark"}>
                       <Keymap.Provider>
                         <ToastProvider>
                           <DialogProvider>

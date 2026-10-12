@@ -89,9 +89,6 @@ export const Definitions = {
   "diff.help": keybind("?,shift+?,shift+/", "Show more diff viewer shortcuts"),
 
   "prompt.editor": keybind("<leader>e", "Open external editor"),
-  "theme.switch": keybind("none", "List available themes"),
-  "theme.switch_mode": keybind("none", "Switch between light and dark theme mode"),
-  "theme.mode.lock": keybind("none", "Lock or unlock theme mode"),
   "session.sidebar.toggle": keybind("<leader>b", "Toggle sidebar"),
   "pane.focus.left": keybind("<leader>left", "Focus session pane"),
   "pane.focus.right": keybind("<leader>right", "Focus right pane"),

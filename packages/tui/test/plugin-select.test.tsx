@@ -11,7 +11,7 @@ import { ThemeProvider } from "../src/context/theme"
 import { createDialogApi } from "../src/plugin/api"
 import { DialogProvider, useDialog } from "../src/ui/dialog"
 import { ToastProvider } from "../src/ui/toast"
-import { emptyThemeSource, tmpdir } from "./fixture/fixture"
+import { tmpdir } from "./fixture/fixture"
 import { TestTuiContexts } from "./fixture/tui-environment"
 import { createTuiResolvedConfig } from "./fixture/tui-runtime"
 
@@ -30,7 +30,7 @@ async function mount(root: string) {
       <TestTuiContexts directory={root} paths={{ home: root, state, worktree: root }}>
         <ConfigProvider config={createTuiResolvedConfig()}>
           <Keymap.Provider>
-            <ThemeProvider mode="dark" source={emptyThemeSource}>
+            <ThemeProvider mode="dark">
               <ToastProvider>
                 <DialogProvider>
                   <Fixture />

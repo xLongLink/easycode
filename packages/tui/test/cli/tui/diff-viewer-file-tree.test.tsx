@@ -3,7 +3,6 @@ import { describe, expect, test } from "bun:test"
 import { testRender } from "@opentui/solid"
 import type { JSX } from "solid-js"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
-import { emptyThemeSource } from "../../fixture/fixture"
 import { ThemeProvider } from "../../../src/context/theme"
 import { ConfigProvider } from "../../../src/config"
 import { DiffViewerFileTree } from "../../../src/feature-plugins/system/diff-viewer-file-tree"
@@ -233,7 +232,7 @@ async function renderFrame(component: () => JSX.Element, mode: "dark" | "light" 
     () => (
       <TestTuiContexts>
         <ConfigProvider config={createTuiResolvedConfig()}>
-          <ThemeProvider mode={mode} source={emptyThemeSource}>
+          <ThemeProvider mode={mode}>
             {component()}
           </ThemeProvider>
         </ConfigProvider>

@@ -1,13 +1,14 @@
 import { expect, test } from "bun:test"
 import { createTestRenderer } from "@opentui/core/testing"
 import { CliRenderEvents, RGBA, TextRenderable } from "@opentui/core"
+import { resolveThemeDocument } from "@opencode/theme/tui"
 import path from "node:path"
 import { Writable } from "node:stream"
 import { coalesceProgressCommit, resolveRunAgent, RunFooter } from "../../src/mini/footer"
 import { createRunDemo } from "../../src/mini/demo"
 import { resolveMiniSettings } from "../../src/mini/runtime.boot"
 import { RUN_THEME_FALLBACK, RUN_THEME_FALLBACK_LIGHT, RUN_THEME_MONO } from "../../src/mini/theme"
-import type { MiniSettingChange, MiniSettings, RunAgent, RunTuiConfig, StreamCommit } from "../../src/mini/types"
+import type { MiniSettingChange, MiniSettings, RunAgent, StreamCommit } from "../../src/mini/types"
 import { createTuiResolvedConfig } from "../fixture/tui-runtime"
 import { tmpdir } from "../fixture/fixture"
 import { createFooterApiFixture } from "./fixture/footer-api"
@@ -98,7 +99,6 @@ async function setup(
   input: {
     mono?: boolean
     tools?: MiniSettings["tools"]
-    theme?: RunTuiConfig["theme"]
     startup?: { version: string; detail: string }
     cursorRow?: number
     update?: (change: MiniSettingChange) => Promise<MiniSettings>
@@ -139,7 +139,7 @@ async function setup(
     startup: input.startup,
     wrote: !!input.startup,
     theme: mono ? RUN_THEME_MONO : RUN_THEME_FALLBACK,
-    tuiConfig: createTuiResolvedConfig({ theme: input.theme }),
+    tuiConfig: createTuiResolvedConfig(),
     miniSettings: {
       current: { ...resolveMiniSettings(), mono, ...(input.tools ? { tools: input.tools } : {}) },
       update: input.update,
@@ -270,7 +270,6 @@ test.each([false, true])("monochrome toggles live without replacing the footer (
   const changes: MiniSettingChange[] = []
   const app = await setup({
     mono,
-    theme: { name: "system" },
     update: async (change) => {
       changes.push(change)
       return { ...resolveMiniSettings(), [change.key]: change.value }
@@ -357,11 +356,11 @@ test.each([false, true])("production footer preserves wrapped input and status o
   }
 })
 
-test("explicit theme refresh reloads custom colors without a palette event", async () => {
+test("explicit theme refresh ignores custom colors", async () => {
   await using tmp = await tmpdir()
   const previous = process.env.OPENCODE_CONFIG_DIR
   process.env.OPENCODE_CONFIG_DIR = tmp.path
-  const app = await setup({ mono: false, theme: { name: "mini-refresh", mode: "dark" } })
+  const app = await setup({ mono: false })
   app.renderer.getPalette = async () => {
     throw new Error("no OSC response")
   }
@@ -384,7 +383,7 @@ test("explicit theme refresh reloads custom colors without a palette event", asy
           .lines.flatMap((line) => line.spans)
           .find((span) => span.text.includes("draft"))
           ?.fg.toInts(),
-      ).toEqual(RGBA.fromHex(color).toInts())
+      ).toEqual(resolveThemeDocument(getOpenCodeTheme(), "dark").text.base.toInts())
     }
   } finally {
     app.footer.destroy()
@@ -394,8 +393,8 @@ test("explicit theme refresh reloads custom colors without a palette event", asy
   }
 })
 
-test("system fallback follows physical mode changes when palette queries remain unavailable", async () => {
-  const app = await setup({ mono: false, theme: { name: "system" } })
+test("default theme follows physical mode changes when palette queries remain unavailable", async () => {
+  const app = await setup({ mono: false })
   app.renderer.getPalette = async () => {
     throw new Error("no OSC palette response")
   }

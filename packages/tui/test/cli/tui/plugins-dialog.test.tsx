@@ -20,7 +20,7 @@ import { RouteProvider } from "../../../src/context/route"
 import { PluginsDialog } from "../../../src/feature-plugins/system/plugins"
 import { DialogProvider } from "../../../src/ui/dialog"
 import { ToastProvider } from "../../../src/ui/toast"
-import { emptyThemeSource, tmpdir } from "../../fixture/fixture"
+import { tmpdir } from "../../fixture/fixture"
 import { createApi, createFetch, json } from "../../fixture/tui-client"
 import { TestTuiContexts } from "../../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
@@ -98,7 +98,7 @@ async function renderPlugins(
               <DataProvider directory={root}>
                 <LocationProvider>
                   <Keymap.Provider>
-                    <ThemeProvider mode="dark" source={emptyThemeSource}>
+                    <ThemeProvider mode="dark">
                       <ToastProvider>
                         <DialogProvider>
                           <Content />

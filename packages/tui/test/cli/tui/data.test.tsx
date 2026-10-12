@@ -22,7 +22,7 @@ import { createSessionRows, type SessionRow } from "../../../src/routes/session/
 import { groupRefs } from "../../../src/routes/session/grouping/session"
 import { unwrap } from "solid-js/store"
 import { createApi, createEventStream, createFetch, directory, json, worktree } from "../../fixture/tui-client"
-import { emptyThemeSource, tmpdir } from "../../fixture/fixture"
+import { tmpdir } from "../../fixture/fixture"
 import { TestTuiContexts } from "../../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
 
@@ -2239,7 +2239,7 @@ test("keeps shell state scoped to location", async () => {
     return (
       <RouteProvider initialRoute={{ type: "session", sessionID: "ses_shared" }}>
         <Keymap.Provider>
-          <ThemeProvider mode="dark" source={emptyThemeSource}>
+          <ThemeProvider mode="dark">
             <ToastProvider>
               <DialogProvider>
                 <Composer sessionID="ses_shared" open={true} defaultTab="shell" />

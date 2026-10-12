@@ -24,7 +24,7 @@ import type {
   Route,
 } from "@opencode/plugin/tui/context"
 import { ThemeProvider, useThemes } from "../../../src/context/theme"
-import { emptyThemeSource, tmpdir } from "../../fixture/fixture"
+import { tmpdir } from "../../fixture/fixture"
 import { StorageProvider, useStorage } from "../../../src/context/storage"
 import { TuiAppProvider } from "../../../src/context/runtime"
 import { ConfigProvider, type Info } from "../../../src/config"
@@ -2053,7 +2053,7 @@ async function renderDiffViewer(
             >
               <Keymap.Provider>
                 <ToastProvider>
-                  <ThemeProvider mode={options.mode ?? "dark"} source={emptyThemeSource}>
+                  <ThemeProvider mode={options.mode ?? "dark"}>
                     <DialogProvider>
                       <Content />
                     </DialogProvider>

@@ -190,7 +190,6 @@ test("migrates tui and kv config into cli.json", async () => {
 
   expect(config).toMatchObject({
     $schema: "https://opencode.ai/v2/cli.json",
-    theme: { name: "legacy", mode: "light" },
     keybinds: {
       leader: "ctrl+o",
       "app.exit": "ctrl+q",
@@ -209,6 +208,7 @@ test("migrates tui and kv config into cli.json", async () => {
     mouse: false,
   })
   expect(config).not.toHaveProperty("skipped_version")
+  expect(config).not.toHaveProperty("theme")
   expect(config).not.toHaveProperty("which_key")
   expect(config).not.toHaveProperty("hints")
   expect((await Bun.file(path.join(directory.path, "cli.json")).json()).keybinds).toEqual({
@@ -244,13 +244,11 @@ test("migrates before the first update and does not remigrate afterward", async 
 
   expect(config).toEqual({
     $schema: "https://opencode.ai/v2/cli.json",
-    theme: { name: "legacy" },
     animations: false,
     mouse: false,
   })
   expect(await Bun.file(path.join(directory.path, "cli.json")).json()).toEqual({
     $schema: "https://opencode.ai/v2/cli.json",
-    theme: { name: "legacy" },
     animations: false,
     mouse: false,
   })

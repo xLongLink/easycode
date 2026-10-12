@@ -7,7 +7,6 @@ import { ConfigProvider } from "../../src/config"
 import { ThemeProvider, useTheme } from "../../src/context/theme"
 import { createPaneResize } from "../../src/ui/pane-resize"
 import { PaneResizeHandle } from "../../src/ui/pane-resize-handle"
-import { emptyThemeSource } from "../fixture/fixture"
 import { TestTuiContexts } from "../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../fixture/tui-runtime"
 
@@ -47,8 +46,8 @@ for (const mode of ["dark", "light"] as const) {
     const app = await testRender(
       () => (
         <TestTuiContexts>
-          <ConfigProvider config={createTuiResolvedConfig({ theme: { name: "opencode", mode } })}>
-            <ThemeProvider mode={mode} source={emptyThemeSource}>
+          <ConfigProvider config={createTuiResolvedConfig()}>
+            <ThemeProvider mode={mode}>
               <Pane />
             </ThemeProvider>
           </ConfigProvider>

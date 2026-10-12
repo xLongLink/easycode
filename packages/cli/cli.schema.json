@@ -7,23 +7,6 @@
       "anyOf": [{ "type": "string" }, { "type": "null" }],
       "description": "JSON Schema for CLI configuration"
     },
-    "theme": {
-      "anyOf": [
-        {
-          "type": "object",
-          "properties": {
-            "name": { "anyOf": [{ "type": "string" }, { "type": "null" }], "description": "Theme name" },
-            "mode": {
-              "anyOf": [{ "type": "string", "enum": ["system", "dark", "light"] }, { "type": "null" }],
-              "description": "Color mode; 'system' follows the terminal"
-            }
-          },
-          "additionalProperties": false
-        },
-        { "type": "null" }
-      ],
-      "description": "Color theme settings"
-    },
     "keybinds": {
       "anyOf": [
         {
@@ -200,18 +183,6 @@
             "prompt.editor": {
               "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
               "description": "Open external editor"
-            },
-            "theme.switch": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "List available themes"
-            },
-            "theme.switch_mode": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch between light and dark theme mode"
-            },
-            "theme.mode.lock": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Lock or unlock theme mode"
             },
             "session.sidebar.toggle": {
               "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],

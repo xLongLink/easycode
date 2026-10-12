@@ -13,7 +13,7 @@ import {
 } from "../../../src/ui/dialog-select"
 import { truncateFilePath } from "../../../src/ui/file-path"
 import { stringWidth } from "../../../src/util/string-width"
-import { emptyThemeSource, tmpdir } from "../../fixture/fixture"
+import { tmpdir } from "../../fixture/fixture"
 import { TestTuiContexts } from "../../fixture/tui-environment"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
 
@@ -66,7 +66,7 @@ async function renderSelect(
       <TestTuiContexts directory={root} paths={{ home: root, state, worktree: root }}>
         <ConfigProvider config={config}>
           <Keymap.Provider>
-            <ThemeProvider mode="dark" source={emptyThemeSource}>
+            <ThemeProvider mode="dark">
               <ToastProvider>
                 <DialogProvider>
                   <Select />
@@ -148,7 +148,7 @@ async function mountSelect<T>(
       <TestTuiContexts directory={root} paths={{ home: root, state, worktree: root }}>
         <ConfigProvider config={config}>
           <Keymap.Provider>
-            <ThemeProvider mode="dark" source={emptyThemeSource}>
+            <ThemeProvider mode="dark">
               <ToastProvider>
                 <DialogProvider>
                   <Fixture />

@@ -57,24 +57,12 @@ import { diffImageFixture } from "../fixture/diff-image"
 const tuiConfig = createTuiResolvedConfig()
 
 async function nativeLightTheme() {
-  await using tmp = await tmpdir()
-  await Bun.write(`${tmp.path}/themes/mini-native-light.json`, JSON.stringify({ light: {} }))
-  const previous = process.env.OPENCODE_CONFIG_DIR
-  process.env.OPENCODE_CONFIG_DIR = tmp.path
-  try {
-    return await resolveRunTheme(
-      {
-        themeMode: "light",
-        getPalette: async (): ReturnType<CliRenderer["getPalette"]> => {
-          throw new Error("Palette unavailable")
-        },
-      } as CliRenderer,
-      { name: "mini-native-light" },
-    )
-  } finally {
-    if (previous === undefined) delete process.env.OPENCODE_CONFIG_DIR
-    else process.env.OPENCODE_CONFIG_DIR = previous
-  }
+  return resolveRunTheme({
+    themeMode: "light",
+    getPalette: async (): ReturnType<CliRenderer["getPalette"]> => {
+      throw new Error("Palette unavailable")
+    },
+  } as CliRenderer)
 }
 
 function command(input: { name: string; description: string; source?: "command" | "mcp" | "skill" }) {
