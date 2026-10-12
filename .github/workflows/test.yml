@@ -56,32 +56,30 @@ jobs:
         if: runner.os == 'Linux'
         run: bun run lint:effect-simplifications
 
+      - name: Test tooling configuration
+        working-directory: packages/script
+        run: bun test test/vite-tasks.test.ts
+
       - name: Configure git identity
         run: |
           git config --global user.email "bot@opencode.ai"
           git config --global user.name "opencode"
 
-      - name: Cache Turbo
+      - name: Cache Vite+ tasks
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
-          path: node_modules/.cache/turbo
-          key: turbo-${{ runner.os }}-${{ hashFiles('turbo.json', '**/package.json') }}-${{ github.sha }}
+          path: node_modules/.vite/task-cache
+          key: vp-${{ runner.os }}-${{ hashFiles('bun.lock', '**/vite.config.*', 'script/vite-tasks.ts', '**/package.json') }}-${{ github.sha }}
           restore-keys: |
-            turbo-${{ runner.os }}-${{ hashFiles('turbo.json', '**/package.json') }}-
-            turbo-${{ runner.os }}-
+            vp-${{ runner.os }}-${{ hashFiles('bun.lock', '**/vite.config.*', 'script/vite-tasks.ts', '**/package.json') }}-
+            vp-${{ runner.os }}-
 
       - name: Run unit tests
         timeout-minutes: 20
         run: |
           # The runners have four vCPUs, and each Bun test process performs its own concurrent work.
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            GITHUB_ACTIONS=false bun turbo test --concurrency=3
-            exit 0
-          fi
-          GITHUB_ACTIONS=false bun turbo test --affected --concurrency=3
-        env:
-          TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && format('{0}^1', github.sha) || github.event.before }}
-          TURBO_SCM_HEAD: ${{ github.sha }}
+          # Vite+ has no --affected flag; unchanged tasks are skipped by its input cache.
+          GITHUB_ACTIONS=false bun run vp run -r --concurrency-limit 3 workspace:test
 
       - name: Verify published codemode package
         if: runner.os == 'Linux'
@@ -91,15 +89,7 @@ jobs:
       - name: Verify packed workerd SDK
         if: runner.os == 'Linux'
         timeout-minutes: 15
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            bun turbo verify:package --filter=@opencode/sdk
-            exit 0
-          fi
-          bun turbo verify:package --affected --filter=@opencode/sdk
-        env:
-          TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && format('{0}^1', github.sha) || github.event.before }}
-          TURBO_SCM_HEAD: ${{ github.sha }}
+        run: bun run vp run --filter @opencode/sdk workspace:verify:package
 
       - name: Verify compiled service lifecycle
         if: always()

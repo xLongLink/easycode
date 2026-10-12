@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "types": ["bun"] },
+  "include": ["vite.config.ts", "script/vite-tasks.ts", "packages/script/test/vite-tasks.test.ts"]
+}

@@ -9,11 +9,12 @@ const root = path.resolve(import.meta.dir, "..")
 const startedAt = new Date()
 const args = Bun.argv.slice(2)
 const command = [
-  "bun",
-  "turbo",
-  "typecheck",
-  ...(args.some((arg) => arg.startsWith("--concurrency")) ? [] : ["--concurrency=3"]),
+  path.join(root, "node_modules/.bin/vp"),
+  "run",
+  "-r",
+  ...(args.some((arg) => arg.startsWith("--concurrency-limit")) ? [] : ["--concurrency-limit", "3"]),
   ...args,
+  "check:types",
 ]
 const before = systemSnapshot()
 const proc = Bun.spawn(command, {

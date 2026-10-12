@@ -12,6 +12,7 @@ tmp
 dist
 dist-node
 ts-dist
+# Ignore leftover caches from the previous task runner.
 .turbo
 .typecheck-profiles
 **/.serena
