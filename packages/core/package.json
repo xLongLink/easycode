@@ -16,7 +16,6 @@
     "dist"
   ],
   "scripts": {
-    "db": "bun drizzle-kit",
     "migration": "bun run script/migration.ts",
     "fix-node-pty": "bun run script/fix-node-pty.ts",
     "benchmark:location": "bun run script/benchmark-location.ts",
@@ -31,37 +30,31 @@
   },
   "imports": {
     "#sqlite": {
-      "workerd": "./src/database/sqlite.workerd.ts",
       "bun": "./src/database/sqlite.bun.ts",
       "node": "./src/database/sqlite.node.ts",
       "default": "./src/database/sqlite.node.ts"
     },
     "#pty": {
-      "workerd": "./src/pty/pty.workerd.ts",
       "bun": "./src/pty/pty.bun.ts",
       "node": "./src/pty/pty.node.ts",
       "default": "./src/pty/pty.bun.ts"
     },
     "#persistent-pty-binary": {
-      "workerd": "./src/persistent-pty/binary.workerd.ts",
       "bun": "./src/persistent-pty/binary.bun.ts",
       "node": "./src/persistent-pty/binary.node.ts",
       "default": "./src/persistent-pty/binary.bun.ts"
     },
     "#fff": {
-      "workerd": "./src/filesystem/fff.workerd.ts",
       "bun": "./src/filesystem/fff.bun.ts",
       "node": "./src/filesystem/fff.node.ts",
       "default": "./src/filesystem/fff.bun.ts"
     },
     "#photon-wasm": {
-      "workerd": "./src/image/photon-wasm.workerd.ts",
       "bun": "./src/image/photon-wasm.bun.ts",
       "node": "./src/image/photon-wasm.node.ts",
       "default": "./src/image/photon-wasm.bun.ts"
     },
     "#shell-parser-wasm": {
-      "workerd": "./src/shell/parser-wasm.workerd.ts",
       "bun": "./src/shell/parser-wasm.bun.ts",
       "node": "./src/shell/parser-wasm.node.ts",
       "default": "./src/shell/parser-wasm.bun.ts"
@@ -70,7 +63,6 @@
       "types": "./src/database/v1-migration.bun.ts",
       "bun": "./src/database/v1-migration.bun.ts",
       "node": "./src/database/v1-migration.noop.ts",
-      "workerd": "./src/database/v1-migration.noop.ts",
       "default": "./src/database/v1-migration.noop.ts"
     }
   },

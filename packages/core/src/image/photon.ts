@@ -9,13 +9,8 @@ const JPEG_QUALITIES = [80, 85, 70, 55, 40]
 
 export const make = Effect.gen(function* () {
   const loadPhoton = yield* Effect.cached(
-    // A runtime without a photon wasm artifact (#photon-wasm resolves to the
-    // empty string on workerd) has no resizer, by declaration: fail typed
-    // before touching URLs or module loading. The path resolution and import
-    // for runtimes that DO have an artifact stay inside the guard too — a
-    // throw outside it (workerd's undefined import.meta.url was one) is a
-    // defect that escapes the ResizerUnavailableError handling and turns any
-    // image-bearing prompt into a 500 instead of degrading to passthrough.
+    // Missing or unloadable wasm degrades to passthrough rather than failing
+    // an image-bearing prompt. Keep path resolution inside typed error handling.
     photonWasm === ""
       ? Effect.fail(new ResizerUnavailableError())
       : Effect.tryPromise({

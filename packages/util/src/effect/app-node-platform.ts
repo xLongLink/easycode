@@ -1,5 +1,5 @@
 // Deep imports: the @effect/platform-node barrel eagerly pulls in undici,
-// ioredis, and node:sqlite, which runtimes such as workerd cannot load.
+// ioredis, and node:sqlite; these services only need filesystem and path.
 import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem"
 import * as NodePath from "@effect/platform-node/NodePath"
 import { FileSystem, Path } from "effect"

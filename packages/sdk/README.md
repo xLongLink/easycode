@@ -71,39 +71,13 @@ await opencode.sessions.prompt({ sessionID: session.id, text: "Review the change
 
 The selector is installed before automatic recovery starts. Its callbacks must be able to load application data without depending on the returned `opencode` handle or a later registration call. Functions are reconstructed, not serialized.
 
-Use a persistent `database.path` to recover Sessions after restart; the default database is in memory. Workerd uses its injected Durable Object storage. After restart, the next capability-dependent operation or recovery drain rebuilds the selected instance from saved Session metadata and application data.
+Use a persistent `database.path` to recover Sessions after restart; the default database is in memory. After restart, the next capability-dependent operation or recovery drain rebuilds the selected instance from saved Session metadata and application data.
 
 Promise plugin resources should be acquired in `setup` and released by its cleanup function. Effect configuration can acquire resources in its supplied instance Scope and require services provided to the SDK entrypoint (see the Effect section).
 
-## Workerd
+## Supported Runtimes
 
-Use the Workerd entrypoint inside a Cloudflare Durable Object. Hold one host for the lifetime of the object instance rather than creating one per request.
-
-```ts
-import { OpenCodeWorkerd } from "@opencode/sdk/workerd"
-import myPlugin from "./my-plugin"
-
-export class OpenCodeDO {
-  private readonly opencode: Promise<OpenCodeWorkerd.Interface>
-
-  constructor(state: DurableObjectState) {
-    this.opencode = state.blockConcurrencyWhile(() =>
-      OpenCodeWorkerd.create({
-        storage: state.storage,
-        config: { default_agent: "build" },
-        plugins: [myPlugin],
-      }),
-    )
-  }
-
-  async fetch() {
-    const opencode = await this.opencode
-    return Response.json(await opencode.server.info())
-  }
-}
-```
-
-`blockConcurrencyWhile` keeps every Durable Object event out until the host is ready and resets the object if initialization fails. The retained Promise gives request handlers direct access to the same host after startup. Configuration is a typed JavaScript object, and plugins are imported values bundled with the Worker.
+This fork supports local Bun and Node runtimes. The former `@opencode/sdk/workerd` and `@opencode/sdk/workerd/effect` entrypoints and Durable Object storage adapter have been removed. Existing Cloudflare deployments must remain on a compatible version or migrate their application and data separately; there is no automatic storage migration.
 
 ## Effect
 
@@ -115,8 +89,6 @@ import { OpenCode } from "@opencode/sdk/effect"
 const opencode = yield * OpenCode.create()
 const session = yield * opencode.sessions.get({ sessionID })
 ```
-
-The Effect Workerd entrypoint is `@opencode/sdk/workerd/effect`.
 
 Effect configuration uses the same keys and lifetime rules, with canonical `Session.Info` values and an Effect-returning factory. `configure` may require services; `OpenCode.create` and `OpenCode.layer` carry those requirements, so the application satisfies them where it builds the SDK, as with any other Effect callback:
 
@@ -140,4 +112,4 @@ const opencode = OpenCode.layer({
 }).pipe(Layer.provide(Threads.layer))
 ```
 
-Resources acquired in `configure` still belong to the instance, not to the Scope the SDK was built in. Both Workerd entrypoints also accept `instances`. The public `OpenCode.InstanceOptions` and `OpenCode.InstanceConfiguration` types describe the corresponding Promise or Effect callbacks.
+Resources acquired in `configure` still belong to the instance, not to the Scope the SDK was built in. The public `OpenCode.InstanceOptions` and `OpenCode.InstanceConfiguration` types describe the corresponding Promise or Effect callbacks.

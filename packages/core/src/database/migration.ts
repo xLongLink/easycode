@@ -2,7 +2,6 @@ export * as DatabaseMigration from "./migration.js"
 
 import { sql } from "drizzle-orm"
 import { Effect } from "effect"
-import { supportsForeignKeyToggle } from "#sqlite"
 import type { EffectDrizzleSqlite } from "./drizzle.js"
 import { migrations } from "./migration.gen.js"
 import schema from "./schema.gen.js"
@@ -120,14 +119,8 @@ export function applyOnly(db: Database, input: Migration[]) {
         migration.foreignKeys !== false
           ? apply
           : Effect.gen(function* () {
-              // Durable Object SQLite rejects the foreign_keys toggle; the closest
-              // allowlisted relaxation is deferring enforcement to transaction commit.
-              const relaxForeignKeys = supportsForeignKeyToggle
-                ? db.run(sql`PRAGMA foreign_keys = OFF`)
-                : db.run(sql`PRAGMA defer_foreign_keys = ON`)
-              const restoreForeignKeys = supportsForeignKeyToggle ? db.run(sql`PRAGMA foreign_keys = ON`) : Effect.void
-              yield* relaxForeignKeys
-              yield* apply.pipe(Effect.ensuring(restoreForeignKeys.pipe(Effect.orDie)))
+              yield* db.run(sql`PRAGMA foreign_keys = OFF`)
+              yield* apply.pipe(Effect.ensuring(db.run(sql`PRAGMA foreign_keys = ON`).pipe(Effect.orDie)))
             })
       yield* run.pipe(
         Effect.tapError((error) =>

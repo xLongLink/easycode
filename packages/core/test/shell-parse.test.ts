@@ -3,7 +3,6 @@ import { Effect } from "effect"
 import os from "os"
 import path from "path"
 import { ShellParse } from "@opencode/core/shell/parse"
-import { shellParserWasm } from "../src/shell/parser-wasm.workerd"
 
 describe("ShellParse", () => {
   test("splits bash commands and derives reusable prefixes", async () => {
@@ -20,6 +19,7 @@ describe("ShellParse", () => {
   })
 
   test("defaults to portable scanning when parser wasm assets are empty", async () => {
+    const shellParserWasm = { runtime: "", bash: "", powershell: "" }
     const result = await Effect.runPromise(
       ShellParse.scan("git status && npm run test -- --watch", "/bin/bash", "/workspace", {
         wasm: shellParserWasm,

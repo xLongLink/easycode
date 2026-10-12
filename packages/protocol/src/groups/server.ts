@@ -4,7 +4,7 @@ import { UnauthorizedError } from "../errors.js"
 
 export const ServerInfo = Schema.Struct({
   version: Schema.String,
-  // 0 means the runtime has no OS process identity (e.g. workerd).
+  // 0 means the runtime has no OS process identity.
   pid: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
   urls: Schema.Array(Schema.String),
   paths: Schema.Struct({

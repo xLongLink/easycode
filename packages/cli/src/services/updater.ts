@@ -95,9 +95,6 @@ export interface Interface {
   readonly method: () => Effect.Effect<Method | undefined>
   readonly latest: (method?: Method) => Effect.Effect<string, Error>
   readonly upgrade: (method: Method, version: string) => Effect.Effect<void, Error>
-  readonly removal: (
-    method: Method,
-  ) => { readonly command: ReadonlyArray<string>; readonly run: Effect.Effect<void, Error> } | undefined
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/cli/Updater") {}
@@ -160,8 +157,6 @@ const make = Effect.gen(function* () {
     if (path.basename(executable) === "easycode") return "curl"
     if (executable === curlBinary) return "curl"
   })
-
-  const removal = () => undefined
 
   const release = Effect.fnUntraced(function* (method?: Method) {
     if (method && method !== "curl")
@@ -409,7 +404,7 @@ const make = Effect.gen(function* () {
     Effect.catch((error) => Effect.logWarning("update check failed", { error }).pipe(Effect.as(undefined))),
   )
 
-  return Service.of({ run, check, apply, method, latest, upgrade, removal })
+  return Service.of({ run, check, apply, method, latest, upgrade })
 })
 
 export const layer = Layer.effect(Service, make)

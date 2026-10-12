@@ -9,8 +9,6 @@ import { makeMemoryDriver } from "@opencode/core/environment/index"
 import { SessionRunnerModel } from "@opencode/core/session/runner/model"
 import { WorkspaceDriver } from "@opencode/core/workspace/driver"
 import { Plugin } from "@opencode/plugin/effect"
-import { makeDurableObjectStorage } from "../../core/test/fixture/durable-object-storage"
-import { OpenCodeWorkerd } from "../src/effect/workerd"
 import { Deferred, Effect, Fiber, Latch, Layer, Option, Stream } from "effect"
 import { testEffect } from "../../core/test/lib/effect"
 import { tmpdir } from "../../core/test/fixture/tmpdir"
@@ -148,49 +146,6 @@ it.live("seeds host plugins from CreateOptions and waits for delayed model plugi
         name: "Seeded Fictional Chat",
       })
       expect(generated.text).toBe("ready")
-    }),
-  ),
-)
-
-it.live("OpenCodeWorkerd seeds plugins before cold model resolution", () =>
-  withEmbedded("opencode-workerd-seeded-plugin-", (fixture) =>
-    Effect.gen(function* () {
-      const opencode = yield* OpenCodeWorkerd.create({
-        storage: makeDurableObjectStorage(),
-        models: { fetch: false },
-        config: { model: "workerd-seeded/fictional-chat" },
-        plugins: [
-          Plugin.define({
-            id: "workerd-seeded-models",
-            effect: (ctx) =>
-              Effect.gen(function* () {
-                yield* Effect.sleep("20 millis")
-                yield* ctx.model.list()
-                yield* ctx.provider.transform((providers) => {
-                  providers.update(fixture.sdk.Provider.ID.make("workerd-seeded"), (provider) => {
-                    provider.name = "Workerd Seeded"
-                    provider.activation = "enabled"
-                    provider.package = "@opencode/ai/providers/openai-compatible"
-                    provider.settings = { baseURL: "https://provider.example/v1", apiKey: "secret" }
-                  })
-                  providers.models.update(
-                    fixture.sdk.Provider.ID.make("workerd-seeded"),
-                    fixture.sdk.Model.ID.make("fictional-chat"),
-                    () => {},
-                  )
-                })
-              }).pipe(Effect.orDie),
-          }),
-        ],
-      })
-
-      const selected = yield* opencode.model.default({
-        location: fixture.sdk.Location.Ref.make({ directory: fixture.sdk.AbsolutePath.make("/workspace") }),
-      })
-      expect(selected.data).toMatchObject({
-        providerID: "workerd-seeded",
-        id: "fictional-chat",
-      })
     }),
   ),
 )

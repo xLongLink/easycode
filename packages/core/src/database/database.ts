@@ -1,7 +1,7 @@
 export * as Database from "./database.js"
 
 import { EffectDrizzleSqlite } from "./drizzle.js"
-import { sqliteLayer, supportsForeignKeyToggle, supportsTuningPragmas } from "#sqlite"
+import { sqliteLayer } from "#sqlite"
 import { Context, Effect, Layer, Schema, Semaphore } from "effect"
 import type { SqlClient } from "effect/sql"
 import { Global } from "@opencode/util/global"
@@ -25,26 +25,20 @@ export type Options = typeof Options.Type
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/storage/Database") {}
 
-// The bootstrap lock is scoped to the database being built, never to this
-// module: on workerd every Durable Object in an isolate shares module state, and
-// releasing a shared semaphore resumes the waiting object's fiber inside the
-// releasing object's I/O context, where its first storage call is rejected as
-// cross-object I/O.
+// The bootstrap lock is scoped to the database being built; file databases
+// share a lock per path, while in-memory databases have independent locks.
 const databaseLayer = (lock: Effect.Effect<Semaphore.Semaphore>) =>
   Layer.effect(
     Service,
     Effect.gen(function* () {
       const db = yield* makeDatabase
 
-      if (supportsTuningPragmas) {
-        yield* db.run("PRAGMA journal_mode = WAL")
-        yield* db.run("PRAGMA synchronous = NORMAL")
-        yield* db.run("PRAGMA busy_timeout = 5000")
-        yield* db.run("PRAGMA cache_size = -64000")
-        yield* db.run("PRAGMA wal_checkpoint(PASSIVE)")
-      }
-      // Durable Object SQLite always enforces foreign keys and rejects the pragma.
-      if (supportsForeignKeyToggle) yield* db.run("PRAGMA foreign_keys = ON")
+      yield* db.run("PRAGMA journal_mode = WAL")
+      yield* db.run("PRAGMA synchronous = NORMAL")
+      yield* db.run("PRAGMA busy_timeout = 5000")
+      yield* db.run("PRAGMA cache_size = -64000")
+      yield* db.run("PRAGMA wal_checkpoint(PASSIVE)")
+      yield* db.run("PRAGMA foreign_keys = ON")
       const semaphore = yield* lock
       yield* semaphore.withPermit(DatabaseMigration.apply(db))
 
@@ -97,9 +91,8 @@ async function restrictToOwner(filename: string) {
 
 // The database service over an injected SqlClient, for runtimes that receive
 // database storage instead of opening a filesystem path. Any client provided
-// here still goes through the pragma guards and migrations; Global is required
-// because migrations may read it (the v1 import). The lock is created per build
-// because every Durable Object builds this layer over its own storage.
+// here still goes through the pragmas and migrations; Global is required
+// because migrations may read it (the v1 import). The lock is created per build.
 export const layerFromClient: Layer.Layer<Service, never, SqlClient.SqlClient | Global.Service> = databaseLayer(
   Semaphore.make(1),
 )

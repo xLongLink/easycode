@@ -1,5 +1,4 @@
-// Lazy: workerd forbids generating random values in global scope, so the id
-// materializes on first call (inside a handler) and stays stable afterwards.
+// The process-wide id materializes on first use and stays stable afterwards.
 let generated: string | undefined
 
 export function runID(): string {

@@ -44,3 +44,9 @@ easycode includes two built-in agents you can switch between with the `Tab` key.
 
 Also included is a **general** subagent for complex searches and multistep tasks.
 This is used internally and can be invoked using `@general` in messages.
+
+### Releases
+
+Set the root `package.json` version to the intended stable release and push the changes to `dev`, then run `bun script/release.ts` to confirm and dispatch the release workflow. A matching `v<version>` tag also triggers it.
+
+The workflow owns GitHub publication. For local archive preparation only, run `bun packages/cli/script/package.ts` after building the binaries. The legacy `script/publish.ts` and CLI direct-publishing script have been removed; releases do not publish workspace packages to npm.

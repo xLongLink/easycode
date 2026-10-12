@@ -3,8 +3,19 @@ export * as EventLogger from "./event-logger.js"
 import { Effect, Layer } from "effect"
 import { makeGlobalNode } from "@opencode/util/effect/app-node"
 import { Bus } from "./bus.js"
+import { Agent } from "@opencode/schema/agent"
+import { Provider } from "@opencode/schema/provider"
+import { Model } from "@opencode/schema/model"
+import { Command } from "@opencode/schema/command"
+import { Config } from "@opencode/schema/config"
 
-const EVENT_TYPES = new Set(["agent.updated", "provider.updated", "model.updated", "command.updated", "config.updated"])
+const EVENT_TYPES = new Set<string>([
+  Agent.Event.Updated.type,
+  Provider.Event.Updated.type,
+  Model.Event.Updated.type,
+  Command.Event.Updated.type,
+  Config.Event.Updated.type,
+])
 
 export const layer = Layer.effectDiscard(
   Effect.gen(function* () {

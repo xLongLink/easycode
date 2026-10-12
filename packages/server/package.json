@@ -21,8 +21,7 @@
   "scripts": {
     "build": "bun run script/build.ts",
     "test": "bun test --only-failures",
-    "typecheck": "tsgo -b",
-    "probe:workerd": "bun run script/workerd-probe.ts"
+    "typecheck": "tsgo -b"
   },
   "dependencies": {
     "@effect/platform-node": "catalog:",

@@ -236,8 +236,8 @@ full [SDK guide](https://opencode.ai/v2/docs/build/sdk) before answering. The SD
 hosts OpenCode in the application without opening an HTTP listener.
 
 Use the [Effect SDK guide](https://opencode.ai/v2/docs/build/sdk/effect) for
-Effect applications. For Cloudflare Durable Objects, use the
-[Cloudflare SDK guide](https://opencode.ai/v2/docs/build/sdk/cloudflare).
+Effect applications. This fork supports local Bun and Node runtimes only;
+the Workerd/Cloudflare Durable Object SDK entrypoints are not available.
 
 ## [Troubleshooting](https://opencode.ai/v2/docs/troubleshooting)
 

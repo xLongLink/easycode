@@ -62,7 +62,7 @@ const browser = (app: App.Info) =>
         const pkce = yield* Effect.promise(generatePKCE)
         const state = base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)).buffer)
         const code = yield* Deferred.make<string, Error>()
-        // Lazy so runtimes without a loopback listener (workerd) never evaluate node:http.
+        // Load loopback listener support only when authentication needs it.
         const { createServer } = yield* Effect.promise(() => import("node:http"))
         const server = createServer((request, response) => {
           const url = new URL(request.url ?? "/", "http://localhost")

@@ -12,8 +12,6 @@ export const load = (dir: string) =>
       const { default: npmDefinitions } = await import("@npmcli/config/lib/definitions/index.js")
       const { definitions, flatten, nerfDarts, shorthands } = npmDefinitions
       const config = new Config({
-        // Resolved per call: on workerd import.meta.url is undefined and building
-        // this URL at module scope fails startup validation; npm config never runs there.
         npmPath: fileURLToPath(new URL("..", import.meta.url)),
         cwd: dir,
         env: { ...process.env },

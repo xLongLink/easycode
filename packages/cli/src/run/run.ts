@@ -88,16 +88,14 @@ async function execute(input: RunCommandInput, prepared: Prepared, endpoint: End
     fetch: ((request: RequestInfo | URL, init?: RequestInit) =>
       fetch(request, { ...init, timeout: false } as BunFetchRequestInit)) as typeof fetch,
   })
-  const explicit = parseRunModel(input.model)
+  const explicit = parseSessionTargetModel(input.model)
   const target = await resolveSessionTarget({
     client,
     location: prepared.directory ? { directory: prepared.directory } : undefined,
     continue: input.continue,
     session: input.session,
     fork: input.fork,
-    model: explicit
-      ? { providerID: explicit.model.providerID, id: explicit.model.modelID, variant: explicit.variant }
-      : undefined,
+    model: explicit,
     agent: input.agent,
     environment: input.server.service ? Env.session() : undefined,
     prepare: async (next) => {
@@ -170,15 +168,6 @@ function localDirectory(root: string) {
     return process.cwd()
   } catch {
     fail(`Failed to change directory to ${root}`)
-  }
-}
-
-export function parseRunModel(value?: string) {
-  const ref = parseSessionTargetModel(value)
-  if (!ref) return
-  return {
-    model: { providerID: ref.providerID, modelID: ref.id },
-    variant: ref.variant,
   }
 }
 

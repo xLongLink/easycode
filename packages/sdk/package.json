@@ -17,15 +17,12 @@
   ],
   "exports": {
     ".": "./src/index.ts",
-    "./effect": "./src/effect/index.ts",
-    "./workerd": "./src/workerd.ts",
-    "./workerd/effect": "./src/effect/workerd.ts"
+    "./effect": "./src/effect/index.ts"
   },
   "scripts": {
     "build": "bun run script/build.ts",
     "test": "bun test --timeout 5000",
-    "typecheck": "tsgo -b",
-    "verify:package": "bun run script/verify-package.ts"
+    "typecheck": "tsgo -b"
   },
   "dependencies": {
     "@opencode/client": "workspace:*",

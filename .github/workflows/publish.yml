@@ -53,7 +53,7 @@ jobs:
         run: bun script/service-smoke.ts
       - name: Package release assets
         run: |
-          bun packages/cli/script/publish.ts --dry-run
+          bun packages/cli/script/package.ts
           mkdir -p release
           cp packages/cli/dist/easycode-*.tar.gz release/
           cp install release/install

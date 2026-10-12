@@ -18,7 +18,6 @@ export default Runtime.handler(
     const global = yield* Global.Service
     const updater = yield* Updater.Service
     const method = yield* updater.method()
-    const removal = method ? updater.removal(method) : undefined
     // Data, config, and state hold sessions, credentials, settings, and prompt history; uninstall only removes the cache.
     // All channels share the cache. Stop background services before deleting it.
     // Read registrations directly: ServiceConfig.options() can migrate files even during a dry run.
@@ -34,7 +33,6 @@ export default Runtime.handler(
       log.info(`  Stop background service and persistent terminals: ${path.join(global.state, name)}`),
     )
     shell.forEach((file) => log.info(`  Shell PATH: ${file}`))
-    if (removal) log.info(`  Package: ${removal.command.join(" ")}`)
     if (method === "curl") log.info(`  Binary (manual removal): ${process.execPath}`)
     if (!method) log.warn("Could not detect the installation method. Remove the installation manually after cleanup.")
 
@@ -86,19 +84,6 @@ export default Runtime.handler(
         Effect.catch((error) => Effect.sync(() => errors.push(`Shell config ${file}: ${errorMessage(error)}`))),
       ),
     )
-    if (removal) {
-      progress.start(`Running ${removal.command.join(" ")}...`)
-      yield* removal.run.pipe(
-        Effect.tap(() => Effect.sync(() => progress.stop("Package removed"))),
-        Effect.catch((error) =>
-          Effect.sync(() => {
-            progress.stop("Package manager uninstall failed", 1)
-            errors.push(errorMessage(error))
-            log.warn(`Run manually: ${removal.command.join(" ")}`)
-          }),
-        ),
-      )
-    }
     if (method === "curl") {
       log.message("To finish removing the binary, run:")
       log.info(`  rm '${process.execPath.replaceAll("'", "'\\''")}'`)

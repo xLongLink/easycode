@@ -3,7 +3,7 @@ import { ClientError, OpenCode } from "@opencode/client/promise"
 import { OPENCODE_VERSION } from "../src/version"
 import path from "node:path"
 import { createMiniConnection, mergeInput as mergeInteractiveInput, resolveMiniTarget } from "../src/mini"
-import { mergeInput as mergeNonInteractiveInput, parseRunModel } from "../src/run/run"
+import { mergeInput as mergeNonInteractiveInput } from "../src/run/run"
 import { parseSessionTargetModel } from "../src/session-target"
 
 async function cli(args: string[]) {
@@ -113,9 +113,6 @@ describe("mini command", () => {
   })
 
   test("parses model variants from the model reference", () => {
-    expect(JSON.stringify(parseRunModel("openrouter/openai/gpt-5#high"))).toBe(
-      JSON.stringify({ model: { providerID: "openrouter", modelID: "openai/gpt-5" }, variant: "high" }),
-    )
     expect(parseSessionTargetModel("openrouter/openai/gpt-5#high")).toEqual({
       providerID: "openrouter",
       id: "openai/gpt-5",

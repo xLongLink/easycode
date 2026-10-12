@@ -12,8 +12,7 @@ export function workspaceTasks(pkg: { name: string; scripts: Record<string, stri
               (name === "test" &&
                 ["ai", "codemode", "core", "httpapi-codegen", "server", "cli", "tui", "latex"].some(
                   (name) => pkg.name === `@opencode/${name}`,
-                )) ||
-              (name === "verify:package" && pkg.name === "@opencode/sdk"),
+                )),
           )
           .map(([name]) => [
             name === "typecheck" ? "check:types" : `workspace:${name}`,

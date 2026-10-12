@@ -10,8 +10,7 @@ import type { ServerOptions } from "./options"
 
 export interface BootOptions {
   /**
-   * Runtime-profile service replacements, applied after the standard set so later entries
-   * win — swaps services the standard graph assumes are local. See `ServerWorkerd.replacements`.
+   * Service replacements, applied after the standard set so later entries win.
    */
   readonly overrides?: LayerNode.Replacements
 }
@@ -20,23 +19,19 @@ export interface BootOptions {
  * Builds a web-standard fetch handler — `(request: Request) => Promise<Response>` — serving the
  * same HttpApi routes as the Node server process without binding a port, owning a listener, or
  * installing signal handlers. This is the entry for runtimes that hand requests to the embedder
- * instead of letting it listen: workerd (Workers and Durable Objects), Deno.serve, Bun.serve, or
- * a test harness.
+ * instead of letting it listen, such as Bun.serve or a test harness.
  *
  * The application layer builds EAGERLY, inside the caller's `Scope`, before the handler is
- * returned. Do not convert this to a lazy first-request build: on workerd, a first request that
- * aborts mid-build interrupts the layer construction and wedges every subsequent request
- * (Effect-TS/effect#6319 class). The embedder owns the lifecycle — closing the scope releases
- * the application layer.
+ * returned. Request cancellation must not own application construction. The embedder owns
+ * the lifecycle — closing the scope releases the application layer.
  *
  * Auth follows `createRoutes` semantics: `options.password` enforces Basic auth; omitting it
  * serves unauthenticated, so an embedder without a password must front the handler with its own
  * access control.
  *
  * Sessions whose execution claim was never released resume once the layer is built, exactly as
- * the Node server process does: a runtime that dies without teardown — an evicted Durable
- * Object leaves the same durable signature as a killed process — replays orphaned turns on the
- * next boot, and the sweep is a no-op when nothing is suspended.
+ * the Node server process does. A killed process replays orphaned executions on the next
+ * boot, and the sweep is a no-op when nothing is suspended.
  */
 export const make = Effect.fn("ServerFetch.make")(function* (options: ServerOptions = {}, boot: BootOptions = {}) {
   const context = yield* Layer.build(

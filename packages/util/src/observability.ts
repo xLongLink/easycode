@@ -51,8 +51,7 @@ export function layer(
   ).pipe(Layer.catchCause(() => local))
 }
 
-// Layer.suspend: constructing the loggers eagerly at module scope performs
-// I/O (file logger, run id) that workerd forbids in global scope.
+// Defer logger I/O until the layer is built.
 export const node = LayerNode.make({
   name: "observability",
   layer: Layer.suspend(() => layer()),

@@ -17,13 +17,11 @@ test("release archives contain executable standalone binaries", async () => {
     await Promise.all(
       targets.map((target) => Bun.write(path.join(root, target.directory, "bin", target.binary), "fixture")),
     )
-    const result = await Bun.$`bun script/publish.ts --dry-run`
+    const result = await Bun.$`bun script/package.ts`
       .cwd(cli)
       .env({
         ...process.env,
         OPENCODE_CLI_DIST: root,
-        OPENCODE_VERSION: "2.3.4",
-        OPENCODE_CHANNEL: "dev",
       })
       .quiet()
     expect(result.exitCode).toBe(0)
@@ -39,8 +37,10 @@ test("release archives contain executable standalone binaries", async () => {
   }
 })
 
-test.skipIf(process.platform !== "linux").each(["latest", "version", "local"])(
-  "easycode installation installs only the easycode executable from %s",
+test
+  .skipIf(process.platform !== "linux")
+  .each(["latest", "version", "local", "download-failure", "extraction-failure"])(
+  "easycode installation cleans up after %s",
   async (mode) => {
     const root = await mkdtemp("/tmp/opencode/release-install-")
     const requests: string[] = []
@@ -51,6 +51,8 @@ test.skipIf(process.platform !== "linux").each(["latest", "version", "local"])(
         requests.push(pathname)
         if (pathname === "/repos/example/easycode/releases/latest") return Response.json({ tag_name: "v2.3.4" })
         if (pathname.startsWith("/example/easycode/releases/download/v2.3.4/easycode-linux-")) {
+          if (mode === "download-failure") return new Response("Download failed", { status: 503 })
+          if (mode === "extraction-failure") return new Response("Invalid archive")
           return new Response(Bun.file(path.join(root, "binary.tar.gz")))
         }
         return new Response("Not found", { status: 404 })
@@ -79,7 +81,7 @@ exec "${curl}" "\${args[@]}"
 `,
       )
       await chmod(path.join(root, "bin/curl"), 0o755)
-      const args = mode === "local" ? ["--binary", binary] : mode === "version" ? ["--version", "v2.3.4"] : []
+      const args = mode === "local" ? ["--binary", binary] : mode === "latest" ? [] : ["--version", "v2.3.4"]
       const result = await Bun.$`bash ${installer} --no-modify-path ${args}`
         .env({
           ...process.env,
@@ -93,7 +95,15 @@ exec "${curl}" "\${args[@]}"
           XDG_BIN_DIR: "",
           GITHUB_ACTIONS: "false",
         })
+        .nothrow()
         .quiet()
+      expect((await readdir(root)).filter((name) => name.startsWith("easycode_install."))).toEqual([])
+      if (mode.endsWith("-failure")) {
+        expect(result.exitCode).not.toBe(0)
+        expect(await Bun.file(path.join(root, ".easycode/bin/easycode")).exists()).toBe(false)
+        expect(requests.filter((request) => request.includes("/releases/download/"))).toHaveLength(1)
+        return
+      }
       expect(result.exitCode).toBe(0)
       expect((await Bun.$`${path.join(root, ".easycode/bin/easycode")}`.text()).trim()).toBe("fixture-version")
       expect(await Bun.file(path.join(root, ".easycode/bin/opencode")).exists()).toBe(false)
@@ -106,6 +116,65 @@ exec "${curl}" "\${args[@]}"
     }
   },
 )
+
+for (const shell of ["bash", "sh", "zsh", "fish"]) {
+  test
+    .skipIf(!Bun.which(shell))
+    .each(["bin with spaces", "bin'quote", "bin\\slash", "bin$(touch injected)`touch injected`;$HOME"])(
+    "installer writes a literal, idempotent PATH entry for " + shell + ": %s",
+    async (directory) => {
+      const root = await mkdtemp("/tmp/opencode/release-shell-")
+      try {
+        const home = path.join(root, "home with spaces")
+        const config = path.join(
+          home,
+          shell === "fish"
+            ? ".config/fish/config.fish"
+            : shell === "zsh"
+              ? ".zshrc"
+              : shell === "sh"
+                ? ".profile"
+                : ".bashrc",
+        )
+        const binary = path.join(root, "binary")
+        const installDir = path.join(home, ".easycode", directory)
+        await Bun.write(config, "# existing configuration\n")
+        await Bun.write(binary, "#!/bin/sh\necho fixture-version\n")
+        const env = {
+          ...process.env,
+          HOME: home,
+          SHELL: shell,
+          EASYCODE_INSTALL_DIR: installDir,
+          XDG_BIN_DIR: "",
+          XDG_CONFIG_HOME: path.join(home, ".config"),
+          ZDOTDIR: home,
+          GITHUB_ACTIONS: "false",
+        }
+        await Bun.$`bash ${installer} --binary ${binary}`.env(env).quiet()
+        const content = await Bun.file(config).text()
+        await Bun.$`bash ${installer} --binary ${binary}`.env(env).quiet()
+        expect(await Bun.file(config).text()).toBe(content)
+        expect(content).toStartWith("# existing configuration\n")
+        const command =
+          shell === "fish"
+            ? 'source "$CONFIG"; printf "%s\\n" $PATH[1]; easycode'
+            : '. "$CONFIG"; printf "%s\\n" "$PATH"; easycode'
+        const result = await Bun.$`${shell} -c ${command}`
+          .cwd(root)
+          .env({ ...env, CONFIG: config })
+          .quiet()
+        expect(result.exitCode).toBe(0)
+        expect(result.stdout.toString().split("\n")[0]).toBe(
+          shell === "fish" ? installDir : `${installDir}:${process.env.PATH}`,
+        )
+        expect(result.stdout.toString()).toEndWith("fixture-version\n")
+        expect(await Bun.file(path.join(root, "injected")).exists()).toBe(false)
+      } finally {
+        await rm(root, { recursive: true, force: true })
+      }
+    },
+  )
+}
 
 test.each(["MINGW64_NT-10.0", "MSYS_NT-10.0", "CYGWIN_NT-10.0"])(
   "installer rejects native Windows %s before creating files",

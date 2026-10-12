@@ -55,17 +55,12 @@ describe("workspace tasks", () => {
     })
   })
 
-  test("preserves the previous CI test selection and SDK verification", () => {
+  test("preserves the CI test selection", () => {
     expect(workspaceTasks({ name: "@opencode/client", scripts: { test: "bun test" } }).run?.tasks).toEqual({})
     expect(
       workspaceTasks({ name: "@opencode/httpapi-codegen", scripts: { test: "bun test" } }).run?.tasks,
     ).toMatchObject({
       "workspace:test": { dependsOn: [] },
-    })
-    expect(
-      workspaceTasks({ name: "@opencode/sdk", scripts: { "verify:package": "bun verify.ts" } }).run?.tasks,
-    ).toMatchObject({
-      "workspace:verify:package": { command: "bun run verify:package", cache: { output: [] } },
     })
   })
 })

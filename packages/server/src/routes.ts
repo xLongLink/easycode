@@ -106,7 +106,7 @@ function makeRoutes<AuthError, AuthServices>(
   auth: Layer.Layer<ServerAuth.Config, AuthError, AuthServices>,
   options: ServerOptions,
   serviceURLs: () => ReadonlyArray<string>,
-  // Runtime-profile replacements (e.g. workerd) applied after the standard set, so later entries win.
+  // Service replacements are applied after the standard set, so later entries win.
   overrides: LayerNode.Replacements,
   instances?: InstanceNode,
 ) {

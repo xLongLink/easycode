@@ -2,10 +2,7 @@ import path from "path"
 import fs from "fs"
 import os from "os"
 import { Context, Effect, Layer } from "effect"
-// XDG on runtimes with a home directory; one tmp-rooted directory on workerd.
-// The variants resolve through the `workerd` bundle condition, like the
-// native-module stubs, so no runtime sniffing happens here.
-import { roots } from "#global-roots"
+import { roots } from "./global-roots.js"
 import { Flock } from "./flock.js"
 import { makeGlobalNode } from "./effect/app-node.js"
 

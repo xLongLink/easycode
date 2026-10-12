@@ -27,9 +27,7 @@ Material local adaptations include:
 - local cache, mapping, and runtime-inspection helpers
 - suppressed statement tracing beneath the database operation boundary
 - explicit SQLite transactions and savepoints
-- native transaction delegation for Durable Object SQLite
 - deliberate query-builder variance annotations
 
 Preserve these adaptations when comparing or synchronizing upstream code.
-Focused regression coverage is in `test/database-drizzle.test.ts` and
-`test/sqlite-workerd.test.ts`.
+Focused regression coverage is in `test/database-drizzle.test.ts`.

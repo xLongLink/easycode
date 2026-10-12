@@ -4,7 +4,7 @@ import { join } from "path"
 
 // Pins the #sqlite subpath-import condition gate: bundling database.ts for a
 // non-Bun runtime must never reach the static `import "bun:sqlite"` in
-// sqlite.bun.ts, which crashes workerd (and any other non-Bun bundle) at
+// sqlite.bun.ts, which crashes a non-Bun bundle at
 // module load. Bare imports are externalized so only core-relative modules —
 // including the #sqlite resolution under test — end up in the bundle.
 const externalizeBare: BunPlugin = {
@@ -34,13 +34,6 @@ const bundle = async (conditions: Array<string>) => {
 // file). The assertions pin platform-independent package.json condition
 // resolution, so Linux coverage loses nothing.
 describe.skipIf(process.platform === "win32")("sqlite bundle conditions", () => {
-  test("workerd conditions select the Durable Object driver and never bun:sqlite", async () => {
-    const output = await bundle(["workerd"])
-    expect(output).not.toContain("bun:sqlite")
-    expect(output).not.toContain("node:sqlite")
-    expect(output).toContain("SqliteWorkerd")
-  })
-
   test("default conditions fall back to node:sqlite, not bun:sqlite", async () => {
     const output = await bundle([])
     expect(output).not.toContain("bun:sqlite")

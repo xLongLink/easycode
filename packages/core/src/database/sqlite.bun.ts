@@ -7,11 +7,6 @@ import { Sqlite } from "./sqlite.js"
 
 const TypeId = "~@opencode/core/database/SqliteBun" as const
 
-export const supportsTuningPragmas = true
-
-// Foreign keys default OFF and can be toggled per connection.
-export const supportsForeignKeyToggle = true
-
 interface Config extends Sqlite.ClientConfig {
   readonly filename: string
   readonly readonly?: boolean

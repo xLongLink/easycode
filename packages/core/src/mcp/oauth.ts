@@ -354,7 +354,7 @@ export const authorize = (input: {
     const redirectPath = redirect?.pathname ?? "/callback"
     const state = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url")
 
-    // Lazy so runtimes without a loopback listener (workerd) never evaluate node:http.
+    // Load loopback listener support only when authentication needs it.
     const { createServer } = yield* Effect.promise(() => import("node:http"))
     const server = createServer((request, response) => {
       const url = new URL(request.url ?? "/", "http://127.0.0.1")
