@@ -11,5 +11,5 @@ test("the command palette does not offer an application updater", async () => {
   await app.waitFor(() => app.renderer.currentFocusedEditor instanceof InputRenderable)
   await app.mockInput.typeText("opencode.update")
   const frame = await app.waitForFrame((frame) => frame.includes("No results found"))
-  expect(frame).not.toContain("Update easycode")
+  expect(frame).not.toContain("Update uncode")
 })

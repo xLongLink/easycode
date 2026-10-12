@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
-APP=easycode
-SOURCE_APP=easycode
-REPO=${GH_REPO:-xLongLink/easycode}
+APP=uncode
+SOURCE_APP=uncode
+REPO=${GH_REPO:-xLongLink/uncode}
 
 case "$(uname -s)" in
     Linux|Darwin) ;;
-    *) echo "Unsupported operating system: easycode supports Linux and macOS only." >&2; exit 1 ;;
+    *) echo "Unsupported operating system: uncode supports Linux and macOS only." >&2; exit 1 ;;
 esac
 
 MUTED='\033[0;2m'
@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 
 usage() {
     cat <<EOF
-easycode Installer
+uncode Installer
 
 Usage: install.sh [options]
 
@@ -30,14 +30,14 @@ Options:
 Examples:
     curl -fsSL https://github.com/$REPO/releases/latest/download/install | bash
     curl -fsSL https://github.com/$REPO/releases/latest/download/install | bash -s -- --version 0.0.0-beta-17236
-    ./install --binary /path/to/easycode
+    ./install --binary /path/to/uncode
 EOF
 }
 
 requested_version=${VERSION:-}
 no_modify_path=false
 binary_path=""
-install_dir=${EASYCODE_INSTALL_DIR:-${XDG_BIN_DIR:-$HOME/.easycode/bin}}
+install_dir=${UNCODE_INSTALL_DIR:-${XDG_BIN_DIR:-$HOME/.uncode/bin}}
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -181,7 +181,7 @@ else
         specific_version=$requested_version
     fi
 
-    filename="easycode-$target.tar.gz"
+    filename="uncode-$target.tar.gz"
     url="https://github.com/$REPO/releases/download/v$specific_version/$filename"
     binary_name="$SOURCE_APP"
 fi
@@ -215,7 +215,7 @@ check_version() {
 
 download_and_install() (
     print_message info "\n${MUTED}Installing ${NC}$APP ${MUTED}version: ${NC}$specific_version"
-    tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/easycode_install.XXXXXXXX")
+    tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/uncode_install.XXXXXXXX")
     trap 'rm -rf -- "$tmp_dir"' EXIT
     curl -f -# -L -o "$tmp_dir/$filename" "$url"
 
@@ -246,9 +246,9 @@ add_to_path() {
     if grep -Fxq "$command" "$config_file"; then
         print_message info "Command already exists in $config_file, skipping write."
     elif [[ -w $config_file ]]; then
-        echo -e "\n# easycode" >> "$config_file"
+        echo -e "\n# uncode" >> "$config_file"
         printf '%s\n' "$command" >> "$config_file"
-        print_message info "${MUTED}Successfully added ${NC}easycode ${MUTED}to \$PATH in ${NC}$config_file"
+        print_message info "${MUTED}Successfully added ${NC}uncode ${MUTED}to \$PATH in ${NC}$config_file"
     else
         print_message warning "Manually add the directory to $config_file (or similar):"
         print_message info "  $command"
@@ -309,13 +309,13 @@ if [ -n "${GITHUB_ACTIONS-}" ] && [ "${GITHUB_ACTIONS}" == "true" ]; then
 fi
 
 echo -e ""
-echo -e "easycode"
+echo -e "uncode"
 echo -e ""
 echo -e ""
 echo -e "${MUTED}To start:${NC}"
 echo -e ""
 echo -e "cd <project>  ${MUTED}# Open directory${NC}"
-echo -e "easycode      ${MUTED}# Run command${NC}"
+echo -e "uncode      ${MUTED}# Run command${NC}"
 echo -e ""
 echo -e "${MUTED}For more information visit ${NC}https://github.com/$REPO"
 echo -e ""

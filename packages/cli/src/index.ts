@@ -18,7 +18,7 @@ import { Heap } from "./heap"
 import { CpuProfile } from "./cpu-profile"
 
 if (process.platform !== "linux" && process.platform !== "darwin") {
-  console.error("easycode supports Linux and macOS only. Use WSL on Windows.")
+  console.error("uncode supports Linux and macOS only. Use WSL on Windows.")
   process.exit(1)
 }
 

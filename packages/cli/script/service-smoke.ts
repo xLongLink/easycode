@@ -18,7 +18,7 @@ const directory = path.resolve(
   target,
   "bin",
 )
-const binary = path.join(directory, nodeBuild ? "opencode2-node" : "easycode")
+const binary = path.join(directory, nodeBuild ? "opencode2-node" : "uncode")
 if (!(await Bun.file(binary).exists())) throw new Error(`Missing compiled CLI in ${directory}`)
 
 const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "opencode-service-smoke-")))
@@ -94,7 +94,7 @@ try {
   processes.forEach((process) => process.kill())
   await Promise.all(processes.map((process) => process.exited))
   if (failure)
-    errors.push(fs.readFile(path.join(root, "data", "easycode", "log", "opencode.log"), "utf8").catch(() => ""))
+    errors.push(fs.readFile(path.join(root, "data", "uncode", "log", "opencode.log"), "utf8").catch(() => ""))
 }
 
 const output = await Promise.all(errors)
@@ -115,7 +115,7 @@ function spawnService() {
 }
 
 async function waitForRegistration() {
-  const directory = path.join(root, "state", "easycode")
+  const directory = path.join(root, "state", "uncode")
   for (let attempt = 0; attempt < 400; attempt++) {
     const files = await fs.readdir(directory).catch(() => [])
     const file = files.find(

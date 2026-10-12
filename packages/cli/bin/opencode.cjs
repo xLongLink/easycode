@@ -6,7 +6,7 @@ const path = require("path")
 const os = require("os")
 
 if (process.platform !== "linux" && process.platform !== "darwin") {
-  console.error("easycode supports Linux and macOS only. Use WSL on Windows.")
+  console.error("uncode supports Linux and macOS only. Use WSL on Windows.")
   process.exit(1)
 }
 
@@ -38,7 +38,7 @@ const envPath = process.env.OPENCODE_BIN_PATH
 const scriptDir = path.dirname(fs.realpathSync(__filename))
 const command = path.basename(__filename).replace(/\.cjs$/, "")
 const nodeBuild = command === "opencode-node"
-const sourceCommand = nodeBuild ? "opencode2-node" : "easycode"
+const sourceCommand = nodeBuild ? "opencode2-node" : "uncode"
 const cached = path.join(scriptDir, `.${command}`)
 const platform = os.platform()
 const arch = { x64: "x64", arm64: "arm64", arm: "arm" }[os.arch()] || os.arch()

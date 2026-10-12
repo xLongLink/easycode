@@ -125,7 +125,7 @@ describe("mini command", () => {
 
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toMatch(/^  mini[ \t]+Start the minimal interactive interface\r?$/m)
-    expect(result.stdout).toMatch(/^  run[ \t]+Run easycode with a message\r?$/m)
+    expect(result.stdout).toMatch(/^  run[ \t]+Run uncode with a message\r?$/m)
   })
 
   test("exposes run without legacy interactive, attach, or command modes", async () => {

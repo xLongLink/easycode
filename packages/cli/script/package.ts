@@ -8,12 +8,12 @@ const root = path.resolve(process.env.OPENCODE_CLI_DIST ?? path.join(dir, "dist"
 
 const files = await Promise.all(
   (await Array.fromAsync(new Bun.Glob("**/bin/*").scan({ cwd: root })))
-    .filter((file) => /^cli-(?:linux|darwin)-[^/]+\/bin\/easycode$/.test(file))
+    .filter((file) => /^cli-(?:linux|darwin)-[^/]+\/bin\/uncode$/.test(file))
     .map(async (file) => {
       const source = path.join(root, file)
       const binary = path.basename(file)
       const target = path.basename(path.dirname(path.dirname(file)))
-      const name = target.replace(/^cli-/, "easycode-")
+      const name = target.replace(/^cli-/, "uncode-")
       const output = path.join(root, `${name}.tar.gz`)
       if (!Bun.file(source).size) throw new Error(`Empty release binary: ${source}`)
       // CI downloads do not preserve executable permissions.

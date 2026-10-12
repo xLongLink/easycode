@@ -12,13 +12,13 @@ import { errorMessage } from "../../util/error"
 export default Runtime.handler(
   Commands.commands.uninstall,
   Effect.fn("cli.uninstall")(function* (input) {
-    intro("Uninstall easycode")
+    intro("Uninstall uncode")
     const fs = yield* FileSystem.FileSystem
     const global = yield* Global.Service
     const executable = yield* fs.realPath(process.execPath).pipe(Effect.orElseSucceed(() => process.execPath))
-    const curlPath = path.resolve(global.home, ".easycode", "bin", "easycode")
+    const curlPath = path.resolve(global.home, ".uncode", "bin", "uncode")
     const curlBinary = yield* fs.realPath(curlPath).pipe(Effect.orElseSucceed(() => curlPath))
-    const method = path.basename(executable) === "easycode" || executable === curlBinary ? "curl" : undefined
+    const method = path.basename(executable) === "uncode" || executable === curlBinary ? "curl" : undefined
     // Data, config, and state hold sessions, credentials, settings, and prompt history; uninstall only removes the cache.
     // All channels share the cache. Stop background services before deleting it.
     // Read registrations directly: ServiceConfig.options() can migrate files even during a dry run.
@@ -28,7 +28,7 @@ export default Runtime.handler(
     const shell = method === "curl" ? yield* shellConfigs(global.home) : []
 
     log.info(`Installation method: ${method ?? "unknown"}`)
-    log.message("The following global files will be removed (shared by easycode versions and channels):")
+    log.message("The following global files will be removed (shared by uncode versions and channels):")
     if (yield* fs.exists(global.cache)) log.info(`  Cache: ${global.cache}`)
     services.forEach((name) =>
       log.info(`  Stop background service and persistent terminals: ${path.join(global.state, name)}`),
@@ -131,8 +131,8 @@ const shellConfigs = Effect.fnUntraced(function* (home: string) {
 function cleanShellConfig(content: string) {
   const lines = content.split("\n")
   const entry = (line: string) =>
-    /^(?:export PATH=|fish_add_path\s)/.test(line.trim()) && line.includes(".easycode/bin")
+    /^(?:export PATH=|fish_add_path\s)/.test(line.trim()) && line.includes(".uncode/bin")
   return lines
-    .filter((line, index) => !entry(line) && !(line.trim() === "# easycode" && entry(lines[index + 1] ?? "")))
+    .filter((line, index) => !entry(line) && !(line.trim() === "# uncode" && entry(lines[index + 1] ?? "")))
     .join("\n")
 }

@@ -114,14 +114,14 @@ export function make(input: {
     initialize: Effect.fnUntraced(function* (params) {
       yield* Ref.set(input.capabilities, ACPCapabilities.parse(params.clientCapabilities))
       const authMethod: AuthMethod = {
-        description: "Run `easycode auth login` in the terminal",
-        name: "Login with easycode",
+        description: "Run `uncode auth login` in the terminal",
+        name: "Login with uncode",
         id: AuthMethodID,
         ...(params.clientCapabilities?.auth?.terminal ? { type: "terminal" as const, args: ["--login"] } : {}),
       }
       if (params.clientCapabilities?._meta?.["terminal-auth"] === true) {
         authMethod._meta = {
-          "terminal-auth": { command: "easycode", args: ["auth", "login"], label: "easycode Login" },
+          "terminal-auth": { command: "uncode", args: ["auth", "login"], label: "uncode Login" },
         }
       }
       return {
@@ -134,7 +134,7 @@ export function make(input: {
           _meta: { [ACPCapabilities.ChildSessionUpdates]: true },
         },
         authMethods: [authMethod],
-        agentInfo: { name: "easycode", version: OPENCODE_VERSION },
+        agentInfo: { name: "uncode", version: OPENCODE_VERSION },
       }
     }),
     authenticate: Effect.fnUntraced(function* (params) {

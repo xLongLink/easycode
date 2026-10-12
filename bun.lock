@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "opencode",
+      "name": "uncode",
       "dependencies": {
         "@opencode/plugin": "workspace:*",
         "@opencode/script": "workspace:*",
@@ -50,7 +50,7 @@
       "name": "@opencode/cli",
       "version": "0.0.0",
       "bin": {
-        "easycode": "./bin/opencode.cjs",
+        "uncode": "./bin/opencode.cjs",
       },
       "dependencies": {
         "@agentclientprotocol/sdk": "1.6.0",

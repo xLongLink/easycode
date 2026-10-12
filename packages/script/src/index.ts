@@ -38,7 +38,7 @@ const VERSION = await (async () => {
   if (env.OPENCODE_VERSION) return env.OPENCODE_VERSION
   if (IS_PREVIEW) return `0.0.0-${CHANNEL}-${previewBuildNumber()}`
   const version = (
-    await $`gh release view --repo ${process.env.GH_REPO ?? "xLongLink/easycode"} --json tagName --jq .tagName`.text()
+    await $`gh release view --repo ${process.env.GH_REPO ?? "xLongLink/uncode"} --json tagName --jq .tagName`.text()
   )
     .trim()
     .replace(/^v/, "")
@@ -65,4 +65,4 @@ export const Script = {
     return VERSION
   },
 }
-console.log(`easycode script`, JSON.stringify(Script, null, 2))
+console.log(`uncode script`, JSON.stringify(Script, null, 2))

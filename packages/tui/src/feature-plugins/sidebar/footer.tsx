@@ -54,7 +54,7 @@ export function SidebarOnboarding(props: { context: Plugin.Context; sessionID: s
               ✕
             </text>
           </box>
-          <text fg={props.context.theme.text.muted}>Connect a provider to start using easycode.</text>
+          <text fg={props.context.theme.text.muted}>Connect a provider to start using uncode.</text>
           <text fg={props.context.theme.text.muted}>
             Connect from 75+ providers to use other models, including Claude, GPT, Gemini etc
           </text>

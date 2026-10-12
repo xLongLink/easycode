@@ -6,7 +6,7 @@
   "license": "MIT",
   "os": ["linux", "darwin"],
   "bin": {
-    "easycode": "./bin/opencode.cjs"
+    "uncode": "./bin/opencode.cjs"
   },
   "files": [
     "bin"

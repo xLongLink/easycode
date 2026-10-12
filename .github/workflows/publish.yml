@@ -1,5 +1,5 @@
-name: Release easycode
-run-name: easycode ${{ inputs.version || github.ref_name }}
+name: Release uncode
+run-name: uncode ${{ inputs.version || github.ref_name }}
 
 on:
   push:
@@ -43,7 +43,7 @@ jobs:
       - name: Test CLI and installer
         working-directory: packages/cli
         run: bun test --timeout 30000 --only-failures
-      - name: Build easycode binaries
+      - name: Build uncode binaries
         run: bun packages/cli/script/build.ts --skip-install
         env:
           BUN_COMPILE_RELEASE: bun-v1.4.2
@@ -55,13 +55,13 @@ jobs:
         run: |
           bun packages/cli/script/package.ts
           mkdir -p release
-          cp packages/cli/dist/easycode-*.tar.gz release/
+          cp packages/cli/dist/uncode-*.tar.gz release/
           cp install release/install
           cd release
-          sha256sum easycode-*.tar.gz install > SHA256SUMS
+          sha256sum uncode-*.tar.gz install > SHA256SUMS
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: easycode-release
+          name: uncode-release
           path: release/*
           if-no-files-found: error
 
@@ -73,7 +73,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: easycode-release
+          name: uncode-release
           path: release
       - name: Publish GitHub Release
         env:
@@ -85,5 +85,5 @@ jobs:
           version="${RELEASE_VERSION#v}"
           gh release create "v${version}" release/* \
             --target "$RELEASE_COMMIT" \
-            --title "easycode v${version}" \
+            --title "uncode v${version}" \
             --notes ""

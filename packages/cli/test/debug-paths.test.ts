@@ -11,7 +11,7 @@ describe("debug paths command", () => {
     expect(debug.stdout).toContain("paths")
     expect(debug.stdout).toContain("Show global paths (data, config, cache, state)")
     expect(paths.exitCode).toBe(0)
-    expect(paths.stdout).toContain("easycode debug paths [flags]")
+    expect(paths.stdout).toContain("uncode debug paths [flags]")
   })
 
   test("prints resolved global paths without starting a server", async () => {
@@ -34,16 +34,16 @@ describe("debug paths command", () => {
       expect({ exitCode: result.exitCode, stderr: result.stderr }).toEqual({ exitCode: 0, stderr: "" })
       expect(paths).toMatchObject({
         home: os.homedir(),
-        data: path.join(root, "data", "easycode"),
-        config: path.join(root, "config", "easycode"),
-        cache: path.join(root, "cache", "easycode"),
-        state: path.join(root, "state", "easycode"),
-        bin: path.join(root, "cache", "easycode", "bin"),
-        log: path.join(root, "data", "easycode", "log"),
-        repos: path.join(root, "data", "easycode", "repos"),
+        data: path.join(root, "data", "uncode"),
+        config: path.join(root, "config", "uncode"),
+        cache: path.join(root, "cache", "uncode"),
+        state: path.join(root, "state", "uncode"),
+        bin: path.join(root, "cache", "uncode", "bin"),
+        log: path.join(root, "data", "uncode", "log"),
+        repos: path.join(root, "data", "uncode", "repos"),
       })
       expect(paths.tmp).toBeTruthy()
-      expect(await Bun.file(path.join(root, "state", "easycode", "service-local.json")).exists()).toBe(false)
+      expect(await Bun.file(path.join(root, "state", "uncode", "service-local.json")).exists()).toBe(false)
     } finally {
       await fs.rm(root, { recursive: true, force: true })
     }
