@@ -43,6 +43,6 @@ if (dryRun) {
 
 if ((await $`gh release view ${tag} --repo ${repo}`.nothrow()).exitCode !== 0) {
   const target = (await $`git rev-parse HEAD`.cwd(dir).text()).trim()
-  await $`gh release create ${tag} --repo ${repo} --target ${target} --title ${tag} --notes ${process.env.OPENCODE_RELEASE_NOTES ?? ""} ${Script.preview ? ["--prerelease"] : []}`
+  await $`gh release create ${tag} --repo ${repo} --target ${target} --title ${tag} --notes "" ${Script.preview ? ["--prerelease"] : []}`
 }
 await $`gh release upload ${tag} ${files} ${path.resolve(dir, "../../install")} --repo ${repo} --clobber`

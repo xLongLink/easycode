@@ -27,20 +27,6 @@ async function prepareReleaseFiles() {
   await $`bun install`
 }
 
-async function writeChangelog() {
-  const notes = process.env["OPENCODE_RELEASE_NOTES"]?.trim()
-  if (!notes) return
-  const file = Bun.file("CHANGELOG.md")
-  const text = await file.text()
-  const lines = text.split("\n")
-  if (lines.some((line) => line === `## ${tag}` || line.startsWith(`## ${tag} `))) return
-  const index = lines.findIndex((line) => line.startsWith("## "))
-  const head = (index === -1 ? lines : lines.slice(0, index)).join("\n").trimEnd()
-  const rest = index === -1 ? "" : lines.slice(index).join("\n")
-  const entry = `## ${tag} — ${new Date().toISOString().slice(0, 10)}\n\n${notes}\n`
-  await file.write(`${head}\n\n${entry}${rest ? `\n${rest}` : ""}`)
-}
-
 if (Script.release && !Script.preview) {
   await $`git fetch origin --tags`
   await $`git switch --detach`
@@ -75,7 +61,6 @@ if (Script.release && !Script.preview) {
   await $`git fetch origin`
   await $`git checkout -B dev origin/dev`
   await prepareReleaseFiles()
-  await writeChangelog()
   if ((await $`git diff --quiet`.nothrow()).exitCode !== 0) {
     // The release already published this code; a push-triggered dev publish of a version bump is wasted work.
     await $`git commit -am ${`sync release versions for ${tag} [skip ci]`}`
