@@ -69,9 +69,6 @@ await $`bun ./packages/protocol/script/publish.ts`
 console.log("\n=== client ===\n")
 await $`bun ./packages/client/script/publish.ts`
 
-console.log("\n=== cli ===\n")
-await $`bun ./packages/cli/script/publish.ts`
-
 console.log("\n=== plugin ===\n")
 await $`bun ./packages/plugin/script/publish.ts`
 
@@ -108,4 +105,9 @@ if (Script.release && !Script.preview) {
     await $`git commit -am ${`sync release versions for ${tag} [skip ci]`}`
     await $`git push origin HEAD:dev --no-verify`
   }
+}
+
+if (Script.release) {
+  console.log("\n=== CLI release archives ===\n")
+  await $`bun ./packages/cli/script/publish.ts`
 }

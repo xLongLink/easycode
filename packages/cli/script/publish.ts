@@ -1,114 +1,54 @@
 #!/usr/bin/env bun
 import { $ } from "bun"
-import pkg from "../package.json"
-import { Script } from "@opencode/script"
-import { fileURLToPath } from "url"
-import { existsSync } from "fs"
+import { chmod, rm } from "node:fs/promises"
 import path from "node:path"
+import { Script } from "@opencode/script"
 
-const dir = fileURLToPath(new URL("..", import.meta.url))
+const dir = path.resolve(import.meta.dir, "..")
 const root = path.resolve(process.env.OPENCODE_CLI_DIST ?? path.join(dir, "dist"))
-process.chdir(dir)
 const dryRun = process.argv.includes("--dry-run")
+const repo = process.env.GH_REPO ?? "anomalyco/opencode"
+const tag = `v${Script.version}`
 
-async function published(name: string, version: string) {
-  return (await $`npm view ${name}@${version} version`.nothrow()).exitCode === 0
+if (!Script.release && !dryRun) {
+  console.log("skipped CLI publication without a release")
+  process.exit(0)
 }
 
-async function publish(dir: string, name: string, version: string) {
-  if (process.platform !== "win32") await $`chmod -R 755 .`.cwd(dir)
-  const exists = !dryRun && (await published(name, version))
-  if (exists) console.log(`already published ${name}@${version}`)
-  // Keep local tarballs available to downstream publishers when retrying a release.
-  await $`bun pm pack`.cwd(dir)
-  if (!exists && !dryRun) await $`npm publish *.tgz --access public --tag ${Script.channel}`.cwd(dir)
+const files = await Promise.all(
+  (await Array.fromAsync(new Bun.Glob("**/bin/*").scan({ cwd: root })))
+    .filter((file) =>
+      /^(?:node\/cli-node-|cli-)[^/]+\/bin\/(?:opencode(?:\.exe)?|opencode2-node(?:\.exe)?)$/.test(file),
+    )
+    .map(async (file) => {
+      const source = path.join(root, file)
+      const binary = path.basename(file)
+      const target = path.basename(path.dirname(path.dirname(file)))
+      const name = target.replace(/^cli-node-/, "opencode-node-").replace(/^cli-/, "opencode-")
+      const output = path.join(root, `${name}.tar.gz`)
+      if (!Bun.file(source).size) throw new Error(`Empty release binary: ${source}`)
+      // CI downloads do not preserve executable permissions.
+      await chmod(source, 0o755)
+      await rm(output, { force: true })
+      await $`tar -czf ${output} -C ${path.dirname(source)} ${binary}`
+      return output
+    }),
+)
+if (!files.length) throw new Error(`No CLI release binaries found in ${root}`)
+
+if (dryRun) {
+  console.log(`Prepared release archives: ${files.join(", ")}`)
+  process.exit(0)
 }
 
-async function publishDistribution(input: {
-  root: string
-  name: string
-  command: string
-  legacyCommand?: string
-  binary: string
-  packagePrefix: string
-}) {
-  const binaries: Record<string, string> = {}
-  for (const filepath of new Bun.Glob("*/package.json").scanSync({ cwd: input.root })) {
-    const item = await Bun.file(`${input.root}/${filepath}`).json()
-    if (!item.name.startsWith(input.packagePrefix)) continue
-    binaries[item.name] = item.version
-  }
-  console.log(input.name, "binaries", binaries)
-  const versions = new Set(Object.values(binaries))
-  if (versions.size > 1) throw new Error(`Binary package versions do not match for ${input.name}`)
-  const version = versions.values().next().value
-  if (!version) throw new Error(`No binary packages found for ${input.name}`)
-  if (version !== Script.version) throw new Error(`Expected ${Script.version}, got ${version} for ${input.name}`)
+if ((await $`gh release view ${tag} --repo ${repo}`.nothrow()).exitCode !== 0) {
+  const target = (await $`git rev-parse HEAD`.cwd(dir).text()).trim()
+  await $`gh release create ${tag} --repo ${repo} --target ${target} --title ${tag} --notes ${process.env.OPENCODE_RELEASE_NOTES ?? ""} ${Script.preview ? ["--prerelease"] : []}`
+}
+await $`gh release upload ${tag} ${files} ${path.resolve(dir, "../../install")} --repo ${repo} --clobber`
 
-  await $`mkdir -p ${input.root}/${input.name}/bin`
-  await $`cp ./script/postinstall.mjs ${input.root}/${input.name}/postinstall.mjs`
-  await Bun.file(`${input.root}/${input.name}/bin/${input.command}.exe`).write(
-    [
-      `echo "Error: ${input.name}'s postinstall script was not run." >&2`,
-      'echo "" >&2',
-      'echo "This occurs when installation scripts are disabled." >&2',
-      'echo "Run the package postinstall script or reinstall with scripts enabled." >&2',
-      "exit 1",
-      "",
-    ].join("\n"),
+if (Script.channel === "latest" && Script.release) {
+  await $`docker buildx build --platform linux/amd64,linux/arm64 --tag ghcr.io/anomalyco/opencode:${Script.version} --push .`.cwd(
+    dir,
   )
-  await Bun.file(`${input.root}/${input.name}/package.json`).write(
-    JSON.stringify(
-      {
-        name: input.name,
-        bin: {
-          [input.command]: `./bin/${input.command}.exe`,
-          ...(input.legacyCommand ? { [input.legacyCommand]: `./bin/${input.command}.exe` } : {}),
-        },
-        ...(input.command !== input.binary ? { opencodeSourceBinary: input.binary } : {}),
-        scripts: { postinstall: "node ./postinstall.mjs" },
-        version,
-        license: pkg.license,
-        repository: { type: "git", url: "git+https://github.com/anomalyco/opencode.git" },
-        os: ["darwin", "linux", "win32"],
-        cpu: ["arm64", "x64"],
-        optionalDependencies: binaries,
-      },
-      null,
-      2,
-    ),
-  )
-
-  await Promise.all(
-    Object.entries(binaries).map(([name, version]) =>
-      publish(`${input.root}/${name.replace("@opencode/", "")}`, name, version),
-    ),
-  )
-  await publish(`${input.root}/${input.name}`, input.name, version)
-}
-
-await publishDistribution({
-  root,
-  name: pkg.name,
-  command: "opencode",
-  legacyCommand: "opencode2",
-  binary: "opencode",
-  packagePrefix: "@opencode/cli-",
-})
-if (Script.channel !== "latest" && existsSync(path.join(root, "node"))) {
-  await publishDistribution({
-    root: path.join(root, "node"),
-    name: "@opencode/cli-node",
-    command: "opencode2-node",
-    binary: "opencode2-node",
-    packagePrefix: "@opencode/cli-node-",
-  })
-}
-
-if (Script.channel === "latest" && Script.release && !dryRun) {
-  await $`docker buildx build --platform linux/amd64,linux/arm64 --tag ghcr.io/anomalyco/opencode:${Script.version} --push .`
-}
-
-if ((Script.channel === "beta" || Script.channel === "latest") && Script.release) {
-  await $`bun ./script/publish-aur.ts ${dryRun ? ["--dry-run"] : []}`.env({ ...process.env, OPENCODE_CLI_DIST: root })
 }

@@ -22,18 +22,7 @@
 
 ```bash
 # YOLO
-curl -fsSL https://opencode.ai/install | bash
-
-# Package managers
-npm i -g @opencode/cli@latest      # or bun/pnpm/yarn
-scoop install opencode             # Windows
-choco install opencode             # Windows
-brew install anomalyco/tap/opencode # macOS and Linux (recommended, always up to date)
-brew install opencode              # macOS and Linux (official brew formula, updated less)
-sudo pacman -S opencode            # Arch Linux (Stable)
-paru -S opencode-bin               # Arch Linux (Latest from AUR)
-mise use -g opencode               # Any OS
-nix run nixpkgs#opencode           # or github:anomalyco/opencode for latest dev branch
+curl -fsSL https://github.com/anomalyco/opencode/releases/latest/download/install | bash
 ```
 
 > [!TIP]
@@ -50,8 +39,8 @@ The install script respects the following priority order for the installation pa
 
 ```bash
 # Examples
-OPENCODE_INSTALL_DIR=/usr/local/bin curl -fsSL https://opencode.ai/install | bash
-XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://opencode.ai/install | bash
+OPENCODE_INSTALL_DIR=/usr/local/bin curl -fsSL https://github.com/anomalyco/opencode/releases/latest/download/install | bash
+XDG_BIN_DIR=$HOME/.local/bin curl -fsSL https://github.com/anomalyco/opencode/releases/latest/download/install | bash
 ```
 
 ### Agents

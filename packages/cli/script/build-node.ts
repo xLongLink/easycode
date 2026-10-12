@@ -7,7 +7,6 @@ import os from "node:os"
 import path from "node:path"
 import { build } from "vite"
 import { Script } from "@opencode/script"
-import pkg from "../package.json"
 import { collectNodeAssets, copyNodeAssets, hashNodeAssets, seaAssetMap } from "./node-assets"
 import { appArchiveAsset, mainConfig } from "../vite.node.config"
 import { nodeExecArgv, nodeTarget, type NodeTarget } from "../src/node/target"
@@ -134,21 +133,6 @@ for (const target of targets) {
   if (target.platform === "darwin" && process.platform !== "darwin") {
     console.warn(`${output} must be signed on macOS before it can run`)
   }
-  await writeFile(
-    path.join(outdir, name, "package.json"),
-    `${JSON.stringify(
-      {
-        name: `@opencode/${name}`,
-        version: Script.version,
-        license: pkg.license,
-        repository: { type: "git", url: "git+https://github.com/anomalyco/opencode.git" },
-        os: [target.platform],
-        cpu: [target.arch],
-      },
-      null,
-      2,
-    )}\n`,
-  )
   await verifyArtifact(path.join(outdir, name))
   if (host) await smoke(output)
 }

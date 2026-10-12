@@ -202,21 +202,6 @@ export default { path: file, version: ${JSON.stringify(opencodePty.version)}, sh
   }
   verifySimulationGraph(simulationInputs)
 
-  await Bun.write(
-    path.join(outdir, name, "package.json"),
-    JSON.stringify(
-      {
-        name: `@opencode/${name}`,
-        version: Script.version,
-        license: "MIT",
-        repository: { type: "git", url: "git+https://github.com/anomalyco/opencode.git" },
-        os: [item.os],
-        cpu: [item.arch],
-      },
-      null,
-      2,
-    ),
-  )
   await verifyArtifact(path.join(outdir, name))
 }
 
