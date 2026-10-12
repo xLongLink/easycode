@@ -6,10 +6,12 @@ Every feature of the desktop and web app that is not the core shell is an extens
 - Main-process SDK: `@opencode/gui-extensions/sdk/main` ([`main.ts`](src/sdk/main.ts))
 - Rules for agents: [`AGENTS.md`](AGENTS.md)
 
+This repository ships the web app only. Main-process entries and bridge contracts remain for compatibility, but no desktop main-process host is included; IPC providers are inactive on the web.
+
 ```mermaid
 flowchart LR
   subgraph main["Electron main (desktop only)"]
-    mh["main host<br/>packages/desktop/src/main/extension"] --> me["main.ts entries"]
+    mh["external main host<br/>(not included)"] --> me["main.ts entries"]
   end
   subgraph window["Each window (desktop or web)"]
     wh["window host<br/>packages/app/src/runtime/extension"] --> we["renderer.tsx entries"]
@@ -436,7 +438,7 @@ legacy: ["summary"],
 | Lint gate                  | `bun run lint` (oxlint, ast-grep, `script/sdk-docs.ts`); `bun run lint:changed`                                  | Raw effects, app imports, module state, undocumented SDK, a guide block that differs from its shipping source                               |
 
 - Test a main entry through its `Ipc` contract with real inputs, not Electron mocks.
-- The hosts own their contracts: main storage in `packages/desktop/src/main/extension/storage.test.ts`, the real window host in `packages/app/component-tests/extension-host.spec.ts`. An extension does not test them again.
+- The window host owns its contracts in `packages/app/component-tests/extension-host.spec.ts`. An extension does not test them again.
 - Drive the race the user hits: a reload during async work, a store that loads late, an Ipc that goes away and returns.
 
 ## Build your first extension

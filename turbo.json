@@ -46,10 +46,6 @@
       "dependsOn": ["^build"],
       "outputs": []
     },
-    "@opencode/desktop#test": {
-      "outputs": [],
-      "cache": false
-    },
     "@opencode/httpapi-codegen#test": {
       "outputs": []
     },

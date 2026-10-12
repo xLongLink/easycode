@@ -1,5 +1,5 @@
 /**
- * Host-internal contract between the renderer host (packages/app) and the main host (packages/desktop).
+ * Host-internal contract between the renderer host (packages/app) and an external main-process host.
  * Extensions never use this directly; they use Ipc tokens.
  * Payloads are structured-clone values already encoded with the Ipc's schemas. The `ipc` fields name an Ipc by id.
  */

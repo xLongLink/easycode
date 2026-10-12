@@ -1,6 +1,6 @@
 # GUI extensions
 
-Built-in features of the desktop and web app, each behind the SDK in `src/sdk/`. The window host lives in `packages/app/src/runtime/extension/`, the main-process host in `packages/desktop/src/main/extension/`. [README.md](README.md) is the author guide: it explains every rule below, with diagrams and source-checked code from the shipping extensions, and walks through `src/pairing/`. These are the rules.
+Built-in app features, each behind the SDK in `src/sdk/`. The web window host lives in `packages/app/src/runtime/extension/`. Main-process entries and bridge contracts remain for compatibility, but no desktop main-process host is included. [README.md](README.md) is the author guide: it explains every rule below, with diagrams and source-checked code from the extensions, and walks through `src/pairing/`. These are the rules.
 
 ## Structure
 
@@ -100,6 +100,6 @@ Read [You Might Not Need an Effect](https://react.dev/learn/you-might-not-need-a
 - Unit-test pure logic that carries a contract: path and security checks, storage migration, protocol parsing, archive validation.
 - UI behavior is proven by the app e2e keeper suites in `packages/app/e2e/regression/`. Do not add unit tests that repeat them.
 - Test a main-process entry through its `Ipc` contract with real inputs, not through Electron mocks.
-- The hosts own their contracts, so an extension does not test them again: main storage in `packages/desktop/src/main/extension/storage.test.ts`, the real window host in `packages/app/component-tests/extension-host.spec.ts`, and the built-in graph in `packages/app/component-tests/extension-graph.spec.ts`.
+- The window host owns its contracts, so an extension does not test them again: the real window host in `packages/app/component-tests/extension-host.spec.ts`, and the built-in graph in `packages/app/component-tests/extension-graph.spec.ts`.
 - For lifetime and ordering contracts, drive the race the user hits: a reload during async setup, a rejection that beats its event, a store that loads late (the e2e fixtures can hold desktop storage reads), an Ipc that goes away and returns.
 - The real window host runs only in the component tests (`packages/app/component-tests/extension-*.spec.ts`, with `extension-host.fixture.tsx`); they include the graph matrix, which boots every built-in with each optional provider disabled. Run them with `PLAYWRIGHT_STORYBOOK_PORT=3294 bunx playwright test --config playwright.components.config.ts extension-` from `packages/app`.
