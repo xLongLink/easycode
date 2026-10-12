@@ -63,7 +63,6 @@ import { DialogMcp } from "./component/dialog-mcp"
 import { DialogStatus } from "./component/dialog-status"
 import { DialogConfig } from "./component/dialog-config"
 import { DialogDebug } from "./component/dialog-debug"
-import { DialogPair } from "./component/dialog-pair"
 import { DialogHelp } from "./ui/dialog-help"
 import { DialogAgent } from "./component/dialog-agent"
 import { DialogSessionList } from "./component/dialog-session-list"
@@ -153,7 +152,6 @@ const appBindingCommands = [
   "provider.connect",
   "opencode.settings",
   "opencode.status",
-  "server.pair",
   "service.restart",
   "location.reload",
   "opencode.debug",
@@ -948,15 +946,6 @@ function App() {
         },
         category: "System",
       },
-      {
-        name: "server.pair",
-        title: "Pair device",
-        slash: { name: "pair", aliases: ["web"] },
-        run: () => {
-          dialog.replace(() => <DialogPair />)
-        },
-        category: "System",
-      },
       ...(client.restart
         ? [
             {
@@ -1016,7 +1005,7 @@ function App() {
         name: "docs.open",
         title: "Open docs",
         run: () => {
-          openUrl("https://github.com/xLongLink/easycode").catch(() => {})
+          openUrl("https://github.com/xLongLink/uncode").catch(() => {})
           dialog.clear()
         },
         category: "System",

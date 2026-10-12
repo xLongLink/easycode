@@ -40,7 +40,6 @@ import { CorsConfig } from "./cors"
 import { handlers } from "./handlers"
 import { authorizationLayer } from "./middleware/authorization"
 import { schemaErrorLayer } from "./middleware/schema-error"
-import { ServerPairing } from "./pairing"
 import { layer } from "./location"
 import { formLocationLayer } from "./middleware/form-location"
 import { sessionLocationLayer } from "./middleware/session-location"
@@ -67,7 +66,6 @@ const applicationServiceNodes = [
   PersistentPty.node,
   Credential.node,
   WellKnown.node,
-  ServerPairing.node,
   LocationServiceMap.node,
   LocationActivity.node,
   SessionRestart.node,

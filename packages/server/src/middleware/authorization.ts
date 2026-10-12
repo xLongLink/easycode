@@ -4,7 +4,6 @@ import { Authorization } from "@opencode/protocol/middleware/authorization"
 export { Authorization } from "@opencode/protocol/middleware/authorization"
 import { hasPtyConnectTicketURL } from "@opencode/protocol/groups/pty"
 import { hasPersistentPtyConnectTicketURL } from "@opencode/protocol/groups/persistent-pty"
-import { isPairingConnectURL } from "@opencode/protocol/groups/server"
 import { Effect, Layer, Redacted } from "effect"
 import { Base64 } from "effect/encoding"
 import { HttpEffect, HttpServerRequest, HttpServerResponse } from "effect/http"
@@ -57,17 +56,8 @@ export function unauthorizedResponse(request: HttpServerRequest.HttpServerReques
 
 export function authorizedRequest(request: HttpServerRequest.HttpServerRequest, config: ServerAuth.Info) {
   return credentialFromRequest(request).pipe(
-    Effect.map((credential) => ServerAuth.authorized(credential, config) || authorizedSessionCookie(request, config)),
+    Effect.map((credential) => ServerAuth.authorized(credential, config)),
   )
-}
-
-function authorizedSessionCookie(request: HttpServerRequest.HttpServerRequest, config: ServerAuth.Info) {
-  const token = request.cookies[ServerAuth.sessionCookieName(request.headers.host)]
-  if (!token) return false
-  // Same-site pages on other ports still send this cookie, so only same-origin requests may use it.
-  const origin = request.headers.origin
-  if (origin !== undefined && URL.parse(origin)?.host !== request.headers.host) return false
-  return ServerAuth.verifySession(token, config)
 }
 
 export const authorizationLayer = Layer.effect(
@@ -78,10 +68,10 @@ export const authorizationLayer = Layer.effect(
     return Authorization.of((effect) =>
       Effect.gen(function* () {
         const request = yield* HttpServerRequest.HttpServerRequest
-        // Ticketed PTY connects (browsers cannot set headers on WebSocket upgrades) and pairing links
-        // skip credential checks here; their handlers consume and validate the ticket or code.
+        // Ticketed PTY connects (browsers cannot set headers on WebSocket upgrades)
+        // skip credential checks here; their handlers consume and validate the ticket.
         const url = new URL(request.url, "http://localhost")
-        if (hasPtyConnectTicketURL(url) || hasPersistentPtyConnectTicketURL(url) || isPairingConnectURL(url))
+        if (hasPtyConnectTicketURL(url) || hasPersistentPtyConnectTicketURL(url))
           return yield* effect
         if (yield* authorizedRequest(request, config)) return yield* effect
         if (challengeRequest(request))

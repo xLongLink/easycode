@@ -500,37 +500,6 @@ const Root = Spec.make(typeof OPENCODE_CLI_NAME === "string" ? OPENCODE_CLI_NAME
         ...ServerParams,
       },
     }),
-    Spec.make("pair", {
-      description: "Print one-time links to connect a browser or app",
-      params: {
-        url: Flag.String("url").pipe(
-          Flag.withDescription("Use an external HTTP(S) server URL in pairing links"),
-          Flag.mapTryCatch(
-            (value) => {
-              const url = new URL(value)
-              if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash)
-                throw new Error("Invalid pairing URL")
-              return url.href.replace(/\/+$/, "")
-            },
-            () => "Expected an HTTP(S) server URL without credentials, query parameters, or a fragment",
-          ),
-          Flag.optional,
-        ),
-        remote: Flag.Boolean("remote").pipe(
-          Flag.withDescription(
-            "Pair through the OpenTunnel remote address, enabling remote access if needed (exposes the server to the internet)",
-          ),
-          Flag.withDefault(false),
-        ),
-        yes: Flag.Boolean("yes").pipe(
-          Flag.withAlias("y"),
-          Flag.withDescription(
-            "Accept exposing the server to the internet when --remote enables remote access for the first time (required without an interactive terminal)",
-          ),
-          Flag.withDefault(false),
-        ),
-      },
-    }),
     Spec.make("serve", {
       description: "Start the v2 API server",
       params: {

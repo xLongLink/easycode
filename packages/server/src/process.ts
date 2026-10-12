@@ -4,7 +4,6 @@ import { NodeHttpServer } from "@effect/platform-node"
 import { SessionRestart } from "@opencode/core/session/execution/restart"
 import { hasPtyConnectTicketURL } from "@opencode/protocol/groups/pty"
 import { hasPersistentPtyConnectTicketURL } from "@opencode/protocol/groups/persistent-pty"
-import { isPairingConnectURL } from "@opencode/protocol/groups/server"
 import { Global } from "@opencode/util/global"
 import { Cause, Context, Effect, Exit, Latch, Layer, Option, Ref, Scope } from "effect"
 import { HttpMiddleware, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http"
@@ -46,7 +45,6 @@ export const start = Effect.fn("ServerProcess.start")(function* <E, R>(
   options: ServerOptions,
   lifecycle?: Lifecycle<E, R>,
   transform?: Transform,
-  remoteURLs?: () => ReadonlyArray<string>,
 ) {
   const password = options.password
   if (!password) return yield* Effect.fail(new Error("Missing server password"))
@@ -55,13 +53,12 @@ export const start = Effect.fn("ServerProcess.start")(function* <E, R>(
   const shutdown = yield* Latch.make()
   const status = yield* Status.make()
   const bound = yield* listen({ hostname, port })
-  const localURLs = () => {
+  const urls = () => {
     const address = bound.server.address()
     if (address === null || typeof address === "string") return []
     const host = address.family === "IPv6" ? `[${address.address}]` : address.address
     return ServerInfo.connectionURLs(`http://${host}:${address.port}`, hostname)
   }
-  const urls = () => [...localURLs(), ...(remoteURLs?.() ?? [])]
   const application = yield* Ref.make(Option.none<App>())
   const app = dispatch(password, status, application, options.app?.version ?? "unknown", urls, Global.Path.tmp)
   // Request fibers may continue inbound trace context, but must not inherit the server startup parent.
@@ -184,7 +181,6 @@ function dispatch(
       return yield* infoResponse(status, version, urls, tmp)
     }
     if (
-      !isPairingConnectURL(url) &&
       (!ready || (!hasPtyConnectTicketURL(url) && !hasPersistentPtyConnectTicketURL(url))) &&
       !(yield* authorizedRequest(request, auth))
     )

@@ -68,10 +68,6 @@
               "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
               "description": "Open settings"
             },
-            "server.pair": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Pair device"
-            },
             "service.restart": {
               "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
               "description": "Restart service"

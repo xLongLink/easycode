@@ -163,7 +163,7 @@ it.live("authenticates API requests behind the frontend transform while allowing
   }),
 )
 
-it.live("pairing links sign in browsers with a cookie and API clients with a token", () =>
+it.live("local service requires credentials and no longer exposes device pairing", () =>
   Effect.gen(function* () {
     const server = yield* ServerProcess.start<never, never>({
       hostname: "127.0.0.1",
@@ -175,16 +175,7 @@ it.live("pairing links sign in browsers with a cookie and API clients with a tok
     const base = HttpServer.formatAddress(server.address)
     const request = (pathname: string, init?: RequestInit) =>
       Effect.promise(() => fetch(new URL(pathname, base), { redirect: "manual", ...init }))
-    const pair = Effect.gen(function* () {
-      const response = yield* request("/api/pair", {
-        method: "POST",
-        headers: { authorization: `Basic ${btoa("opencode:secret")}` },
-      })
-      expect(response.status).toBe(200)
-      return (yield* Effect.promise(() => response.json())) as { code: string; expires_in: number }
-    })
-
-    const rejected = yield* request("/api/pair", { method: "POST" })
+    const rejected = yield* request("/api/info")
     expect(rejected.status).toBe(401)
     expect(rejected.headers.get("www-authenticate")).toBe('Basic realm="Secure Area"')
     // A Basic challenge on fetch makes browsers show a native prompt instead of the app's sign-in screen.
@@ -192,35 +183,10 @@ it.live("pairing links sign in browsers with a cookie and API clients with a tok
     expect(fetched.status).toBe(401)
     expect(fetched.headers.get("www-authenticate")).toBeNull()
 
-    const browser = yield* pair
-    expect(browser.expires_in).toBe(300)
-    const redirect = yield* request(`/auth/connect/${browser.code}`, { headers: { accept: "text/html" } })
-    expect(redirect.status).toBe(302)
-    expect(redirect.headers.get("location")).toBe("/")
-    const setCookie = redirect.headers.get("set-cookie") ?? ""
-    expect(setCookie).toContain(`opencode_session_${new URL(base).port}=`)
-    expect(setCookie).toContain("HttpOnly")
-    expect(setCookie).toContain("SameSite=Lax")
-    const cookie = setCookie.split(";")[0]
-
-    const reused = yield* request(`/auth/connect/${browser.code}`, { headers: { accept: "text/html" } })
-    expect(reused.status).toBe(401)
-    expect(yield* Effect.promise(() => reused.text())).toContain("opencode pair")
-
-    expect((yield* request("/api/info", { headers: { cookie } })).status).toBe(200)
-    expect((yield* request("/api/info", { headers: { cookie, origin: base } })).status).toBe(200)
-    expect((yield* request("/api/info", { headers: { cookie, origin: "http://127.0.0.1:1" } })).status).toBe(401)
-    expect((yield* request("/api/info", { headers: { cookie: `${cookie}x` } })).status).toBe(401)
-
-    const client = yield* pair
-    const redeemed = yield* request(`/auth/connect/${client.code}`)
-    expect(redeemed.status).toBe(200)
-    const session = (yield* Effect.promise(() => redeemed.json())) as { token: string }
-    expect(
-      (yield* request("/api/info", { headers: { authorization: `Basic ${btoa(`opencode:${session.token}`)}` } }))
-        .status,
-    ).toBe(200)
-    expect((yield* request(`/auth/connect/${client.code}`)).status).toBe(401)
+    const headers = { authorization: `Basic ${btoa("opencode:secret")}` }
+    expect((yield* request("/api/info", { headers })).status).toBe(200)
+    expect((yield* request("/api/pair", { method: "POST", headers })).status).toBe(404)
+    expect((yield* request("/auth/connect/unknown", { headers })).status).toBe(404)
     expect((yield* request("/auth/connect/unknown")).status).toBe(401)
   }),
 )
@@ -233,15 +199,14 @@ async function readUntil(reader: ReadableStreamDefaultReader<Uint8Array>, expect
   }
 }
 
-it.live("server info lists remote URLs alongside local addresses while they are available", () =>
+it.live("server info lists only local connection addresses", () =>
   Effect.gen(function* () {
-    const remote = { urls: ["https://example.opentunnel.xyz"] as ReadonlyArray<string> }
-    const server = yield* ServerProcess.start<never, never>(
-      { hostname: "127.0.0.1", port: 0, password: "secret", database: { path: ":memory:" } },
-      undefined,
-      undefined,
-      () => remote.urls,
-    )
+    const server = yield* ServerProcess.start<never, never>({
+      hostname: "127.0.0.1",
+      port: 0,
+      password: "secret",
+      database: { path: ":memory:" },
+    })
     const base = HttpServer.formatAddress(server.address)
     const info = () =>
       Effect.promise(() =>
@@ -250,8 +215,6 @@ it.live("server info lists remote URLs alongside local addresses while they are 
         ),
       )
 
-    expect((yield* info()).urls).toEqual([base, "https://example.opentunnel.xyz"])
-    remote.urls = []
     expect((yield* info()).urls).toEqual([base])
   }),
 )
