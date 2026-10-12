@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import { fileURLToPath } from "node:url"
 import { collectNodeAssets } from "../script/node-assets"
-import { nodeTarget, shellParserWasmAssets } from "../src/node/target"
+import { attentionSoundAssets, nodeTarget, shellParserWasmAssets } from "../src/node/target"
 
 test("collects each SEA asset key once", async () => {
   const assets = await collectNodeAssets(nodeTarget(process.platform, process.arch))
@@ -15,4 +15,10 @@ test("collects each SEA asset key once", async () => {
       source: fileURLToPath(import.meta.resolve(shellParserWasmAssets.runtime)),
     },
   ])
+  expect(assets.filter((asset) => asset.key.startsWith("@opencode/tui/audio/"))).toEqual(
+    attentionSoundAssets.map((key) => ({
+      key,
+      source: fileURLToPath(new URL(`../../tui/src/assets/audio/${key.split("/").at(-1)}`, import.meta.url)),
+    })),
+  )
 })

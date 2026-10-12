@@ -37,12 +37,10 @@ To test a development TUI against your installed OpenCode V2 background service 
 bun run dev:live [directory]
 ```
 
-For web development, run the backend and app in separate terminals. Other interfaces have root scripts:
+To run the API server without the terminal interface:
 
 ```bash
 bun dev serve --port 4096
-bun run dev:web
-bun run dev:www
 ```
 
 ### Packages
@@ -54,7 +52,6 @@ bun run dev:www
 - `packages/client`: generated TypeScript clients
 - `packages/cli`: command-line entrypoint and service lifecycle
 - `packages/tui`: terminal interface
-- `packages/app`: shared web interface
 - `packages/plugin`: plugin API
 
 ### Verification
@@ -101,7 +98,7 @@ Examples:
 
 - `docs: update contributing guide`
 - `fix(tui): restore scroll position`
-- `feat(app): add workspace search`
+- `feat(tui): add workspace search`
 
 ## Issues
 

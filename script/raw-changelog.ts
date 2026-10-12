@@ -24,16 +24,12 @@ type Diff = {
 
 const repo = process.env.GH_REPO ?? "anomalyco/opencode"
 const team = ["actions-user", "github-actions[bot]", "opencode", "opencode-agent[bot]"]
-const order = ["Core", "TUI", "Desktop", "SDK", "Extensions"] as const
+const order = ["Core", "TUI", "SDK"] as const
 const sections = {
   core: "Core",
   tui: "TUI",
-  app: "Desktop",
-  tauri: "Desktop",
   sdk: "SDK",
   plugin: "SDK",
-  "extensions/vscode": "Extensions",
-  github: "Extensions",
 } as const
 
 function ref(input: string) {
@@ -113,7 +109,7 @@ async function commits(from: string, to: string, comparison: Diff[]) {
   }
 
   const log =
-    await $`git log ${base}..${head} --format=%H -- packages/opencode packages/plugin packages/desktop packages/app packages/extensions`.text()
+    await $`git log ${base}..${head} --format=%H -- packages/core packages/cli packages/tui packages/plugin packages/schema packages/protocol packages/client packages/server packages/sdk`.text()
 
   const list: Commit[] = []
   for (const hash of log.split("\n").filter(Boolean)) {
@@ -125,11 +121,9 @@ async function commits(from: string, to: string, comparison: Diff[]) {
     const areas = new Set<string>()
 
     for (const file of diff.split("\n").filter(Boolean)) {
-      if (file.startsWith("packages/opencode/src/cli/cmd/")) areas.add("tui")
-      else if (file.startsWith("packages/opencode/")) areas.add("core")
-      else if (file.startsWith("packages/desktop/src-tauri/")) areas.add("tauri")
-      else if (file.startsWith("packages/desktop/") || file.startsWith("packages/app/")) areas.add("app")
-      else if (file.startsWith("packages/plugin/")) areas.add("sdk")
+      if (file.startsWith("packages/tui/") || file.startsWith("packages/cli/")) areas.add("tui")
+      else if (file.startsWith("packages/core/") || file.startsWith("packages/server/")) areas.add("core")
+      else if (/^packages\/(plugin|schema|protocol|client|sdk)\//.test(file)) areas.add("sdk")
     }
 
     if (areas.size === 0) continue

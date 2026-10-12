@@ -10,7 +10,14 @@ import path from "node:path"
 
 const nodeBuild = process.argv.includes("--node")
 const target = `cli${nodeBuild ? "-node" : ""}-${process.platform === "win32" ? "windows" : process.platform}-${process.arch}`
-const directory = path.join(import.meta.dir, "..", "dist", ...(nodeBuild ? ["node"] : []), target, "bin")
+const directory = path.resolve(
+  import.meta.dir,
+  "..",
+  process.argv.find((arg) => arg.startsWith("--outdir="))?.slice("--outdir=".length) ?? "dist",
+  ...(nodeBuild ? ["node"] : []),
+  target,
+  "bin",
+)
 const binary = path.join(
   directory,
   `${nodeBuild ? "opencode2-node" : "opencode"}${process.platform === "win32" ? ".exe" : ""}`,

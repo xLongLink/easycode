@@ -133,13 +133,7 @@ export default { path: file, version: ${JSON.stringify(opencodePty.version)}, sh
   const result = await Bun.build({
     entrypoints: ["./src/index.ts"],
     tsconfig: "./tsconfig.json",
-    plugins: [
-      solidPlugin,
-      parcelWatcherPlugin,
-      opencodePtyPlugin,
-      pluginRuntimePlugin,
-      simulationGraphPlugin,
-    ],
+    plugins: [solidPlugin, parcelWatcherPlugin, opencodePtyPlugin, pluginRuntimePlugin, simulationGraphPlugin],
     external: ["node-gyp"],
     format: "esm",
     minify: true,

@@ -162,7 +162,7 @@ The previous stable V2 release is ${base}. Inspect every relevant commit in \`gi
 read each commit's actual diff with \`git show\`. Do not use a whole-tree \`git diff\` between the endpoints, which
 includes V1 history merged into dev. Do not compare against V1 release tags or commits outside that range. Do not rely
 only on commit titles. Write a
-user-facing changelog with sections for Core, TUI, Desktop, SDK, and Extensions, omitting empty sections and changes that
+user-facing changelog with sections for Core, TUI, and SDK, omitting empty sections and changes that
 are entirely internal. Group bug fixes separately from improvements. Preserve community contributor attribution when it
 is available from merged pull requests, but never thank automated bot accounts.
 
