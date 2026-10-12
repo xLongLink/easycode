@@ -27,7 +27,7 @@ describe("workspace tasks", () => {
     })
   })
 
-  test.each(["cli", "sdk", "server", "simulation", "tui"])("%s checks wait for Core declarations", (name) => {
+  test.each(["cli", "server", "simulation", "tui"])("%s checks wait for Core declarations", (name) => {
     expect(workspaceTasks({ name: `@opencode/${name}`, scripts: { typecheck: "tsgo -b" } }).run?.tasks).toMatchObject({
       "check:types": {
         dependsOn: ["@opencode/core#check:types"],

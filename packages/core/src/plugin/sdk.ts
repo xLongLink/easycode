@@ -9,7 +9,7 @@ import type { Generation } from "../plugin.js"
 export const Updated = Bus.ephemeral({ type: "sdk.plugin.updated", schema: {} })
 
 /**
- * Holds the plugins an embedder (the `@opencode/sdk` host) contributes,
+ * Holds the plugins an application host contributes,
  * so the application loader can add them on every Location boot through its
  * ordinary generation path. Registration publishes an unlocated update so every booted Location
  * reloads its plugin generation from the shared store.

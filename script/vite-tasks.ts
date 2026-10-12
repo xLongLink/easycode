@@ -20,7 +20,7 @@ export function workspaceTasks(pkg: { name: string; scripts: Record<string, stri
               command: `bun run ${name}`,
               dependsOn:
                 name === "typecheck" &&
-                ["cli", "sdk", "server", "simulation", "tui"].some((name) => pkg.name === `@opencode/${name}`)
+                ["cli", "server", "simulation", "tui"].some((name) => pkg.name === `@opencode/${name}`)
                   ? ["@opencode/core#check:types"]
                   : name === "test" &&
                       ["ai", "codemode", "core", "server", "cli", "tui", "latex"].some(

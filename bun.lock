@@ -344,27 +344,6 @@
         "@types/semver": "^7.5.8",
       },
     },
-    "packages/sdk": {
-      "name": "@opencode/sdk",
-      "version": "2.0.27",
-      "dependencies": {
-        "@opencode/client": "workspace:*",
-        "@opencode/core": "workspace:*",
-        "@opencode/plugin": "workspace:*",
-        "@opencode/schema": "workspace:*",
-        "@opencode/server": "workspace:*",
-        "@opencode/util": "workspace:*",
-        "effect": "catalog:",
-      },
-      "devDependencies": {
-        "@opencode/ai": "workspace:*",
-        "@opencode/httpapi-codegen": "workspace:*",
-        "@opencode/protocol": "workspace:*",
-        "@tsconfig/bun": "catalog:",
-        "@types/bun": "catalog:",
-        "@typescript/native-preview": "catalog:",
-      },
-    },
     "packages/server": {
       "name": "@opencode/server",
       "version": "2.0.27",
@@ -967,8 +946,6 @@
     "@opencode/schema": ["@opencode/schema@workspace:packages/schema"],
 
     "@opencode/script": ["@opencode/script@workspace:packages/script"],
-
-    "@opencode/sdk": ["@opencode/sdk@workspace:packages/sdk"],
 
     "@opencode/server": ["@opencode/server@workspace:packages/server"],
 
