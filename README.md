@@ -1,25 +1,25 @@
-# easycode
+<div align="center">
+
+<h3 >
+unCode
+</h3>
 
 An open source AI coding agent with a core runtime and terminal UI, based on OpenCode.
 
+</div >
+
+
+<br />
 
 ### Installation
 
-Supports Linux and macOS (x64 and ARM64). Native Windows is not supported; use WSL on Windows.
+Supports Linux and macOS (x64 and ARM64). For windows see [instructions](https://ubuntu.com/download/desktop).
 
 ```bash
 curl -fsSL https://github.com/xLongLink/easycode/releases/latest/download/install | bash
 ```
 
-#### Installation Directory
 
-For local development, build and install from this repository:
-
-```bash
-make install
-make easycode
-make uninstall
-```
 
 The install script respects the following priority order for the installation path:
 
@@ -31,6 +31,8 @@ The install script respects the following priority order for the installation pa
 # Examples
 curl -fsSL https://github.com/xLongLink/easycode/releases/latest/download/install | EASYCODE_INSTALL_DIR=$HOME/.local/bin bash
 ```
+
+<br />
 
 ### Agents
 
@@ -45,8 +47,14 @@ easycode includes two built-in agents you can switch between with the `Tab` key.
 Also included is a **general** subagent for complex searches and multistep tasks.
 This is used internally and can be invoked using `@general` in messages.
 
-### Releases
+<br />
 
-Set the root `package.json` version to the intended stable release and push the changes to `dev`, then run `bun script/release.ts` to confirm and dispatch the release workflow. A matching `v<version>` tag also triggers it.
+#### Local Development
 
-The workflow owns GitHub publication. For local archive preparation only, run `bun packages/cli/script/package.ts` after building the binaries. The legacy `script/publish.ts` and CLI direct-publishing script have been removed; releases do not publish workspace packages to npm.
+For local development, build and install from this repository:
+
+```bash
+make install
+make easycode
+make uninstall
+```
