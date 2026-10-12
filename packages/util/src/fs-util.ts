@@ -5,7 +5,6 @@ import { lookup } from "mime-types"
 import { Context, Effect, FileSystem, Layer, Schema } from "effect"
 import type { PlatformError } from "effect/PlatformError"
 import { Glob } from "./glob.js"
-import { serviceUse } from "./effect/service-use.js"
 import { makeGlobalNode } from "./effect/app-node.js"
 import { filesystem } from "./effect/app-node-platform.js"
 import { sameDirectory } from "./path.js"
@@ -56,8 +55,6 @@ export namespace FSUtil {
   }
 
   export class Service extends Context.Service<Service, Interface>()("@opencode/FSUtil") {}
-
-  export const use = serviceUse(Service)
 
   // Exported so simulation can wrap this layer and override the methods that
   // bypass the injected FileSystem (readDirectoryEntries, scan, globUp).

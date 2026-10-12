@@ -85,7 +85,6 @@ type ToolFrame = {
   name: string
   input: ToolDict
   meta: ToolDict
-  state: ToolDict
   status: string
   error: string
   output: string
@@ -283,11 +282,6 @@ function fail(ctx: ToolFrame): string {
 function toolError(ctx: ToolFrame): string {
   if (ctx.error) {
     return ctx.error
-  }
-
-  const state = text(ctx.state.error).trim()
-  if (state) {
-    return state
   }
 
   return ctx.raw.trim()
@@ -1087,7 +1081,6 @@ function frame(part: SessionMessageAssistantTool, directory?: string): ToolFrame
       name: tool.name,
       input: {},
       meta: {},
-      state: dict(tool.state),
       status: tool.state.status,
       error: "",
       output: "",
@@ -1098,9 +1091,8 @@ function frame(part: SessionMessageAssistantTool, directory?: string): ToolFrame
     directory,
     raw: output,
     name: tool.name,
-    input: normalizeInput(tool.name, tool.state.input),
-    meta: normalizeMetadata(tool.name, tool.state.metadata),
-    state: dict(tool.state),
+    input: tool.state.input,
+    meta: tool.state.metadata ?? {},
     status: tool.state.status,
     error: tool.state.status === "error" ? tool.state.error.message : "",
     output,
@@ -1119,7 +1111,6 @@ function toolFrame(commit: StreamCommit, raw: string): ToolFrame {
     name: canonicalToolName(commit.tool || current?.name || "tool"),
     input: current?.input ?? {},
     meta: current?.meta ?? {},
-    state: current?.state ?? {},
     status: commit.toolState ?? current?.status ?? "",
     error: (commit.toolError ?? current?.error ?? "").trim(),
     output: current?.output ?? raw,

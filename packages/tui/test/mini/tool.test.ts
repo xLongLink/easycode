@@ -95,7 +95,6 @@ describe("Mini tool presentation", () => {
         name: "skill",
         input: { id: "tigerstyle" },
         meta: { name: "effect" },
-        state: {},
         status: "completed",
         error: "",
         output: "",

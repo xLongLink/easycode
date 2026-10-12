@@ -16,7 +16,6 @@ import {
   PTY_CONNECT_TOKEN_HEADER_VALUE,
 } from "@opencode/protocol/groups/pty"
 import { locationErrors, requestRef, response } from "../location"
-import { PtyEnvironment } from "../pty-environment"
 import { type Outbound, runPtySocket } from "./pty-socket"
 
 const ticketScope = Effect.gen(function* () {
@@ -29,7 +28,6 @@ export const PtyHandler = HttpApiBuilder.group(Api, "server.pty", (handlers) =>
     const locations = yield* LocationServiceMap.Service
     const tickets = yield* PtyTicket.Service
     const cors = yield* CorsConfig
-    const environment = yield* PtyEnvironment.Service
 
     return handlers
       .handle(
@@ -50,10 +48,6 @@ export const PtyHandler = HttpApiBuilder.group(Api, "server.pty", (handlers) =>
               ...ctx.payload,
               args: ctx.payload.args ? [...ctx.payload.args] : undefined,
               cwd,
-              env: {
-                ...ctx.payload.env,
-                ...(yield* environment.get({ directory: location.directory, cwd })),
-              },
             }),
           )
         }),

@@ -38,9 +38,10 @@ live(
             command: "/bin/sh",
             args: [
               "-c",
-              "stty -echo; printf 'ready\\n'; while IFS= read -r line; do case \"$line\" in size) stty size;; quit) exit 0;; *) printf 'reply:%s\\n' \"$line\";; esac; done",
+              'stty -echo; printf \'ready:%s\\n\' "$OPENCODE_PTY_TEST"; while IFS= read -r line; do case "$line" in size) stty size;; quit) exit 0;; *) printf \'reply:%s\\n\' "$line";; esac; done',
             ],
             cwd: directory,
+            env: { OPENCODE_PTY_TEST: "supplied-env" },
           }),
         ),
         (terminal) => Effect.promise(() => client.pty.remove({ location, ptyID: terminal.data.id })),
@@ -91,6 +92,7 @@ live(
         const first = await connect()
         try {
           await waitFor(() => first.state.output.includes("ready"))
+          expect(first.state.output).toContain("ready:supplied-env")
           first.socket.send("text\n")
           first.socket.send(new TextEncoder().encode("binary\n"))
           await waitFor(() => first.state.output.includes("reply:binary"))

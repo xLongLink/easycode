@@ -3,10 +3,13 @@ import { base64Decode, base64Encode, checksum, sampledChecksum } from "./encode.
 
 describe("frontend encoding", () => {
   test("uses unpadded URL-safe UTF-8 base64", () => {
+    expect(base64Encode("")).toBe("")
     expect(base64Encode("hello")).toBe("aGVsbG8")
     expect(base64Encode("✓ à la mode")).toBe("4pyTIMOgIGxhIG1vZGU")
     expect(base64Decode("4pyTIMOgIGxhIG1vZGU")).toBe("✓ à la mode")
     expect(base64Decode("dXNlcjpwYXNz")).toBe("user:pass")
+    const large = "✓ à la mode".repeat(10_000)
+    expect(base64Decode(base64Encode(large))).toBe(large)
   })
 
   test("rejects invalid base64", () => {
