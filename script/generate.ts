@@ -6,4 +6,4 @@ await $`bun run generate`.cwd("packages/protocol")
 
 await $`bun script/schema.ts cli.schema.json`.cwd("packages/cli")
 
-await $`./script/format.ts`
+await $`bun run prettier --ignore-unknown --write .`
