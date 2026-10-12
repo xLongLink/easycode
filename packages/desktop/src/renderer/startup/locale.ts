@@ -1,4 +1,4 @@
-import { loadLocaleDict, normalizeLocale, type Locale, type Platform } from "@opencode/app/desktop"
+import { normalizeLocale, type Locale, type Platform } from "@opencode/app/desktop"
 import { storedLocaleValue } from "./locale-value"
 
 // The stored language lives in the main process's SQLite store, behind the IPC port. A copy of the
@@ -21,8 +21,6 @@ export async function preloadStoredLocale(platform: Platform) {
   const locale = storedLocale(cached ?? (await fresh))
 
   if (!locale) return
-
-  if (locale !== "en") await loadLocaleDict(locale)
 
   return locale
 }

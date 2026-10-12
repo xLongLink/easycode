@@ -4,7 +4,6 @@ import { createMemo, createSignal } from "solid-js"
 import { github } from "~/lib/github"
 import { config } from "~/config"
 import { useLanguage } from "~/context/language"
-import { LanguagePicker } from "~/component/language-picker"
 import { useI18n } from "~/context/i18n"
 import Spotlight, { defaultConfig, type SpotlightAnimationState } from "~/component/spotlight"
 import { LocaleLinks } from "~/component/locale-links"
@@ -266,7 +265,6 @@ export default function BlackLayout(props: RouteSectionProps) {
             {i18n.t("nav.github")} <span data-slot="github-stars">[{starCount()}]</span>
           </a>
           <a href={language.route("/docs")}>{i18n.t("nav.docs")}</a>
-          <LanguagePicker align="right" />
           <span>
             <A href={language.route("/legal/privacy-policy")}>{i18n.t("legal.privacy")}</A>
           </span>

@@ -14,9 +14,7 @@ import {
   type UiTranslate,
 } from "@opencode/ui/context/i18n"
 import { dict as uiEn } from "@opencode/ui/i18n/en"
-import { dict as uiZh } from "@opencode/ui/i18n/zh"
-import { createEffect, createMemo, Suspense, type ParentProps } from "solid-js"
-import { getRequestEvent } from "solid-js/web"
+import { createEffect, Suspense, type ParentProps } from "solid-js"
 import "./app.css"
 import { Favicon } from "@opencode/ui/favicon"
 
@@ -29,44 +27,10 @@ function resolveTemplate(text: string, params?: UiI18nParams) {
   })
 }
 
-function detectLocaleFromHeader(header: string | null | undefined) {
-  if (!header) return
-  for (const item of header.split(",")) {
-    const value = item.trim().split(";")[0]?.toLowerCase()
-    if (!value) continue
-    if (value.startsWith("zh")) return "zh" as const
-    if (value.startsWith("en")) return "en" as const
-  }
-}
-
-function detectLocale() {
-  const event = getRequestEvent()
-  const header = event?.request.headers.get("accept-language")
-  const headerLocale = detectLocaleFromHeader(header)
-  if (headerLocale) return headerLocale
-
-  if (typeof document === "object") {
-    const value = document.documentElement.lang?.toLowerCase() ?? ""
-    if (value.startsWith("zh")) return "zh" as const
-    if (value.startsWith("en")) return "en" as const
-  }
-
-  if (typeof navigator === "object") {
-    const languages = navigator.languages?.length ? navigator.languages : [navigator.language]
-    for (const language of languages) {
-      if (!language) continue
-      if (language.toLowerCase().startsWith("zh")) return "zh" as const
-    }
-  }
-
-  return "en" as const
-}
-
 function UiI18nBridge(props: ParentProps) {
-  const locale = createMemo(() => detectLocale())
-  const zh = uiZh as Partial<Record<string, string>>
+  const locale = () => "en"
   const translate = (key: keyof typeof uiEn, params?: UiI18nParams) => {
-    const value = locale() === "zh" ? (zh[key] ?? uiEn[key]) : uiEn[key]
+    const value = uiEn[key]
     const text = value ?? String(key)
     return resolveTemplate(text, params)
   }
@@ -74,10 +38,7 @@ function UiI18nBridge(props: ParentProps) {
   const pluralForm = (key: UiI18nPluralKey, category: UiPluralCategory, params?: UiI18nParams) => {
     const candidate = pluralKey(key, category)
     const fallback = pluralKey(key, "other")
-    const value =
-      locale() === "zh"
-        ? (zh[candidate] ?? zh[fallback] ?? uiEn[candidate] ?? uiEn[fallback])
-        : (uiEn[candidate] ?? uiEn[fallback])
+    const value = uiEn[candidate] ?? uiEn[fallback]
     return resolveTemplate(value ?? fallback, params)
   }
   const plural = (key: UiI18nPluralKey, count: number, params?: UiI18nParams) =>

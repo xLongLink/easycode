@@ -161,35 +161,6 @@ const FollowUpBehaviorSetting: Component = () => {
   )
 }
 
-const LanguageSetting = () => {
-  const language = useLanguage()
-
-  const options = createMemo(() =>
-    language.locales.map((locale) => ({
-      value: locale,
-      label: language.label(locale),
-    })),
-  )
-
-  return (
-    <SettingsRow
-      title={language.t("settings.general.row.language.title")}
-      description={language.t("settings.general.row.language.description")}
-    >
-      <Select
-        data-action="settings-language"
-        options={options()}
-        placement="bottom-end"
-        gutter={6}
-        current={options().find((option) => option.value === language.locale())}
-        value={(option) => option.value}
-        label={(option) => option.label}
-        onSelect={(option) => option && language.setLocale(option.value)}
-      />
-    </SettingsRow>
-  )
-}
-
 const TabLayoutSetting = () => {
   const language = useLanguage()
   const settings = useSettings()
@@ -242,7 +213,6 @@ export const SettingsGeneral: Component = () => {
     <div class="settings-section">
       <h3 class="settings-section-title">{language.t("settings.general.section.general")}</h3>
       <SettingsList>
-        <LanguageSetting />
         <TabLayoutSetting />
 
         <WorkspaceDestinationSetting />

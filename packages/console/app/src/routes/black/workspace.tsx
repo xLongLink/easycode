@@ -6,7 +6,6 @@ import { createEffect, createMemo, For, onMount } from "solid-js"
 import { config } from "~/config"
 import { createList } from "solid-list"
 import { useLanguage } from "~/context/language"
-import { LanguagePicker } from "~/component/language-picker"
 import { useI18n } from "~/context/i18n"
 
 export default function BlackWorkspace() {
@@ -221,7 +220,6 @@ export default function BlackWorkspace() {
             {i18n.t("nav.github")} <span data-slot="github-stars">[{starCount()}]</span>
           </a>
           <a href={language.route("/docs")}>{i18n.t("nav.docs")}</a>
-          <LanguagePicker align="right" />
           <span>
             <A href={language.route("/legal/privacy-policy")}>{i18n.t("legal.privacy")}</A>
           </span>

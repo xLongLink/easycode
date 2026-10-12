@@ -3,7 +3,6 @@ import { query } from "@solidjs/router"
 import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js"
 import { useI18n } from "../context/i18n"
 import { useLanguage } from "../context/language"
-import { route, type Locale } from "../lib/language"
 
 export type HeaderLink = { href: string; label: string }
 
@@ -274,7 +273,6 @@ export function Footer(props: {
           <span data-slot="status">{i18n.t("footer.status")}</span>
         </div>
         <div data-slot="footer-controls">
-          <FooterLanguageSwitcher />
           <div data-slot="theme-toggle" role="group" aria-label={i18n.t("theme.groupLabel")}>
             <For each={themePreferences}>
               {(preference) => (
@@ -297,31 +295,6 @@ export function Footer(props: {
         <SubscribeModal onClose={() => setSubscribeOpen(false)} />
       </Show>
     </footer>
-  )
-}
-
-function FooterLanguageSwitcher() {
-  const i18n = useI18n()
-  const language = useLanguage()
-
-  return (
-    <label data-slot="footer-language">
-      <span>{i18n.t("footer.language")}</span>
-      <select
-        value={language.locale()}
-        aria-label={i18n.t("footer.language")}
-        onChange={(event) => {
-          const locale = event.currentTarget.value as Locale
-          const url = new URL(window.location.href)
-          const current = `${url.pathname}${url.search}${url.hash}`
-          const href = `${route(locale, url.pathname)}${url.search}${url.hash}`
-          language.setLocale(locale)
-          if (href !== current) window.location.assign(href)
-        }}
-      >
-        <For each={language.locales}>{(locale) => <option value={locale}>{language.label(locale)}</option>}</For>
-      </select>
-    </label>
   )
 }
 
