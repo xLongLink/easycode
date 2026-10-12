@@ -89,10 +89,5 @@ function terminal() {
 }
 
 function shell() {
-  return (
-    process.env.SHELL ??
-    process.env.ComSpec ??
-    process.env.COMSPEC ??
-    "Unavailable: shell environment variable is not set"
-  )
+  return process.env.SHELL ?? "Unavailable: shell environment variable is not set"
 }

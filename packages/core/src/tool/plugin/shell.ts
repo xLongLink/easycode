@@ -28,11 +28,9 @@ const BACKGROUND_INSTRUCTION =
 const OS =
   process.platform === "darwin"
     ? "macOS"
-    : process.platform === "win32"
-      ? "Windows"
-      : process.platform === "linux"
-        ? "Linux"
-        : process.platform
+    : process.platform === "linux"
+      ? "Linux"
+      : process.platform
 const description = (shell?: string) =>
   [
     "Execute a shell command and return its output.",

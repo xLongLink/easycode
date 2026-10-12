@@ -5,36 +5,19 @@ import { which } from "@opencode/core/util/which"
 import { tmpdir } from "../fixture/tmpdir"
 
 async function cmd(dir: string, name: string, exec = true) {
-  const ext = process.platform === "win32" ? ".cmd" : ""
-  const file = path.join(dir, name + ext)
-  const body = process.platform === "win32" ? "@echo off\r\n" : "#!/bin/sh\n"
-  await fs.writeFile(file, body)
-  if (process.platform !== "win32") {
-    await fs.chmod(file, exec ? 0o755 : 0o644)
-  }
+  const file = path.join(dir, name)
+  await fs.writeFile(file, "#!/bin/sh\n")
+  await fs.chmod(file, exec ? 0o755 : 0o644)
   return file
 }
 
 function env(PATH: string): NodeJS.ProcessEnv {
   return {
     PATH,
-    PATHEXT: process.env["PATHEXT"],
-  }
-}
-
-function envPath(Path: string): NodeJS.ProcessEnv {
-  return {
-    Path,
-    PathExt: process.env["PathExt"] ?? process.env["PATHEXT"],
   }
 }
 
 function same(a: string | null, b: string) {
-  if (process.platform === "win32") {
-    expect(a?.toLowerCase()).toBe(b.toLowerCase())
-    return
-  }
-
   expect(a).toBe(b)
 }
 
@@ -65,8 +48,6 @@ describe("util.which", () => {
   })
 
   test("returns null for non-executable file on unix", async () => {
-    if (process.platform === "win32") return
-
     await using tmp = await tmpdir()
     const bin = path.join(tmp.path, "bin")
     await fs.mkdir(bin)
@@ -75,26 +56,4 @@ describe("util.which", () => {
     expect(which("noexec", env(bin))).toBeNull()
   })
 
-  test("uses PATHEXT on windows", async () => {
-    if (process.platform !== "win32") return
-
-    await using tmp = await tmpdir()
-    const bin = path.join(tmp.path, "bin")
-    await fs.mkdir(bin)
-    const file = path.join(bin, "pathext.CMD")
-    await fs.writeFile(file, "@echo off\r\n")
-
-    expect(which("pathext", { PATH: bin, PATHEXT: ".CMD" })).toBe(file)
-  })
-
-  test("uses Windows Path casing fallback", async () => {
-    if (process.platform !== "win32") return
-
-    await using tmp = await tmpdir()
-    const bin = path.join(tmp.path, "bin")
-    await fs.mkdir(bin)
-    const file = await cmd(bin, "mixed")
-
-    same(which("mixed", envPath(bin)), file)
-  })
 })

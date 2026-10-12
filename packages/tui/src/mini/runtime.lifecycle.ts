@@ -164,7 +164,7 @@ export async function createRuntimeLifecycle(input: LifecycleInput): Promise<Lif
     exitOnCtrlC: false,
     useKittyKeyboard: mono
       ? { disambiguate: false, alternateKeys: false, events: false, allKeysAsEscapes: false, reportText: false }
-      : { events: input.host.platform === "win32" },
+      : { events: false },
     screenMode: "split-footer",
     footerHeight: FOOTER_HEIGHT,
     externalOutputMode: "capture-stdout",
@@ -235,7 +235,7 @@ export async function createRuntimeLifecycle(input: LifecycleInput): Promise<Lif
         renderer.disableKittyKeyboard()
         return
       }
-      renderer.enableKittyKeyboard(buildKittyKeyboardFlags({ events: input.host.platform === "win32" }))
+      renderer.enableKittyKeyboard(buildKittyKeyboardFlags({ events: false }))
     },
     onPermissionReply: input.onPermissionReply,
     onFormReply: input.onFormReply,

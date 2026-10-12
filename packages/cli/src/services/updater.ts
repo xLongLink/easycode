@@ -7,7 +7,6 @@ import { ChildProcess } from "effect/process"
 import { parse, type ParseError } from "jsonc-parser"
 import path from "node:path"
 import { stripVTControlCharacters } from "node:util"
-import { RetainedImage } from "./retained-image"
 import { action, parseReleaseVersion, type Policy } from "./updater-action"
 import { errorMessage } from "../util/error"
 
@@ -154,32 +153,11 @@ const make = Effect.gen(function* () {
       )
   })
 
-  const curlPath = path.resolve(
-    global.home,
-    ".easycode",
-    "bin",
-    process.platform === "win32" ? "easycode.exe" : "easycode",
-  )
+  const curlPath = path.resolve(global.home, ".easycode", "bin", "easycode")
   const curlBinary = yield* fs.realPath(curlPath).pipe(Effect.orElseSucceed(() => curlPath))
 
-  // On Windows a bare `bash` may be the WSL launcher, which cannot run the installer against Windows paths.
-  const installerBash = Effect.fnUntraced(function* () {
-    if (process.platform !== "win32") return "bash"
-    if (process.env.OPENCODE_GIT_BASH_PATH) return process.env.OPENCODE_GIT_BASH_PATH
-    const git = yield* exec(["git", "--exec-path"]).pipe(Effect.orElseSucceed(() => undefined))
-    const bash = git?.code === 0 ? path.resolve(git.stdout.trim(), "..", "..", "..", "bin", "bash.exe") : undefined
-    if (bash && (yield* fs.exists(bash).pipe(Effect.orElseSucceed(() => false)))) return bash
-    return yield* Effect.fail(
-      new UpgradeError({
-        title: "Git Bash is required to update easycode",
-        detail: "The easycode installer runs with Git Bash on Windows, and it was not found.",
-        retry: "Install Git for Windows or set OPENCODE_GIT_BASH_PATH, then run easycode upgrade again.",
-      }),
-    )
-  })
-
   const method = Effect.fnUntraced(function* () {
-    if (path.basename(executable) === (process.platform === "win32" ? "easycode.exe" : "easycode")) return "curl"
+    if (path.basename(executable) === "easycode") return "curl"
     if (executable === curlBinary) return "curl"
   })
 
@@ -245,19 +223,6 @@ const make = Effect.gen(function* () {
       fs.remove(directory, { recursive: true, force: true }).pipe(Effect.ignore),
     )
 
-  // On Windows the installer must delete or replace the running binary, which only works
-  // while another link to it exists (see RetainedImage). Upgrades keep that link in the
-  // cache; uninstall has already removed the cache, so it uses the temporary directory.
-  const retaining = <A, E, R>(method: Method, effect: Effect.Effect<A, E, R>, directory = global.cache) => {
-    if (process.platform !== "win32" || method === "brew") return effect
-    // Only the installed binary is at stake; source checkouts run inside bun or node.
-    const owned = method === "curl" && path.basename(executable) === "easycode.exe"
-    if (!owned) return effect
-    return Effect.scoped(RetainedImage.retain(directory, "upgrade").pipe(Effect.andThen(effect))).pipe(
-      Effect.provideService(FileSystem.FileSystem, fs),
-    )
-  }
-
   const runUpgrade = (input: {
     readonly method: Method
     readonly command: string[]
@@ -304,7 +269,6 @@ const make = Effect.gen(function* () {
         // Other easycode processes may be installing at the same time. Wait longer than the
         // slowest install (curl runs two 5-minute commands).
         yield* flock.acquire("cli-upgrade", undefined, { timeoutMs: Duration.toMillis("15 minutes") })
-        const bash = yield* installerBash()
         yield* fs.makeDirectory(global.cache, { recursive: true })
         const directory = yield* temporaryDirectory("update-")
         const installer = path.join(directory, "install")
@@ -325,23 +289,20 @@ const make = Effect.gen(function* () {
           title: "Could not download the easycode installer",
           retry: "Check your network, then run easycode upgrade again.",
         })
-        return yield* retaining(
+        return yield* runUpgrade({
           method,
-          runUpgrade({
-            method,
-            command: [
-              bash,
-              installer,
-              "--version",
-              version,
-              "--install-dir",
-              path.dirname(executable),
-              "--no-modify-path",
-            ],
-            displayCommand: ["easycode", "upgrade", version, "--method", "curl"],
-            title: "The easycode installer failed",
-          }),
-        )
+          command: [
+            "bash",
+            installer,
+            "--version",
+            version,
+            "--install-dir",
+            path.dirname(executable),
+            "--no-modify-path",
+          ],
+          displayCommand: ["easycode", "upgrade", version, "--method", "curl"],
+          title: "The easycode installer failed",
+        })
       }),
     ).pipe(
       Effect.mapError((cause) =>

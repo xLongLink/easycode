@@ -18,6 +18,11 @@ import { EffectFlock } from "@opencode/util/effect-flock"
 import { Heap } from "./heap"
 import { CpuProfile } from "./cpu-profile"
 
+if (process.platform !== "linux" && process.platform !== "darwin") {
+  console.error("easycode supports Linux and macOS only. Use WSL on Windows.")
+  process.exit(1)
+}
+
 ensurePluginRuntime()
 
 if (process.env.OPENCODE_SSH_ASKPASS_PORT) {

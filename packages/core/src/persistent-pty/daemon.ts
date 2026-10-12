@@ -233,7 +233,7 @@ export const makeDaemonTransport = Effect.fn("PersistentPty.makeDaemonTransport"
           const child = spawn(
             executable,
             ["daemon", "--runtime-dir", root, "--name", id],
-            { detached: true, windowsHide: true, stdio: "ignore" },
+            { detached: true, stdio: "ignore" },
           )
           child.once("spawn", () => {
             child.unref()

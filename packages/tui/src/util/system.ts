@@ -4,11 +4,9 @@ export function describeOS() {
   const name =
     process.platform === "darwin"
       ? "macOS"
-      : process.platform === "win32"
-        ? "Windows"
-        : process.platform === "linux"
-          ? "Linux"
-          : process.platform
+      : process.platform === "linux"
+        ? "Linux"
+        : process.platform
   return `${name} ${release()} (${process.arch})`
 }
 

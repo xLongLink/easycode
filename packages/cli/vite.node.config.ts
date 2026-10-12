@@ -197,7 +197,7 @@ if (__ocIsSea()) {
     __ocMkdir(__ocPath.dirname(__ocTarget), { recursive: true })
     const __ocTemporary = \`${"${__ocTarget}"}.${"${process.pid}"}.${"${crypto.randomUUID()}"}.tmp\`
     __ocWrite(__ocTemporary, new Uint8Array(__ocRawAsset(__ocKey)))
-    if ((__ocKey === __ocPtySpawnHelper || __ocKey === __ocPersistentPty) && process.platform !== "win32")
+    if (__ocKey === __ocPtySpawnHelper || __ocKey === __ocPersistentPty)
       __ocChmod(__ocTemporary, 0o755)
     try {
       __ocRename(__ocTemporary, __ocTarget)

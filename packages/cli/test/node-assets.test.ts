@@ -8,7 +8,7 @@ test("collects each SEA asset key once", async () => {
   const keys = assets.map((asset) => asset.key)
 
   expect(new Set(keys).size).toBe(keys.length)
-  if (process.platform !== "win32") expect(keys.filter((key) => key === "opencode-pty/opencode-pty")).toHaveLength(1)
+  expect(keys.filter((key) => key === "opencode-pty/opencode-pty")).toHaveLength(1)
   expect(assets.filter((asset) => asset.key === shellParserWasmAssets.runtime)).toEqual([
     {
       key: shellParserWasmAssets.runtime,
@@ -21,4 +21,8 @@ test("collects each SEA asset key once", async () => {
       source: fileURLToPath(new URL(`../../tui/src/assets/audio/${key.split("/").at(-1)}`, import.meta.url)),
     })),
   )
+})
+
+test.each(["win32", "freebsd"])("rejects unsupported Node platform %s", (platform) => {
+  expect(() => nodeTarget(platform, "x64")).toThrow("Unsupported Node executable target")
 })

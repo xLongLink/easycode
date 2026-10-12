@@ -3,9 +3,8 @@ export * as ShellSelect from "./select.js"
 import path from "path"
 import { readFile } from "fs/promises"
 import { statSync } from "fs"
-import { Context, Effect, Layer, Schema } from "effect"
+import { Context, Effect, Layer } from "effect"
 import { makeLocationNode } from "@opencode/util/effect/app-node"
-import { FSUtil } from "@opencode/util/fs-util"
 import { Global } from "@opencode/util/global"
 import { State } from "../state.js"
 import { which } from "../util/which.js"
@@ -27,11 +26,6 @@ export type Item = {
   name: string
   acceptable: boolean
 }
-
-export const Options = Schema.Struct({
-  gitbash: Schema.optional(Schema.String),
-})
-export type Options = typeof Options.Type
 
 type Data = {
   shell?: string
@@ -60,17 +54,6 @@ function findExecutable(name: string, bin?: string) {
   return which(name, undefined, bin)
 }
 
-function full(file: string, options?: Options, bin?: string) {
-  if (process.platform !== "win32") return file
-  const shell = FSUtil.windowsPath(file)
-  if (path.win32.dirname(shell) !== ".") {
-    if (shell.startsWith("/") && name(shell) === "bash") return gitbash(options, bin) || shell
-    return shell
-  }
-  if (name(shell) === "bash") return gitbash(options, bin) || findExecutable(shell, bin) || shell
-  return findExecutable(shell, bin) || shell
-}
-
 function meta(file: string) {
   return META[name(file)]
 }
@@ -80,31 +63,15 @@ function compatible(file: string) {
 }
 
 function rooted(file: string) {
-  return path.isAbsolute(FSUtil.windowsPath(file))
+  return path.isAbsolute(file)
 }
 
-function executable(file: string, options?: Options, bin?: string) {
-  const shell = full(file, options, bin)
-  if (rooted(shell)) {
-    if (stat(shell)?.isFile()) return shell
+function executable(file: string, bin?: string) {
+  if (rooted(file)) {
+    if (stat(file)?.isFile()) return file
     return
   }
-  return findExecutable(shell, bin) ?? undefined
-}
-
-function win(options?: Options, bin?: string) {
-  return Array.from(
-    new Set(
-      [
-        findExecutable("pwsh", bin),
-        findExecutable("powershell", bin),
-        gitbash(options, bin),
-        process.env.COMSPEC || "cmd.exe",
-      ]
-        .filter((item): item is string => Boolean(item))
-        .map((file) => full(file, options, bin)),
-    ),
-  )
+  return findExecutable(file, bin) ?? undefined
 }
 
 async function unix() {
@@ -113,22 +80,12 @@ async function unix() {
   return ["/bin/bash", "/bin/zsh", "/bin/sh"]
 }
 
-function select(file: string | undefined, options?: Options, opts?: { compatible?: boolean }, bin?: string) {
+function select(file: string | undefined, opts?: { compatible?: boolean }, bin?: string) {
   if (file && (!opts?.compatible || compatible(file))) {
-    const shell = executable(file, options, bin)
+    const shell = executable(file, bin)
     if (shell) return shell
   }
-  if (process.platform === "win32") return win(options, bin)[0]
   return fallback(bin)
-}
-
-export function gitbash(options?: Options, bin?: string) {
-  if (process.platform !== "win32") return
-  if (options?.gitbash) return options.gitbash
-  const git = findExecutable("git", bin)
-  if (!git) return
-  const file = path.join(git, "..", "..", "bin", "bash.exe")
-  if (stat(file)?.size) return file
 }
 
 function fallback(bin?: string) {
@@ -139,7 +96,6 @@ function fallback(bin?: string) {
 }
 
 export function name(file: string) {
-  if (process.platform === "win32") return path.win32.parse(FSUtil.windowsPath(file)).name.toLowerCase()
   return path.basename(file).toLowerCase()
 }
 
@@ -151,35 +107,31 @@ export function ps(file: string) {
   return meta(file)?.ps === true
 }
 
-function info(file: string, options?: Options, bin?: string): Item {
-  const item = full(file, options, bin)
-  const n = name(item)
+function info(file: string, bin?: string): Item {
+  const n = name(file)
   return {
-    path: item,
-    name: executable(n, options, bin) ? n : item,
-    acceptable: compatible(item),
+    path: file,
+    name: executable(n, bin) ? n : file,
+    acceptable: compatible(file),
   }
 }
 
 export function args(file: string, command: string) {
-  const n = name(file)
-  if (n === "cmd") return ["/c", command]
   if (ps(file)) return ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command]
   return ["-c", command]
 }
 
 // Resolve afresh so removing a shell does not leave terminals using a stale cached path.
 export function environment(bin?: string, filter?: { compatible?: boolean }) {
-  return select(process.env.SHELL, undefined, filter, bin) ?? fallback(bin)
+  return select(process.env.SHELL, filter, bin)
 }
 
 let defaultConfigured: { bin?: string; value: string } | undefined
 let defaultCompatible: { bin?: string; value: string } | undefined
 
-export function resolve(input: ResolveInput, configShell?: string, options?: Options, bin?: string) {
+export function resolve(input: ResolveInput, configShell?: string, bin?: string) {
   const filter = input.priority === "compat" ? { compatible: true } : undefined
-  if (configShell) return select(configShell, options, filter, bin)
-  if (options?.gitbash) return select(process.env.SHELL, options, filter, bin)
+  if (configShell) return select(configShell, filter, bin)
   const cached = input.priority === "compat" ? defaultCompatible : defaultConfigured
   if (cached && cached.bin === bin) return cached.value
   const value = environment(bin, filter)
@@ -192,12 +144,11 @@ resolve.reset = () => {
   defaultCompatible = undefined
 }
 
-export async function list(options?: Options, bin?: string): Promise<Item[]> {
-  const shells = process.platform === "win32" ? win(options, bin) : await unix()
-  return shells.filter((shell) => executable(shell, options, bin)).map((shell) => info(shell, options, bin))
+export async function list(bin?: string): Promise<Item[]> {
+  return (await unix()).filter((shell) => executable(shell, bin)).map((shell) => info(shell, bin))
 }
 
-const layer = (options?: Options) =>
+const layer = () =>
   Layer.effect(
     Service,
     Effect.gen(function* () {
@@ -214,14 +165,10 @@ const layer = (options?: Options) =>
       return Service.of({
         transform: state.transform,
         reload: state.reload,
-        resolve: (input) => Effect.sync(() => resolve(input, state.get().shell, options, global.bin)),
-        list: () => Effect.promise(() => list(options, global.bin)),
+        resolve: (input) => Effect.sync(() => resolve(input, state.get().shell, global.bin)),
+        list: () => Effect.promise(() => list(global.bin)),
       })
     }),
   )
 
-export function configured(options?: Options) {
-  return makeLocationNode({ service: Service, layer: layer(options), deps: [Global.node] })
-}
-
-export const node = configured()
+export const node = makeLocationNode({ service: Service, layer: layer(), deps: [Global.node] })

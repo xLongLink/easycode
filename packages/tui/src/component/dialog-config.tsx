@@ -286,7 +286,7 @@ export const settings: Setting[] = [
     title: "Copy behavior",
     category: "Terminal",
     path: ["terminal", "copy"],
-    default: process.platform === "win32" ? "manual" : "select",
+    default: "select",
     values: ["manual", "select"],
     keywords: ["selection", "clipboard"],
   },

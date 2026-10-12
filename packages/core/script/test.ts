@@ -31,7 +31,6 @@ const environment = {
   OPENCODE_CONFIG: undefined,
   OPENCODE_CONFIG_CONTENT: undefined,
   TMPDIR: temporary,
-  ...(process.platform === "win32" ? { USERPROFILE: home, TMP: temporary, TEMP: temporary } : {}),
 }
 
 const child = Bun.spawn({

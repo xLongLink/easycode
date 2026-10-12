@@ -256,7 +256,7 @@ describe("cross-spawn spawner", () => {
 
   describe("process control", () => {
     for (const mode of ["exit", "SIGKILL"] as const) {
-      const test = mode === "SIGKILL" && process.platform === "win32" ? fx.live.skip : fx.live
+      const test = fx.live
       test(
         `finishes capture after ${mode} while a grandchild holds stdio`,
         Effect.gen(function* () {
@@ -332,7 +332,6 @@ describe("cross-spawn spawner", () => {
     fx.live(
       "forceKillAfter escalates for stubborn processes",
       Effect.gen(function* () {
-        if (process.platform === "win32") return
 
         const exit = yield* Effect.exit(
           Effect.gen(function* () {
@@ -446,51 +445,4 @@ describe("cross-spawn spawner", () => {
     )
   })
 
-  describe("Windows-specific", () => {
-    fx.effect(
-      "uses shell routing on Windows",
-      Effect.gen(function* () {
-        if (process.platform !== "win32") return
-
-        const out = yield* ChildProcessSpawner.ChildProcessSpawner.use((svc) =>
-          svc.string(
-            ChildProcess.make("set", ["OPENCODE_TEST_SHELL"], {
-              shell: true,
-              extendEnv: true,
-              env: { OPENCODE_TEST_SHELL: "ok" },
-            }),
-          ),
-        )
-        expect(out).toContain("OPENCODE_TEST_SHELL=ok")
-      }),
-    )
-
-    fx.effect(
-      "runs cmd scripts with spaces on Windows without shell",
-      Effect.gen(function* () {
-        if (process.platform !== "win32") return
-
-        const tmp = yield* Effect.acquireRelease(
-          Effect.promise(() => tmpdir()),
-          (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]()),
-        )
-        const dir = path.join(tmp.path, "with space")
-        const file = path.join(dir, "echo cmd.cmd")
-
-        yield* Effect.promise(() => fs.mkdir(dir, { recursive: true }))
-        yield* Effect.promise(() => fs.writeFile(file, "@echo off\r\nif %~1==--stdio exit /b 0\r\nexit /b 7\r\n"))
-
-        const code = yield* ChildProcessSpawner.ChildProcessSpawner.use((svc) =>
-          svc.exitCode(
-            ChildProcess.make(file, ["--stdio"], {
-              stdin: "pipe",
-              stdout: "pipe",
-              stderr: "pipe",
-            }),
-          ),
-        )
-        expect(code).toBe(ChildProcessSpawner.ExitCode(0))
-      }),
-    )
-  })
 })

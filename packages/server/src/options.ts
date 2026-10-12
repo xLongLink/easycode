@@ -32,11 +32,6 @@ export const ServerOptions = Schema.Struct({
       content: Schema.optional(Schema.String),
     }),
   ),
-  windows: Schema.optional(
-    Schema.Struct({
-      gitbash: Schema.optional(Schema.String),
-    }),
-  ),
   fs: Schema.optional(
     Schema.Struct({
       filewatcher: Schema.optional(Schema.Boolean),

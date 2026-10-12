@@ -18,7 +18,7 @@ export default Runtime.handler(Commands.commands.mini, (input) =>
     })
     const config = yield* Config.Service
     const global = yield* Global.Service
-    const resolved = resolve(yield* config.get(), { terminalSuspend: process.platform !== "win32" })
+    const resolved = resolve(yield* config.get(), { terminalSuspend: true })
     const fileSystem = yield* FileSystem.FileSystem
     const runServicePromise = Effect.runPromiseWith(Context.make(FileSystem.FileSystem, fileSystem))
     const service = server.service

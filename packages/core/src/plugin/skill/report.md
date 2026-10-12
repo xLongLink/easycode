@@ -27,11 +27,10 @@ title/body for the user.
 Collect these values when possible:
 
 - opencode version: run `opencode --version`.
-- Operating system: run `uname -a` on Unix-like systems, or `ver` on Windows.
+- Operating system: run `uname -a`.
 - Terminal: inspect `$TERM`, `$TERM_PROGRAM`, `$COLORTERM`, and any obvious
   terminal app context the user provides.
-- Shell: inspect `$SHELL` on Unix-like systems, or `%COMSPEC%`/`$ComSpec` on
-  Windows when relevant.
+- Shell: inspect `$SHELL`.
 - Install/channel context: include whether this appears to be local, dev, beta,
   or release if the version output or environment reveals it.
 - Active plugins: inspect opencode config for configured plugins when possible.

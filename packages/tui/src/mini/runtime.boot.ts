@@ -36,8 +36,8 @@ function emptySessionInfo(): SessionInfo {
   }
 }
 
-function defaultRunTuiConfig(platform: NodeJS.Platform): RunTuiConfig {
-  return resolve({}, { terminalSuspend: platform !== "win32" })
+function defaultRunTuiConfig(): RunTuiConfig {
+  return resolve({}, { terminalSuspend: true })
 }
 
 async function loadModelInfo(sdk: RunInput["sdk"], location: LocationRef, signal?: AbortSignal): Promise<ModelInfo> {
@@ -75,13 +75,10 @@ export async function resolveSessionInfo(
 }
 
 // Reads TUI config once for direct mode keymap setup and display preferences.
-export async function resolveRunTuiConfig(
-  config?: RunTuiConfig | Promise<RunTuiConfig>,
-  platform: NodeJS.Platform = "linux",
-): Promise<RunTuiConfig> {
+export async function resolveRunTuiConfig(config?: RunTuiConfig | Promise<RunTuiConfig>): Promise<RunTuiConfig> {
   return Promise.resolve(config)
-    .then((value) => value ?? defaultRunTuiConfig(platform))
-    .catch(() => defaultRunTuiConfig(platform))
+    .then((value) => value ?? defaultRunTuiConfig())
+    .catch(() => defaultRunTuiConfig())
 }
 
 export function resolveMiniSettings(config?: { mini?: Partial<MiniSettings> }): MiniSettings {

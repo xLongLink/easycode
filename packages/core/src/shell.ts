@@ -302,7 +302,7 @@ const layer = () =>
                     cwd: invocation.cwd,
                     env: invocation.env,
                     stdin: "ignore",
-                    detached: process.platform !== "win32",
+                    detached: true,
                     forceKillAfter: Duration.seconds(3),
                   }),
                 )

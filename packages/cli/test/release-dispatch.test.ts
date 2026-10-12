@@ -5,7 +5,7 @@ import path from "node:path"
 const root = path.resolve(import.meta.dir, "../../..")
 const version = (await Bun.file(path.join(root, "package.json")).json()).version
 
-test.skipIf(process.platform === "win32").each([
+test.each([
   { args: ["--help"], answer: "", exitCode: 0, output: "Usage:", dispatch: false },
   { args: ["patch"], answer: "yes\n", exitCode: 1, output: "matching package.json", dispatch: false },
   { args: ["999999.0.0"], answer: "yes\n", exitCode: 1, output: "matching package.json", dispatch: false },

@@ -36,7 +36,6 @@ describe("Mini CLI host", () => {
         seen.push(target)
         return stream(true)
       },
-      "linux",
     )
 
     expect(terminal.stdin).toBe(stdin)
@@ -60,7 +59,6 @@ describe("Mini CLI host", () => {
         seen.push(target)
         return tty
       },
-      "linux",
     )
 
     terminal.cleanup()
@@ -69,7 +67,7 @@ describe("Mini CLI host", () => {
     expect(destroys).toBe(1)
   })
 
-  test("uses the platform terminal and reports acquisition failures", () => {
+  test("reports controlling terminal acquisition failures", () => {
     const seen: string[] = []
     resolveInteractiveStdin(
       stream(false),
@@ -77,16 +75,14 @@ describe("Mini CLI host", () => {
         seen.push(target)
         return stream(true)
       },
-      "win32",
     ).cleanup()
-    expect(seen).toEqual(["CONIN$"])
+    expect(seen).toEqual(["/dev/tty"])
     expect(() =>
       resolveInteractiveStdin(
         stream(false),
         () => {
           throw new Error("open failed")
         },
-        "linux",
       ),
     ).toThrow(INTERACTIVE_INPUT_ERROR)
   })

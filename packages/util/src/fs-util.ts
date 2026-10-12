@@ -100,7 +100,7 @@ export namespace FSUtil {
       })
 
       const resolve = Effect.fn("FileSystem.resolve")(function* (input: string) {
-        const resolved = path.resolve(windowsPath(input))
+        const resolved = path.resolve(input)
         return yield* fs.realPath(resolved).pipe(
           Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(resolved)),
           Effect.orDie,
@@ -122,14 +122,7 @@ export namespace FSUtil {
       })
 
       const ensureDir = Effect.fn("FileSystem.ensureDir")(function* (path: string) {
-        yield* fs.makeDirectory(path, { recursive: true }).pipe(
-          // Bun on Windows can throw EEXIST here despite recursive mode.
-          // https://github.com/oven-sh/bun/issues/21901
-          Effect.catchIf(
-            (error) => error.reason._tag === "AlreadyExists",
-            (error) => isDir(path).pipe(Effect.flatMap((exists) => (exists ? Effect.void : Effect.fail(error)))),
-          ),
-        )
+        yield* fs.makeDirectory(path, { recursive: true })
       })
 
       const writeWithDirs = Effect.fn("FileSystem.writeWithDirs")(function* (
@@ -232,42 +225,14 @@ export namespace FSUtil {
     return lookup(p) || "application/octet-stream"
   }
 
-  export function normalizePath(p: string): string {
-    if (process.platform !== "win32") return p
-    const resolved = path.resolve(windowsPath(p))
-    try {
-      return realpathSync.native(resolved)
-    } catch {
-      return resolved
-    }
-  }
-
-  export function normalizePathPattern(p: string): string {
-    if (process.platform !== "win32") return p
-    if (p === "*") return p
-    const match = p.match(/^(.*)[\\/]\*$/)
-    if (!match) return normalizePath(p)
-    const dir = /^[A-Za-z]:$/.test(match[1]) ? match[1] + "\\" : match[1]
-    return join(normalizePath(dir), "*")
-  }
-
   export function resolve(p: string): string {
-    const resolved = path.resolve(windowsPath(p))
+    const resolved = path.resolve(p)
     try {
-      return normalizePath(realpathSync(resolved))
+      return realpathSync(resolved)
     } catch (e: any) {
-      if (e?.code === "ENOENT" || e?.code === "ENOTDIR") return normalizePath(resolved)
+      if (e?.code === "ENOENT" || e?.code === "ENOTDIR") return resolved
       throw e
     }
-  }
-
-  export function windowsPath(p: string): string {
-    if (process.platform !== "win32") return p
-    return p
-      .replace(/^\/([a-zA-Z]):(?:[\\/]|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
-      .replace(/^\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
-      .replace(/^\/cygdrive\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
-      .replace(/^\/mnt\/([a-zA-Z])(?:\/|$)/, (_, drive) => `${drive.toUpperCase()}:/`)
   }
 
   export function overlaps(a: string, b: string) {

@@ -9,9 +9,7 @@ describe("acp lifecycle subprocess", () => {
     expect(await acp.close()).toBe(0)
   }, 60_000)
 
-  // The private server is found with `pgrep`, which Windows lacks.
-  const testOutsideWindows = process.platform === "win32" ? test.skip : test
-  testOutsideWindows(
+  test(
     "exits when the private server process dies (https://github.com/anomalyco/opencode/issues/51716)",
     async () => {
       await using fixture = await createAcpFixture()

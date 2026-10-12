@@ -174,11 +174,6 @@ const layer = Layer.effect(
         TERM: "xterm-256color",
         OPENCODE_TERMINAL: "1",
       } as Record<string, string>
-      if (process.platform === "win32") {
-        env.LC_ALL = "C.UTF-8"
-        env.LC_CTYPE = "C.UTF-8"
-        env.LANG = "C.UTF-8"
-      }
       yield* Effect.logInfo("creating session", { id, cmd: command, args, cwd })
       const { spawn } = yield* Effect.promise(() => pty())
       const proc = yield* Effect.sync(() => spawn(command, args, { name: "xterm-256color", cwd, env }))

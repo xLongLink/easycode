@@ -18,7 +18,7 @@ export const parse = Effect.fnUntraced(function* (cwd: string, directories: read
   const invalid = directories.find((directory) => !isAbsolute(directory) || /[*?]/.test(directory))
   if (invalid !== undefined) return yield* new ACPError.InvalidAdditionalDirectoryError({ directory: invalid })
   const root = FSUtil.resolve(cwd)
-  return [...new Set(directories.map((directory) => resolve(FSUtil.windowsPath(directory))))].filter(
+  return [...new Set(directories.map((directory) => resolve(directory)))].filter(
     (directory) => FSUtil.resolve(directory) !== root,
   )
 })

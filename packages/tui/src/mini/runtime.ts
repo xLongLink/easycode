@@ -195,7 +195,7 @@ async function runInteractiveRuntime(input: RunRuntimeInput, deps: RunRuntimeDep
   const log = input.host.diagnostics.trace
   const config = input.config
   const configState: { current: MiniSettings } = { current: resolveMiniSettings() }
-  const tuiConfigTask = resolveRunTuiConfig(input.tuiConfig, input.host.platform).then((tuiConfig) => {
+  const tuiConfigTask = resolveRunTuiConfig(input.tuiConfig).then((tuiConfig) => {
     configState.current = resolveMiniSettings(tuiConfig)
     return tuiConfig
   })

@@ -235,10 +235,9 @@ const layer = Layer.effect(
       )
       const command = row.commands?.start?.trim()
       if (command) {
-        const windows = process.platform === "win32"
         yield* processService
           .run(
-            ChildProcess.make(windows ? command : "bash", windows ? [] : ["-lc", command], {
+            ChildProcess.make("bash", ["-lc", command], {
               cwd: result.directory,
               env: {
                 OPENCODE_WORKTREE_BASE: sourceDirectory,
@@ -246,7 +245,6 @@ const layer = Layer.effect(
               },
               extendEnv: true,
               stdin: "ignore",
-              shell: windows,
             }),
           )
           .pipe(Effect.flatMap(AppProcess.requireSuccess))

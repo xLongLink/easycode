@@ -81,9 +81,7 @@ export function layer(options: Options = { path: ":memory:" }) {
 }
 
 // SQLite creates new sidecars with the database's mode, but does not tighten existing sidecars.
-// Windows relies on the user profile directory's inherited ACLs instead of POSIX modes.
 async function restrictToOwner(filename: string) {
-  if (process.platform === "win32") return
   // Opening and closing an existing database can release another connection's POSIX locks.
   // Create missing files synchronously so another fiber cannot open one before it is restricted.
   if (!existsSync(filename)) closeSync(openSync(filename, "a", 0o600))

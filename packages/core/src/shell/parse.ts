@@ -360,16 +360,14 @@ function expandKnownDirectory(value: string) {
   if (value.includes("$") || value.includes("`") || value.startsWith("(")) return
   const resolved = value.replaceAll("\0", "$")
   if (resolved === "~") return os.homedir()
-  if (resolved.startsWith("~/") || (process.platform === "win32" && resolved.startsWith("~\\"))) {
+  if (resolved.startsWith("~/")) {
     return path.join(os.homedir(), resolved.slice(2))
   }
   return resolved
 }
 
 function environment(key: string) {
-  if (process.platform !== "win32") return process.env[key]
-  const name = Object.keys(process.env).find((item) => item.toLowerCase() === key.toLowerCase())
-  return name ? process.env[name] : undefined
+  return process.env[key]
 }
 
 function prefix(tokens: string[]) {

@@ -10,7 +10,7 @@ test("subscribes and unsubscribes SIGPROF with the CLI scope", async () => {
     Effect.scoped(
       Effect.gen(function* () {
         yield* CpuProfile.listen
-        expect(process.listenerCount("SIGPROF")).toBe(listeners + (process.platform === "win32" ? 0 : 1))
+        expect(process.listenerCount("SIGPROF")).toBe(listeners + 1)
       }),
     ).pipe(Effect.provideService(Global.Service, Global.make()), Effect.provide(NodeFileSystem.layer)),
   )

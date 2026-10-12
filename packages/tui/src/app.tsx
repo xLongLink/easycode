@@ -201,7 +201,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
   const log = input.log ?? (() => {})
   const global = yield* Global.Service
   const config = Config.resolve(yield* Effect.tryPromise(() => input.config.get()), {
-    terminalSuspend: process.platform !== "win32",
+    terminalSuspend: true,
   })
   const options = { baseUrl: input.server.endpoint.url, headers: Service.headers(input.server.endpoint) }
   const api = OpenCode.make(options)
@@ -352,7 +352,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
                                     <ConfigProvider
                                       config={config}
                                       service={input.config}
-                                      options={{ terminalSuspend: process.platform !== "win32" }}
+                                      options={{ terminalSuspend: true }}
                                     >
                                       <Keymap.Provider>
                                         <ToastProvider>
@@ -525,7 +525,7 @@ function App() {
   })
 
   const copyOnSelectEnabled = () =>
-    (config.data.terminal?.copy ?? (process.platform === "win32" ? "manual" : "select")) === "select"
+    (config.data.terminal?.copy ?? "select") === "select"
 
   // Selection copy/dismiss must precede both app bindings and the terminal pane's raw key forwarding.
   const offSelectionKeys = keymap.intercept(
@@ -1071,7 +1071,7 @@ function App() {
         title: "Suspend terminal",
         category: "System",
         palette: undefined,
-        enabled: process.platform !== "win32",
+        enabled: true,
         run: () => {
           renderer.suspend()
           process.once("SIGCONT", () => renderer.resume())

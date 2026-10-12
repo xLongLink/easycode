@@ -26,12 +26,8 @@ const bundleOnly = process.argv.includes("--bundle-only")
 const single = process.argv.includes("--single")
 const skipInstall = process.argv.includes("--skip-install")
 const requested = process.argv.find((arg) => arg.startsWith("--target="))?.slice("--target=".length)
-if (process.platform === "win32") throw new Error("Windows builds are not supported")
-const allTargets = [
-  nodeTarget("linux", "arm64"),
-  nodeTarget("linux", "x64"),
-  nodeTarget("darwin", "arm64"),
-]
+if (process.platform !== "linux" && process.platform !== "darwin") throw new Error("Builds require Linux or macOS")
+const allTargets = [nodeTarget("linux", "arm64"), nodeTarget("linux", "x64"), nodeTarget("darwin", "arm64")]
 const targets = requested
   ? allTargets.filter((target) => targetName(target) === requested)
   : single || bundleOnly

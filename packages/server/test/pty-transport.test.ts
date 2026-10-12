@@ -8,7 +8,7 @@ import { OpenCode } from "../../client/src/promise/index"
 import { it } from "../../core/test/lib/effect"
 import { ServerProcess } from "../src/process"
 
-const live = process.platform === "win32" ? it.live.skip : it.live
+const live = it.live
 
 live(
   "PTY websocket preserves replay, text and binary input, resize, reconnect, and exit",

@@ -67,8 +67,8 @@ const handler = Effect.fn("cli.session.list")(function* (
     const pager = yield* processService
       .spawn(
         ChildProcess.make(
-          process.platform === "win32" ? "cmd" : "less",
-          process.platform === "win32" ? ["/c", "more"] : ["-R", "-S"],
+          "less",
+          ["-R", "-S"],
           {
             stdin: Stream.make(new TextEncoder().encode(output)),
             stdout: "inherit",

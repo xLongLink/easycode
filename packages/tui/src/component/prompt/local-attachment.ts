@@ -26,15 +26,15 @@ export function readLocalAttachment(file: string, maxBytes = MAX_LOCAL_ATTACHMEN
   )
 }
 
-export async function resolvePastedAttachments(text: string, platform: string) {
+export async function resolvePastedAttachments(text: string) {
   const pastedContent = text.trim()
-  const filepath = normalizePastedFilepath(pastedContent, platform)
+  const filepath = normalizePastedFilepath(pastedContent)
   if (/^(https?):\/\//.test(filepath)) return undefined
 
   const attachment = await readLocalAttachment(filepath)
   const attachments = attachment ? [{ filepath, attachment }] : []
   if (!attachment) {
-    const filepaths = parsePastedFilepaths(pastedContent, platform)
+    const filepaths = parsePastedFilepaths(pastedContent)
     if (filepaths.length <= 1) return undefined
     let remaining = MAX_LOCAL_ATTACHMENT_BYTES
     for (const candidate of filepaths) {
@@ -78,40 +78,34 @@ async function readFileBounded(file: string, maxBytes: number) {
   return content
 }
 
-export function normalizePastedFilepath(value: string, platform: string) {
+export function normalizePastedFilepath(value: string) {
   const raw = value.replace(/^['"]+|['"]+$/g, "")
-  const url = decodeFileURL(raw, platform)
+  const url = decodeFileURL(raw)
   if (url) return url
-  if (platform === "win32") return raw
   return raw.replace(/\\(.)/g, "$1")
 }
 
-function decodeFileURL(value: string, platform: string): string | undefined {
+function decodeFileURL(value: string): string | undefined {
   if (!value.startsWith("file://")) return undefined
   try {
     const url = new URL(value)
     if (/%2f|%5c/i.test(url.pathname)) return undefined
     const pathname = decodeURIComponent(url.pathname)
-    if (platform !== "win32") {
-      if (url.hostname && url.hostname !== "localhost") return undefined
-      return pathname
-    }
-    const local = pathname.replace(/^\/([A-Za-z]:)/, "$1").replaceAll("/", "\\")
-    if (url.hostname && url.hostname !== "localhost") return `\\\\${url.hostname}${local}`
-    return local
+    if (url.hostname && url.hostname !== "localhost") return undefined
+    return pathname
   } catch {
     return undefined
   }
 }
 
-export function parsePastedFilepaths(value: string, platform: string) {
+export function parsePastedFilepaths(value: string) {
   const result: string[] = []
   let current = ""
   let quote = ""
 
   function push() {
     if (!current) return
-    result.push(decodeFileURL(current, platform) ?? current)
+    result.push(decodeFileURL(current) ?? current)
     current = ""
   }
 
@@ -128,7 +122,7 @@ export function parsePastedFilepaths(value: string, platform: string) {
         quote = ""
         continue
       }
-      if (character === "\\" && platform !== "win32" && quote === '"' && index + 1 < input.length) {
+      if (character === "\\" && quote === '"' && index + 1 < input.length) {
         current += input[++index]
         continue
       }
@@ -139,7 +133,7 @@ export function parsePastedFilepaths(value: string, platform: string) {
       quote = character
       continue
     }
-    if (character === "\\" && platform !== "win32" && index + 1 < input.length) {
+    if (character === "\\" && index + 1 < input.length) {
       current += input[++index]
       continue
     }

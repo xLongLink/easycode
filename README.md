@@ -5,6 +5,8 @@ An open source AI coding agent with a core runtime and terminal UI, based on Ope
 
 ### Installation
 
+Supports Linux and macOS (x64 and ARM64). Native Windows is not supported; use WSL on Windows.
+
 ```bash
 curl -fsSL https://github.com/xLongLink/easycode/releases/latest/download/install | bash
 ```

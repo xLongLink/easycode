@@ -3,27 +3,17 @@ import { customType } from "drizzle-orm/sqlite-core"
 import { Schema } from "effect"
 import { AbsolutePath } from "../schema.js"
 
-function storagePath(input: string) {
-  if (process.platform !== "win32") return input
-  return input.replaceAll("\\", "/")
-}
-
 function isWindowsStoragePath(input: string) {
   return /^[A-Za-z]:\//.test(input) || input.startsWith("//")
 }
 
 function absolute(input: string) {
-  const result = storagePath(input)
+  const result = input
   // Persisted projects and sessions can move between operating systems during migration.
   if (!nodePath.posix.isAbsolute(result) && !isWindowsStoragePath(result)) {
     throw new Error(`Path is not absolute: ${input}`)
   }
   return result
-}
-
-function toPlatform(input: string) {
-  if (process.platform !== "win32" || !isWindowsStoragePath(input)) return input
-  return input.replaceAll("/", "\\")
 }
 
 export const absoluteColumn = customType<{
@@ -38,7 +28,7 @@ export const absoluteColumn = customType<{
     return absolute(input)
   },
   fromDriver(input) {
-    return AbsolutePath.make(toPlatform(absolute(input)))
+    return AbsolutePath.make(absolute(input))
   },
 })
 
@@ -56,7 +46,7 @@ export const directoryColumn = customType<{
     return input ? absolute(input) : input
   },
   fromDriver(input) {
-    return input ? toPlatform(absolute(input)) : input
+    return input ? absolute(input) : input
   },
 })
 
@@ -69,10 +59,10 @@ export const pathColumn = customType<{
     return "text"
   },
   toDriver(input) {
-    return storagePath(input)
+    return input
   },
   fromDriver(input) {
-    return storagePath(input)
+    return input
   },
 })
 
@@ -90,6 +80,6 @@ export const absoluteArrayColumn = customType<{
     return JSON.stringify(input.map(absolute))
   },
   fromDriver(input) {
-    return decodeAbsoluteArray(input).map((item) => AbsolutePath.make(toPlatform(absolute(item))))
+    return decodeAbsoluteArray(input).map((item) => AbsolutePath.make(absolute(item)))
   },
 })

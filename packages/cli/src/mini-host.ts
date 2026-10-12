@@ -92,12 +92,10 @@ function openTerminalStdin(target: string): NodeJS.ReadStream {
 export function resolveInteractiveStdin(
   stdin: NodeJS.ReadStream = process.stdin,
   open: (target: string) => NodeJS.ReadStream = openTerminalStdin,
-  platform: NodeJS.Platform = process.platform,
 ): InteractiveStdin {
   if (stdin.isTTY) return { stdin, cleanup() {} }
-  const target = platform === "win32" ? "CONIN$" : "/dev/tty"
   try {
-    const source = open(target)
+    const source = open("/dev/tty")
     let cleaned = false
     return {
       stdin: source,

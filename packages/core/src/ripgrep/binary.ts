@@ -17,9 +17,6 @@ export namespace RipgrepBinary {
     "arm64-linux": { platform: "aarch64-unknown-linux-gnu", extension: "tar.gz" },
     "x64-darwin": { platform: "x86_64-apple-darwin", extension: "tar.gz" },
     "x64-linux": { platform: "x86_64-unknown-linux-musl", extension: "tar.gz" },
-    "arm64-win32": { platform: "aarch64-pc-windows-msvc", extension: "zip" },
-    "ia32-win32": { platform: "i686-pc-windows-msvc", extension: "zip" },
-    "x64-win32": { platform: "x86_64-pc-windows-msvc", extension: "zip" },
   } as const
 
   interface Interface {
@@ -57,22 +54,6 @@ export namespace RipgrepBinary {
       ) {
         const dir = yield* fs.makeTempDirectoryScoped({ directory: global.bin, prefix: "ripgrep-" })
 
-        if (config.extension === "zip") {
-          const shell =
-            (yield* Effect.sync(() => findExecutable("powershell.exe") ?? findExecutable("pwsh.exe"))) ??
-            "powershell.exe"
-          const result = yield* run(shell, [
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            `$global:ProgressPreference = 'SilentlyContinue'; Expand-Archive -LiteralPath '${archive.replaceAll("'", "''")}' -DestinationPath '${dir.replaceAll("'", "''")}' -Force`,
-          ])
-          if (result.code !== 0)
-            throw new Error(
-              result.stderr.trim() || result.stdout.trim() || `ripgrep extraction failed with code ${result.code}`,
-            )
-        }
-
         if (config.extension === "tar.gz") {
           const result = yield* run("tar", ["-xzf", archive, "-C", dir])
           if (result.code !== 0)
@@ -84,21 +65,21 @@ export namespace RipgrepBinary {
         const extracted = path.join(
           dir,
           `ripgrep-${VERSION}-${config.platform}`,
-          process.platform === "win32" ? "rg.exe" : "rg",
+          "rg",
         )
         if (!(yield* fs.isFile(extracted))) throw new Error(`ripgrep archive did not contain executable: ${extracted}`)
 
         yield* fs.copyFile(extracted, target)
-        if (process.platform !== "win32") yield* fs.chmod(target, 0o755)
+        yield* fs.chmod(target, 0o755)
       }, Effect.scoped)
 
       return Service.of({
         filepath: yield* Effect.cached(
           Effect.gen(function* () {
-            const system = yield* Effect.sync(() => findExecutable(process.platform === "win32" ? "rg.exe" : "rg"))
+            const system = yield* Effect.sync(() => findExecutable("rg"))
             if (system && (yield* fs.isFile(system).pipe(Effect.orDie))) return system
 
-            const target = path.join(global.bin, `rg${process.platform === "win32" ? ".exe" : ""}`)
+            const target = path.join(global.bin, "rg")
             if (yield* fs.isFile(target).pipe(Effect.orDie)) return target
 
             const platformKey = `${process.arch}-${process.platform}` as keyof typeof PLATFORM

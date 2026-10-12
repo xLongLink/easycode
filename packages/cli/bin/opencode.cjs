@@ -5,8 +5,12 @@ const fs = require("fs")
 const path = require("path")
 const os = require("os")
 
-const forwardedSignals =
-  process.platform === "win32" ? ["SIGINT", "SIGTERM", "SIGHUP"] : ["SIGINT", "SIGTERM", "SIGHUP", "SIGUSR1"]
+if (process.platform !== "linux" && process.platform !== "darwin") {
+  console.error("easycode supports Linux and macOS only. Use WSL on Windows.")
+  process.exit(1)
+}
+
+const forwardedSignals = ["SIGINT", "SIGTERM", "SIGHUP", "SIGUSR1"]
 
 function run(target) {
   const child = childProcess.spawn(target, process.argv.slice(2), { stdio: "inherit" })
@@ -36,10 +40,10 @@ const command = path.basename(__filename).replace(/\.cjs$/, "")
 const nodeBuild = command === "opencode-node"
 const sourceCommand = nodeBuild ? "opencode2-node" : "easycode"
 const cached = path.join(scriptDir, `.${command}`)
-const platform = { darwin: "darwin", linux: "linux", win32: "windows" }[os.platform()] || os.platform()
+const platform = os.platform()
 const arch = { x64: "x64", arm64: "arm64", arm: "arm" }[os.arch()] || os.arch()
 const base = `@opencode/cli${nodeBuild ? "-node" : ""}-` + platform + "-" + arch
-const binary = platform === "windows" ? `${sourceCommand}.exe` : sourceCommand
+const binary = sourceCommand
 
 function supportsAvx2() {
   if (arch !== "x64") return false
@@ -56,25 +60,6 @@ function supportsAvx2() {
       return result.status === 0 && (result.stdout || "").trim() === "1"
     } catch {
       return false
-    }
-  }
-  if (platform === "windows") {
-    const command =
-      '(Add-Type -MemberDefinition "[DllImport(""kernel32.dll"")] public static extern bool IsProcessorFeaturePresent(int ProcessorFeature);" -Name Kernel32 -Namespace Win32 -PassThru)::IsProcessorFeaturePresent(40)'
-    for (const executable of ["powershell.exe", "pwsh.exe", "pwsh", "powershell"]) {
-      try {
-        const result = childProcess.spawnSync(executable, ["-NoProfile", "-NonInteractive", "-Command", command], {
-          encoding: "utf8",
-          timeout: 3000,
-          windowsHide: true,
-        })
-        if (result.status !== 0) continue
-        const output = (result.stdout || "").trim().toLowerCase()
-        if (output === "true" || output === "1") return true
-        if (output === "false" || output === "0") return false
-      } catch {
-        continue
-      }
     }
   }
   return false

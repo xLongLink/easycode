@@ -4,7 +4,6 @@ import path from "node:path"
 
 export const listen = Effect.gen(function* () {
   const global = yield* Global.Service
-  if (process.platform === "win32") return
   const signals = yield* Queue.dropping<void>(1)
   yield* Effect.acquireRelease(
     Effect.sync(() => {

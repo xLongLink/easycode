@@ -24,7 +24,6 @@ const watcher = lazy((): typeof ParcelWatcher | undefined => {
 })
 
 function getBackend() {
-  if (process.platform === "win32") return "windows"
   if (process.platform === "darwin") return "fs-events"
   if (process.platform === "linux") return "inotify"
 }

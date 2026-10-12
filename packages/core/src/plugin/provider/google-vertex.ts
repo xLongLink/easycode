@@ -65,9 +65,7 @@ export const GoogleVertexPlugin = define({
             ? path.join(Global.Path.home, process.env.CLOUDSDK_CONFIG.slice(2))
             : process.env.CLOUDSDK_CONFIG
         : undefined) ??
-      (process.platform === "win32" && process.env.APPDATA
-        ? path.join(process.env.APPDATA, "gcloud")
-        : path.join(Global.Path.home, ".config", "gcloud"))
+      path.join(Global.Path.home, ".config", "gcloud")
     const active = `config_${(yield* read(path.join(gcloud, "active_config")))?.trim() || "default"}`
     const configs = (yield* fs
       .readDirectory(path.join(gcloud, "configurations"))

@@ -19,7 +19,6 @@ import { useRoute, useRouteData } from "../../context/route"
 import { createStore } from "solid-js/store"
 import { useData } from "../../context/data"
 import { SplitBorder } from "../../ui/border"
-import { useTuiTerminalEnvironment } from "../../context/runtime"
 import { Spinner, SPINNER_FRAMES } from "../../component/spinner"
 import { PatchDiff } from "../../component/patch-diff"
 import { useTheme, useThemes } from "../../context/theme"
@@ -80,7 +79,6 @@ import { projectedPromptInput } from "../../prompt/codec"
 import { appendPrompt } from "../../prompt/history"
 import { deduplicateVisibleImages } from "../../prompt/attachment"
 import { useEpilogue } from "../../context/epilogue"
-import { normalizePath } from "../../util/path"
 import { PermissionPrompt } from "./permission"
 import { FormPrompt } from "./form"
 import { DialogExportOptions } from "../../ui/dialog-export-options"
@@ -3517,13 +3515,8 @@ function Skill(props: ToolProps) {
 
 function Diagnostics(props: { diagnostics: unknown; filePath: string }) {
   const theme = useTheme()
-  const terminalEnvironment = useTuiTerminalEnvironment()
   const errors = createMemo(() => {
-    const normalized = normalizePath(
-      typeof props.filePath === "string" ? props.filePath : "",
-      terminalEnvironment.platform,
-    )
-    return parseDiagnostics(props.diagnostics, normalized)
+    return parseDiagnostics(props.diagnostics, props.filePath)
   })
 
   return (

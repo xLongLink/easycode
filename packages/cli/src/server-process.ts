@@ -13,7 +13,6 @@ import { HttpServer } from "effect/http"
 import { NetAddress } from "effect/net"
 import { Env } from "./env"
 import { ServiceConfig } from "./services/service-config"
-import { RetainedImage } from "./services/retained-image"
 import { ServiceRegistration } from "./services/service-registration"
 import { RemoteTunnel } from "./services/remote-tunnel"
 import { databasePath } from "./database-path"
@@ -70,9 +69,6 @@ const processEffect = Effect.fnUntraced(function* (options: Options) {
           ? Service.incumbent({ ...serviceOptions, url: serviceURL(hostname, port) })
           : undefined
       if (findIncumbent !== undefined && (yield* findIncumbent) !== undefined) return
-      // Keep a package-manager or curl install replaceable while the service runs.
-      if (options.mode === "service" && process.platform === "win32" && RetainedImage.installed(global.home))
-        yield* RetainedImage.retain(global.cache, "service")
       const { start } = yield* Effect.promise(() => import("@opencode/server/process"))
       const environmentPassword = yield* Env.password
       // Keep the lease credential out of the environment inherited by tools.
@@ -118,15 +114,9 @@ const processEffect = Effect.fnUntraced(function* (options: Options) {
             file: process.env.OPENCODE_CONFIG,
             content: process.env.OPENCODE_CONFIG_CONTENT,
           },
-          windows: {
-            gitbash: process.env.OPENCODE_GIT_BASH_PATH,
-          },
           fs: {
             filewatcher: !truthy(process.env.OPENCODE_FILEWATCHER_DISABLE ?? process.env.OPENCODE_DISABLE_FILEWATCHER),
-            fff:
-              process.env.OPENCODE_DISABLE_FFF === undefined
-                ? process.platform !== "win32"
-                : !truthy(process.env.OPENCODE_DISABLE_FFF),
+            fff: !truthy(process.env.OPENCODE_DISABLE_FFF),
           },
         },
         serviceOptions === undefined

@@ -12,8 +12,7 @@ import { OpenCode } from "../../client/src/promise/index"
 import { it } from "../../core/test/lib/effect"
 import { ServerProcess } from "../src/process"
 
-// opencode-pty does not support Windows, and its package resolves no binary on other unsupported platforms.
-const binary = process.platform === "win32" ? undefined : (process.env.OPENCODE_PTY_BIN ?? binaryPath)
+const binary = process.env.OPENCODE_PTY_BIN ?? binaryPath
 const smoke = binary !== undefined && existsSync(binary) ? it.live : it.live.skip
 
 smoke(

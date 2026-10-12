@@ -240,19 +240,17 @@ describe("FileAccess.resolve", () => {
     expect(FileAccess.resolvePath("/project", "~/notes.md", home)).toBe(path.resolve(home, "notes.md"))
     expect(FileAccess.resolvePath("/project", "~draft.md", home)).toBe(path.resolve("/project", "~draft.md"))
     expect(FileAccess.resolvePath("/project", "~\\notes.md", home)).toBe(
-      process.platform === "win32" ? path.resolve(home, "notes.md") : path.resolve("/project", "~\\notes.md"),
+      path.resolve("/project", "~\\notes.md"),
     )
   })
 
   test.each([
-    ["/c/Users/aiden/notes.md", "C:/Users/aiden/notes.md"],
-    ["/C:/Users/aiden/notes.md", "C:/Users/aiden/notes.md"],
-    ["/cygdrive/c/Users/aiden/notes.md", "C:/Users/aiden/notes.md"],
-    ["/mnt/c/Users/aiden/notes.md", "C:/Users/aiden/notes.md"],
-  ])("normalizes Windows shell drive path %s before resolution", (input, windows) => {
-    expect(FileAccess.resolvePath("/project", input)).toBe(
-      process.platform === "win32" ? path.resolve(windows) : path.resolve(input),
-    )
+    "/c/Users/aiden/notes.md",
+    "/C:/Users/aiden/notes.md",
+    "/cygdrive/c/Users/aiden/notes.md",
+    "/mnt/c/Users/aiden/notes.md",
+  ])("preserves absolute POSIX path %s before resolution", (input) => {
+    expect(FileAccess.resolvePath("/project", input)).toBe(path.resolve(input))
   })
 
   it.live("resolves a tilde path as an external home target", () =>

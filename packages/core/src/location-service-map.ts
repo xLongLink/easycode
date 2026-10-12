@@ -2,7 +2,6 @@ import { Context, Effect, Exit, Layer, LayerMap, RcMap } from "effect"
 import { LayerNode } from "@opencode/util/effect/layer-node"
 import { Node } from "@opencode/util/effect/app-node"
 import { AbsolutePath } from "@opencode/schema/schema"
-import path from "path"
 import { Location } from "./location.js"
 import type { Instance } from "./instance.js"
 
@@ -38,7 +37,7 @@ export const reload = Effect.fn("LocationServiceMap.reload")(function* () {
 /** Normalize equivalent placements before they become resource-cache keys. */
 export function canonical(ref: Location.Ref) {
   return Location.Ref.make({
-    directory: AbsolutePath.make(process.platform === "win32" ? path.normalize(ref.directory) : ref.directory),
+    directory: AbsolutePath.make(ref.directory),
     workspaceID: ref.workspaceID,
   })
 }

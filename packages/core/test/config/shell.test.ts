@@ -7,7 +7,6 @@ import { Plugin } from "@opencode/core/plugin"
 import { PluginHost } from "@opencode/core/plugin/host"
 import { ShellSelect } from "@opencode/core/shell/select"
 import { Document, Event, Info } from "@opencode/schema/config"
-import { FSUtil } from "@opencode/util/fs-util"
 import { Effect, Layer } from "effect"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "../plugin/fixture"
@@ -23,7 +22,7 @@ describe("ConfigShellPlugin.Plugin", () => {
       const plugins = yield* Plugin.Service
       yield* ConfigShellPlugin.Plugin.effect(yield* PluginHost.make(plugins))
 
-      const configured = process.platform === "win32" ? FSUtil.windowsPath(process.execPath) : process.execPath
+      const configured = process.execPath
       expect(yield* shell.resolve({ priority: "config" })).toBe(configured)
 
       yield* config.setEntries([])

@@ -1,7 +1,7 @@
 export * as Git from "./git.js"
 
 import path from "path"
-import { Cause, Context, Effect, Exit, Layer, Option, Schedule, Schema } from "effect"
+import { Cause, Context, Effect, Exit, Layer, Option, Schema } from "effect"
 import { ChildProcess } from "effect/process"
 import { AbsolutePath, RelativePath } from "./schema.js"
 import { FSUtil } from "@opencode/util/fs-util"
@@ -44,9 +44,9 @@ export type TreeID = typeof TreeID.Type
 
 const temporaryIndexPrefix = "index.opencode-"
 // Like `git gc --auto`, pack once loose objects accumulate, and combine packs before lookups slow down.
-// Room for paths on one Git command line after the Git path, repository flags, and quoting. Windows caps a command
-// line at 32,767 characters. macOS caps arguments plus environment at 1 MiB, and Linux caps them at 2 MiB by default.
-const argumentBudget = process.platform === "win32" ? 24_000 : 128 * 1024
+// Room for paths on one Git command line after the Git path, repository flags, and quoting.
+// macOS caps arguments plus environment at 1 MiB, and Linux caps them at 2 MiB by default.
+const argumentBudget = 128 * 1024
 const looseObjectLimit = 2048
 const packCountLimit = 16
 
@@ -637,8 +637,6 @@ const layer = Layer.effect(
                 // Fingerprint before the rename, so a concurrent writer's index can never be paired with this tree.
                 const fingerprint = yield* indexFingerprint(index)
                 const renamed = yield* fs.rename(index, indexFile(repository)).pipe(
-                  // Windows reports a transient sharing violation while another process reads the index.
-                  Effect.retry({ times: 3, schedule: Schedule.spaced("20 millis") }),
                   Effect.as(true),
                   Effect.orElseSucceed(() => false),
                 )
@@ -1397,7 +1395,7 @@ function uniqueSuffix() {
 function resolvePath(cwd: string, value: string) {
   const trimmed = value.replace(/[\r\n]+$/, "")
   if (!trimmed) return cwd
-  const normalized = FSUtil.windowsPath(trimmed)
+  const normalized = trimmed
   if (path.isAbsolute(normalized)) return path.normalize(normalized)
   return path.resolve(cwd, normalized)
 }

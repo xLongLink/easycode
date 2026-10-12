@@ -219,7 +219,7 @@ export function DialogProvider(props: ParentProps) {
   const clipboard = useClipboard()
   const config = useConfig()
   const copyOnSelectEnabled = () =>
-    (config.data.terminal?.copy ?? (process.platform === "win32" ? "manual" : "select")) === "select"
+    (config.data.terminal?.copy ?? "select") === "select"
 
   return (
     <ctx.Provider value={value}>

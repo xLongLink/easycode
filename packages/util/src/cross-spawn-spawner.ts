@@ -152,17 +152,15 @@ const makeCrossSpawnSpawner = Effect.gen(function* () {
     serr: ChildProcess.StderrConfig,
     extra: ReadonlyArray<{ fd: number; config: ChildProcess.AdditionalFdConfig }>,
   ): NodeChildProcess.StdioOptions => {
-    const pipe = (x: NodeChildProcess.IOType | undefined) =>
-      process.platform === "win32" && x === "pipe" ? "overlapped" : x
     const arr: Array<NodeChildProcess.IOType | undefined> = [
-      pipe(input(sin.stream)),
-      pipe(output(sout.stream)),
-      pipe(output(serr.stream)),
+      input(sin.stream),
+      output(sout.stream),
+      output(serr.stream),
     ]
     if (extra.length === 0) return arr as NodeChildProcess.StdioOptions
     const max = extra.reduce((acc, x) => Math.max(acc, x.fd), 2)
     for (let i = 3; i <= max; i++) arr[i] = "ignore"
-    for (const x of extra) arr[x.fd] = pipe("pipe")
+    for (const x of extra) arr[x.fd] = "pipe"
     return arr as NodeChildProcess.StdioOptions
   }
 
@@ -315,7 +313,7 @@ const makeCrossSpawnSpawner = Effect.gen(function* () {
     yield* Effect.forkScoped(
       Effect.gen(function* () {
         yield* Deferred.await(exited)
-        // Particularly on Windows, some shell calls will cause detached descendants. Inherited stdio can hang the call.
+        // Some shell calls leave detached descendants. Inherited stdio can hang the call.
         // Almost every ecosystem has tried to fix this; there's no single "good" answer here.
         // Calls that trigger this are e.g. dotnet build with warmed MSBuild processes, agent-browser, etc.
         // One shared deadline covers stdout and stderr, then the output pump finishes its file.
@@ -346,15 +344,6 @@ const makeCrossSpawnSpawner = Effect.gen(function* () {
     proc: NodeChildProcess.ChildProcess,
     signal: NodeJS.Signals,
   ) => {
-    if (globalThis.process.platform === "win32") {
-      return Effect.callback<void, PlatformError.PlatformError>((resume) => {
-        NodeChildProcess.exec(`taskkill /pid ${proc.pid} /T /F`, { windowsHide: true }, (err) => {
-          if (err) return resume(Effect.fail(toPlatformError("kill", toError(err), command)))
-          resume(Effect.void)
-        })
-      })
-    }
-
     return Effect.try({
       try: () => {
         globalThis.process.kill(-proc.pid!, signal)
@@ -430,16 +419,14 @@ const makeCrossSpawnSpawner = Effect.gen(function* () {
               cwd: dir,
               env: env(command.options),
               stdio: stdios(sin, sout, serr, extra),
-              detached: command.options.detached ?? process.platform !== "win32",
+              detached: command.options.detached ?? true,
               shell: command.options.shell,
-              windowsHide: process.platform === "win32",
             }),
             Effect.fnUntraced(
               function* ([proc, closed, exited, stopOutput]) {
                 const done = (yield* Deferred.isDone(closed)) || (yield* Deferred.isDone(stopOutput))
                 if (done) {
                   const [code] = yield* Deferred.await(exited)
-                  if (process.platform === "win32") return
                   if (code === 0 || Predicate.isNull(code)) return
                   if (command.options.forceKillAfter === undefined) {
                     return yield* Effect.ignore(killGroup(command, proc, command.options.killSignal ?? "SIGTERM"))

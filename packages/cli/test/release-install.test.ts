@@ -1,11 +1,11 @@
 import { expect, test } from "bun:test"
-import { chmod, mkdtemp, rm } from "node:fs/promises"
+import { chmod, mkdtemp, readdir, rm } from "node:fs/promises"
 import path from "node:path"
 
 const cli = path.resolve(import.meta.dir, "..")
 const installer = path.resolve(cli, "../../install")
 
-test.skipIf(process.platform === "win32")("release archives contain executable standalone binaries", async () => {
+test("release archives contain executable standalone binaries", async () => {
   const root = await mkdtemp("/tmp/opencode/release-archives-")
   const targets = [
     { directory: "cli-linux-x64", binary: "easycode", archive: "easycode-linux-x64" },
@@ -102,6 +102,34 @@ exec "${curl}" "\${args[@]}"
       expect(requests.some((request) => request.includes("/releases/download/v2.3.4/"))).toBe(mode !== "local")
     } finally {
       server.stop(true)
+      await rm(root, { recursive: true, force: true })
+    }
+  },
+)
+
+test.each(["MINGW64_NT-10.0", "MSYS_NT-10.0", "CYGWIN_NT-10.0"])(
+  "installer rejects native Windows %s before creating files",
+  async (platform) => {
+    const root = await mkdtemp("/tmp/opencode/release-unsupported-")
+    try {
+      await Bun.write(path.join(root, "bin/uname"), '#!/bin/sh\nprintf "%s\\n" "$INSTALL_TEST_PLATFORM"\n')
+      await chmod(path.join(root, "bin/uname"), 0o755)
+      for (const args of [[], ["--binary", path.join(root, "missing")]]) {
+        const result = await Bun.$`bash ${installer} --no-modify-path ${args}`
+          .env({
+            ...process.env,
+            PATH: `${path.join(root, "bin")}:${process.env.PATH}`,
+            HOME: root,
+            EASYCODE_INSTALL_DIR: path.join(root, "installation"),
+            INSTALL_TEST_PLATFORM: platform,
+          })
+          .nothrow()
+          .quiet()
+        expect(result.exitCode).toBe(1)
+        expect(result.stderr.toString()).toContain("supports Linux and macOS only")
+        expect(await readdir(root)).toEqual(["bin"])
+      }
+    } finally {
       await rm(root, { recursive: true, force: true })
     }
   },

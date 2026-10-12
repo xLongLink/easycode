@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import path from "path"
 import { ShellSelect } from "@opencode/core/shell/select"
-import { FSUtil } from "@opencode/util/fs-util"
-import { which } from "@opencode/core/util/which"
 import fs from "node:fs/promises"
 import { tmpdir } from "./fixture/tmpdir"
 
@@ -23,10 +21,6 @@ const withShell = async (shell: string | undefined, fn: () => void | Promise<voi
 describe("shell", () => {
   test("normalizes shell names", () => {
     expect(ShellSelect.name("/bin/bash")).toBe("bash")
-    if (process.platform === "win32") {
-      expect(ShellSelect.name("C:/tools/NU.EXE")).toBe("nu")
-      expect(ShellSelect.name("C:/tools/PWSH.EXE")).toBe("pwsh")
-    }
   })
 
   test("detects login shells", () => {
@@ -62,62 +56,17 @@ describe("shell", () => {
     ])
   })
 
-  if (process.platform !== "win32") {
-    test("resolves the environment shell without retaining a removed executable", async () => {
-      await withShell(undefined, async () => {
-        await using directory = await tmpdir()
-        const fallback = ShellSelect.environment()
-        const shell = path.join(directory.path, "preferred-shell")
-        await fs.symlink("/bin/sh", shell)
-        process.env.SHELL = shell
-        expect(ShellSelect.environment()).toBe(shell)
-        expect(ShellSelect.resolve({ priority: "config" })).toBe(shell)
-        await fs.unlink(shell)
-        expect(ShellSelect.environment()).toBe(fallback)
-      })
+  test("resolves the environment shell without retaining a removed executable", async () => {
+    await withShell(undefined, async () => {
+      await using directory = await tmpdir()
+      const fallback = ShellSelect.environment()
+      const shell = path.join(directory.path, "preferred-shell")
+      await fs.symlink("/bin/sh", shell)
+      process.env.SHELL = shell
+      expect(ShellSelect.environment()).toBe(shell)
+      expect(ShellSelect.resolve({ priority: "config" })).toBe(shell)
+      await fs.unlink(shell)
+      expect(ShellSelect.environment()).toBe(fallback)
     })
-  }
-
-  if (process.platform === "win32") {
-    test("rejects blacklisted shells case-insensitively", async () => {
-      await withShell("NU.EXE", async () => {
-        expect(ShellSelect.name(ShellSelect.resolve({ priority: "compat" }))).not.toBe("nu")
-      })
-    })
-
-    test("normalizes Git Bash shell paths from env", async () => {
-      const shell = "/cygdrive/c/Program Files/Git/bin/bash.exe"
-      await withShell(shell, async () => {
-        expect(ShellSelect.resolve({ priority: "config" })).toBe(FSUtil.windowsPath(shell))
-      })
-    })
-
-    test("resolves /usr/bin/bash from env to Git Bash", async () => {
-      const bash = ShellSelect.gitbash()
-      if (!bash) return
-      await withShell("/usr/bin/bash", async () => {
-        expect(ShellSelect.resolve({ priority: "compat" })).toBe(bash)
-        expect(ShellSelect.resolve({ priority: "config" })).toBe(bash)
-      })
-    })
-
-    test("resolves bare bash to Git Bash before PATH", async () => {
-      const bash = ShellSelect.gitbash()
-      if (!bash) return
-      expect(ShellSelect.resolve({ priority: "compat" }, "bash")).toBe(bash)
-      expect(ShellSelect.resolve({ priority: "config" }, "bash")).toBe(bash)
-      await withShell("bash", async () => {
-        expect(ShellSelect.resolve({ priority: "compat" })).toBe(bash)
-        expect(ShellSelect.resolve({ priority: "config" })).toBe(bash)
-      })
-    })
-
-    test("resolves bare PowerShell shells", async () => {
-      const shell = which("pwsh") || which("powershell")
-      if (!shell) return
-      await withShell(path.win32.basename(shell), async () => {
-        expect(ShellSelect.resolve({ priority: "config" })).toBe(shell)
-      })
-    })
-  }
+  })
 })

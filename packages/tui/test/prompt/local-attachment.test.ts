@@ -19,42 +19,29 @@ function files(input: { mime: string; text?: string; bytes?: Uint8Array }): Loca
 }
 
 describe("prompt local attachments", () => {
-  test("parses multi-file drops from POSIX, URI-list, and Windows terminals", () => {
-    expect(parsePastedFilepaths("'/tmp/one image.png' /tmp/two\\ image.webp", "linux")).toEqual([
+  test("parses multi-file drops from POSIX terminals and URI lists", () => {
+    expect(parsePastedFilepaths("'/tmp/one image.png' /tmp/two\\ image.webp")).toEqual([
       "/tmp/one image.png",
       "/tmp/two image.webp",
     ])
-    expect(parsePastedFilepaths("file:///tmp/one%20image.png\r\nfile:///tmp/two.webp", "linux")).toEqual([
+    expect(parsePastedFilepaths("file:///tmp/one%20image.png\r\nfile:///tmp/two.webp")).toEqual([
       "/tmp/one image.png",
       "/tmp/two.webp",
     ])
-    expect(parsePastedFilepaths("# dropped files\nfile:///tmp/one.png\nfile:///tmp/two.webp", "linux")).toEqual([
+    expect(parsePastedFilepaths("# dropped files\nfile:///tmp/one.png\nfile:///tmp/two.webp")).toEqual([
       "/tmp/one.png",
       "/tmp/two.webp",
     ])
-    expect(parsePastedFilepaths("/tmp/one\\\\image.png /tmp/two.webp", "linux")).toEqual([
+    expect(parsePastedFilepaths("/tmp/one\\\\image.png /tmp/two.webp")).toEqual([
       "/tmp/one\\image.png",
       "/tmp/two.webp",
     ])
-    expect(parsePastedFilepaths('"C:\\one image.png" "C:\\two.webp"', "win32")).toEqual([
-      "C:\\one image.png",
-      "C:\\two.webp",
-    ])
-    expect(parsePastedFilepaths("file:///C:/one%20image.png\r\nfile://server/share/two.webp", "win32")).toEqual([
-      "C:\\one image.png",
-      "\\\\server\\share\\two.webp",
-    ])
-    expect(parsePastedFilepaths('"/tmp/O\'Brien.png" /tmp/two.webp', "linux")).toEqual([
-      "/tmp/O'Brien.png",
-      "/tmp/two.webp",
-    ])
+    expect(parsePastedFilepaths('"/tmp/O\'Brien.png" /tmp/two.webp')).toEqual(["/tmp/O'Brien.png", "/tmp/two.webp"])
   })
 
   test("rejects unbounded and malformed multi-file drops", () => {
-    expect(parsePastedFilepaths("'/tmp/one.png /tmp/two.png", "linux")).toEqual([])
-    expect(
-      parsePastedFilepaths(Array.from({ length: 33 }, (_, index) => `/tmp/${index}.png`).join(" "), "linux"),
-    ).toEqual([])
+    expect(parsePastedFilepaths("'/tmp/one.png /tmp/two.png")).toEqual([])
+    expect(parsePastedFilepaths(Array.from({ length: 33 }, (_, index) => `/tmp/${index}.png`).join(" "))).toEqual([])
   })
 
   test("reads SVG attachments as text", async () => {
@@ -96,7 +83,7 @@ describe("prompt local attachments", () => {
     await Bun.write(file, new Uint8Array([1, 2, 3]))
 
     for (const input of [file, `'${file}'`, pathToFileURL(file).href]) {
-      expect(await resolvePastedAttachments(input, process.platform)).toEqual([
+      expect(await resolvePastedAttachments(input)).toEqual([
         { type: "file", uri: "data:image/png;base64,AQID", filename: "one image.png" },
       ])
     }
@@ -112,7 +99,7 @@ describe("prompt local attachments", () => {
       `'${image}' "${pdf}"`,
       `# dropped files\r\n${pathToFileURL(image).href}\r\n${pathToFileURL(pdf).href}`,
     ]) {
-      expect(await resolvePastedAttachments(input, process.platform)).toEqual([
+      expect(await resolvePastedAttachments(input)).toEqual([
         { type: "file", uri: "data:image/png;base64,AQID", filename: "one image.png" },
         { type: "file", uri: "data:application/pdf;base64,BAUG", filename: "two file.pdf" },
       ])
@@ -133,7 +120,7 @@ describe("prompt local attachments", () => {
       `${image} ${text}`,
       `${image} ${path.join(tmp.path, "missing.png")}`,
     ]) {
-      expect(await resolvePastedAttachments(input, process.platform)).toBeUndefined()
+      expect(await resolvePastedAttachments(input)).toBeUndefined()
     }
   })
 
@@ -143,9 +130,7 @@ describe("prompt local attachments", () => {
     const content = "<svg />\r\n"
     await Bun.write(file, content)
 
-    expect(await resolvePastedAttachments(file, process.platform)).toEqual([
-      { type: "text", content, filename: "image.svg" },
-    ])
+    expect(await resolvePastedAttachments(file)).toEqual([{ type: "text", content, filename: "image.svg" }])
   })
 
   test("shares the byte budget across binary and SVG attachments", async () => {
@@ -158,15 +143,15 @@ describe("prompt local attachments", () => {
       Bun.write(svg, content),
     ])
 
-    expect(await resolvePastedAttachments(`${image} ${svg}`, process.platform)).toMatchObject([
+    expect(await resolvePastedAttachments(`${image} ${svg}`)).toMatchObject([
       { type: "file", filename: "image.png" },
       { type: "text", content, filename: "image.svg" },
     ])
     await Bun.write(svg, content + " ")
-    expect(await resolvePastedAttachments(`${image} ${svg}`, process.platform)).toBeUndefined()
+    expect(await resolvePastedAttachments(`${image} ${svg}`)).toBeUndefined()
 
     await Bun.write(image, new Uint8Array(MAX_LOCAL_ATTACHMENT_BYTES + 1))
-    expect(await resolvePastedAttachments(image, process.platform)).toBeUndefined()
+    expect(await resolvePastedAttachments(image)).toBeUndefined()
   })
 
   test("bounds the number of resolved paths", async () => {
@@ -174,7 +159,7 @@ describe("prompt local attachments", () => {
     const file = path.join(tmp.path, "image.png")
     await Bun.write(file, new Uint8Array([1]))
 
-    expect(await resolvePastedAttachments(Array(32).fill(file).join(" "), process.platform)).toHaveLength(32)
-    expect(await resolvePastedAttachments(Array(33).fill(file).join(" "), process.platform)).toBeUndefined()
+    expect(await resolvePastedAttachments(Array(32).fill(file).join(" "))).toHaveLength(32)
+    expect(await resolvePastedAttachments(Array(33).fill(file).join(" "))).toBeUndefined()
   })
 })
