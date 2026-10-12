@@ -75,7 +75,7 @@
     }
   },
   "devDependencies": {
-    "@ai-sdk/openai-compatible": "2.0.41",
+    "@ai-sdk/openai-compatible": "2.0.81",
     "@effect/platform-node": "catalog:",
     "@effect/sql-sqlite-bun": "catalog:",
     "@modelcontextprotocol/server": "2.0.0",
