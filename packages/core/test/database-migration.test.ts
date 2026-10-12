@@ -21,6 +21,7 @@ import executionClaimsMigration from "@opencode/core/database/migration/20260811
 import sessionInboxMigration from "@opencode/core/database/migration/20260812181746_session_inbox"
 import sessionViewedStateMigration from "@opencode/core/database/migration/20260819222447_session_viewed_state"
 import azureCliCredentialMigration from "@opencode/core/database/migration/20261007190000_azure_cli_external_credential"
+import instructionStateMapsMigration from "@opencode/core/database/migration/20261012215608_instruction_state_maps"
 import { Global } from "@opencode/util/global"
 
 const run = <A, E>(
@@ -211,6 +212,50 @@ describe("DatabaseMigration", () => {
           idle_outcome: null,
         })
         expect(yield* db.get(sql`SELECT count(*) AS count FROM migration`)).toEqual({ count: 1 })
+      }),
+    )
+  })
+
+  test("removes instruction counters from existing installations while preserving maps and session ownership", async () => {
+    await run(
+      Effect.gen(function* () {
+        const db = yield* makeDb
+        yield* db.run(sql`PRAGMA foreign_keys = ON`)
+        yield* db.run(sql`CREATE TABLE session_v2 (id text PRIMARY KEY)`)
+        yield* db.run(sql`
+          CREATE TABLE instruction_state (
+            session_id text PRIMARY KEY REFERENCES session_v2(id) ON DELETE CASCADE,
+            epoch_start integer NOT NULL,
+            through_seq integer NOT NULL,
+            initial_values text NOT NULL,
+            current_values text NOT NULL
+          )
+        `)
+        yield* db.run(sql`INSERT INTO session_v2 VALUES ('ses_existing'), ('ses_empty')`)
+        yield* db.run(sql`
+          INSERT INTO instruction_state VALUES
+            ('ses_existing', 12, 34, '{"test/context":"initial-hash"}', '{"test/context":"current-hash","test/extra":"extra-hash"}'),
+            ('ses_empty', 0, 0, '{}', '{}')
+        `)
+
+        yield* DatabaseMigration.applyOnly(db, [instructionStateMapsMigration])
+        yield* DatabaseMigration.applyOnly(db, [instructionStateMapsMigration])
+
+        expect(yield* db.all(sql`SELECT * FROM instruction_state ORDER BY session_id`)).toEqual([
+          { session_id: "ses_empty", initial_values: "{}", current_values: "{}" },
+          {
+            session_id: "ses_existing",
+            initial_values: '{"test/context":"initial-hash"}',
+            current_values: '{"test/context":"current-hash","test/extra":"extra-hash"}',
+          },
+        ])
+        expect(
+          (yield* db.all<{ name: string }>(sql`PRAGMA table_info(instruction_state)`)).map((column) => column.name),
+        ).toEqual(["session_id", "initial_values", "current_values"])
+        expect(yield* db.get(sql`SELECT count(*) AS count FROM migration`)).toEqual({ count: 1 })
+        expect(yield* db.all(sql`PRAGMA foreign_key_check`)).toEqual([])
+        yield* db.run(sql`DELETE FROM session_v2 WHERE id = 'ses_existing'`)
+        expect(yield* db.all(sql`SELECT session_id FROM instruction_state`)).toEqual([{ session_id: "ses_empty" }])
       }),
     )
   })

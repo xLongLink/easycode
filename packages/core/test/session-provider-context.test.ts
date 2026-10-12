@@ -244,7 +244,7 @@ it.effect(
       s.state.value = "changed instructions"
       yield* s.prepare
       yield* s.bus.publish(SessionEvent.Compaction.Started, { sessionID, reason: "manual", recent: "" })
-      const completed = yield* s.compact(providerContext)
+      yield* s.compact(providerContext)
       s.state.value = "newest instructions"
       yield* s.prepare
       yield* s.prompt("continue")
@@ -253,7 +253,6 @@ it.effect(
         expect(
           yield* s.db.select().from(InstructionStateTable).where(eq(InstructionStateTable.session_id, sessionID)).get(),
         ).toMatchObject({
-          epoch_start: completed.durable.seq,
           initial_values: { "test/context": Instructions.hash("changed instructions") },
           current_values: { "test/context": Instructions.hash("newest instructions") },
         })

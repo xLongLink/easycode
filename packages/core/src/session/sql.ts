@@ -169,8 +169,6 @@ export const InstructionStateTable = sqliteTable("instruction_state", {
     .$type<SessionSchema.ID>()
     .primaryKey()
     .references(() => SessionTable.id, { onDelete: "cascade" }),
-  epoch_start: integer().notNull(),
-  through_seq: integer().notNull(),
   initial_values: text({ mode: "json" }).notNull().$type<Instruction.Values>(),
   current_values: text({ mode: "json" }).notNull().$type<Instruction.Values>(),
 })

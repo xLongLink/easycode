@@ -230,8 +230,7 @@ const projectFork = Effect.fn("SessionProjector.projectFork")(function* (
     cursor = rows.at(-1)!.seq
   }
   if (copiedSeq !== undefined) yield* Bus.reserveSequence(db, event.data.sessionID, copiedSeq)
-  if (event.data.instructions)
-    yield* InstructionState.initialize(db, event.data.sessionID, event.durable.seq, event.data.instructions)
+  if (event.data.instructions) yield* InstructionState.initialize(db, event.data.sessionID, event.data.instructions)
 })
 
 function run(db: DatabaseService, event: MessageEvent) {
@@ -683,7 +682,7 @@ const layer = Layer.effectDiscard(
     yield* bus.project(SessionEvent.InstructionsUpdated, (event) =>
       Effect.gen(function* () {
         yield* run(db, event)
-        yield* InstructionState.apply(db, event.data.sessionID, event.durable.seq, event.data.delta)
+        yield* InstructionState.apply(db, event.data.sessionID, event.data.delta)
       }),
     )
     yield* bus.project(SessionEvent.Synthetic, (event) => run(db, event))
@@ -730,7 +729,7 @@ const layer = Layer.effectDiscard(
     yield* bus.project(SessionEvent.Compaction.Ended, (event) =>
       Effect.gen(function* () {
         yield* run(db, event)
-        yield* InstructionState.advanceEpoch(db, event.data.sessionID, event.durable.seq)
+        yield* InstructionState.advanceEpoch(db, event.data.sessionID)
       }),
     )
     yield* bus.project(SessionEvent.Compaction.Failed, (event) => run(db, event))

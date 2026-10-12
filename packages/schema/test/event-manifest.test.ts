@@ -14,7 +14,6 @@ import {
   Workspace,
 } from "../src/index.js"
 import { EventManifest } from "../src/event-manifest.js"
-import { FileSystemV1 } from "../src/filesystem-v1.js"
 import { McpEvent } from "../src/mcp-event.js"
 import { SessionEvent } from "../src/session-event.js"
 import { SessionID } from "../src/session-id.js"
@@ -22,11 +21,17 @@ import { SessionMessage } from "../src/session-message.js"
 import { WorkspaceEvent } from "../src/workspace-event.js"
 
 describe("public event manifest", () => {
+  test("excludes orphaned V1-only events", () => {
+    for (const type of ["file.edited", "command.executed"]) {
+      expect(EventManifest.Server.has(type)).toBe(false)
+      expect(EventManifest.Durable.has(`${type}.1`)).toBe(false)
+    }
+  })
+
   test("does not expose application updater events or configuration", () => {
     expect(Config.Info.fields).not.toHaveProperty("update")
     for (const type of ["installation.update-available", "installation.updated"]) {
       expect(EventManifest.Server.has(type)).toBe(false)
-      expect(EventManifest.Latest.has(type)).toBe(false)
     }
   })
 
@@ -35,14 +40,10 @@ describe("public event manifest", () => {
     expect(EventManifest.ServerDefinitions.filter((definition) => definition.type === "agent.updated")).toEqual([
       Agent.Event.Updated,
     ])
-    expect(EventManifest.Definitions).toContain(Agent.Event.Updated)
-    expect(EventManifest.Definitions.filter((definition) => definition.type === "agent.updated")).toEqual([
-      Agent.Event.Updated,
-    ])
-    expect(Array.from(EventManifest.Latest.keys())).toEqual(
-      Array.from(new Set(EventManifest.Definitions.map((definition) => definition.type))),
+    expect(Array.from(EventManifest.Server.keys())).toEqual(
+      Array.from(new Set(EventManifest.ServerDefinitions.map((definition) => definition.type))),
     )
-    expect(EventManifest.Latest.get("agent.updated")).toBe(Agent.Event.Updated)
+    expect(EventManifest.Server.get("agent.updated")).toBe(Agent.Event.Updated)
     expect(EventManifest.Server.get("mcp.status.changed")).toBe(McpEvent.StatusChanged)
     expect(EventManifest.Server.get("mcp.resources.changed")).toBe(McpEvent.ResourcesChanged)
     expect(EventManifest.Server.get("session.created")).toBe(SessionEvent.Created)
@@ -58,22 +59,21 @@ describe("public event manifest", () => {
     expect(Session.Event.Definitions).toBe(SessionEvent.Definitions)
     expect(Workspace.Event).toBe(WorkspaceEvent)
     expect(Workspace.Event.Definitions).toBe(WorkspaceEvent.Definitions)
-    expect(EventManifest.Latest.get("session.step.ended")).toBe(SessionEvent.Step.Ended)
-    expect(EventManifest.Latest.get("agent.updated")).toBe(Agent.Event.Updated)
-    expect(EventManifest.Latest.get("project.updated")).toBe(Project.Event.Updated)
+    expect(EventManifest.Server.get("session.step.ended")).toBe(SessionEvent.Step.Ended)
+    expect(EventManifest.Server.get("agent.updated")).toBe(Agent.Event.Updated)
+    expect(EventManifest.Server.get("project.updated")).toBe(Project.Event.Updated)
     expect(Agent.Event.Definitions).toEqual([Agent.Event.Updated])
     expect(Credential.Event.Definitions).toEqual([Credential.Event.Updated, Credential.Event.Switched])
     expect(Project.Event.Definitions).toEqual([Project.Event.Updated])
     expect(Config.Event.Definitions).toEqual([Config.Event.Updated])
     expect(FileSystem.Event.Definitions).toEqual([FileSystem.Event.Changed])
-    expect(FileSystemV1.Event.Definitions).toEqual([FileSystemV1.Event.Edited])
     expect(Integration.Event.Definitions).toEqual([Integration.Event.Updated])
     expect(Permission.Event.Definitions).toEqual([Permission.Event.Asked, Permission.Event.Replied])
     expect(PersistentPty.Event.Definitions).toEqual([PersistentPty.Event.Added, PersistentPty.Event.Removed])
     expect(Form.Event.Definitions).toEqual([Form.Event.Created, Form.Event.Replied, Form.Event.Cancelled])
     expect(Reference.Event.Definitions).toEqual([Reference.Event.Updated])
     expect(McpEvent.Definitions).toEqual([McpEvent.ToolsChanged, McpEvent.ResourcesChanged, McpEvent.StatusChanged])
-    expect(EventManifest.Latest.has("mcp.browser.open.failed")).toBe(false)
+    expect(EventManifest.Server.has("mcp.browser.open.failed")).toBe(false)
     expect(EventManifest.Durable.get("session.step.ended.1")).toBe(SessionEvent.Step.Ended)
     expect(EventManifest.Durable.has("session.step.ended.2")).toBe(false)
   })
@@ -84,9 +84,7 @@ describe("public event manifest", () => {
 
     for (const definition of Credential.Event.Definitions) {
       expect(EventManifest.ServerDefinitions).toContain(definition)
-      expect(EventManifest.Definitions).toContain(definition)
       expect(EventManifest.Server.get(definition.type)).toBe(definition)
-      expect(EventManifest.Latest.get(definition.type)).toBe(definition)
       expect(definition.durability).toBe("ephemeral")
       expect(EventManifest.Durable.has(definition.type)).toBe(false)
     }
@@ -104,7 +102,6 @@ describe("public event manifest", () => {
     expect(EventManifest.Server.has("credential.activated")).toBe(false)
     expect(EventManifest.Server.has("credential.deleted")).toBe(false)
     expect(EventManifest.Server.has("integration.connection.updated")).toBe(false)
-    expect(EventManifest.Latest.has("integration.connection.updated")).toBe(false)
   })
 
   test("derives durable definitions from explicit definition durability", () => {
@@ -166,21 +163,20 @@ describe("public event manifest", () => {
     expect(SessionEvent.UsageRecorded.durability).toBe("durable")
     expect(EventManifest.Durable.get("session.usage.recorded.1")).toBe(SessionEvent.UsageRecorded)
     expect(SessionEvent.Definitions).not.toContain(SessionEvent.UsageRecorded)
-    expect(EventManifest.Definitions).not.toContain(SessionEvent.UsageRecorded)
     expect(EventManifest.ServerDefinitions).not.toContain(SessionEvent.UsageRecorded)
-    expect(EventManifest.Latest.has("session.usage.recorded")).toBe(false)
+    expect(EventManifest.Server.has("session.usage.recorded")).toBe(false)
     expect(SessionEvent.UsageUpdated.durability).toBe("ephemeral")
     expect(SessionEvent.Compaction.Delta.durability).toBe("ephemeral")
     expect(SessionEvent.Tool.Progress.durability).toBe("ephemeral")
     expect(EventManifest.Server.get("session.tool.progress")).toBe(SessionEvent.Tool.Progress)
     expect(EventManifest.Durable.has("session.compaction.delta.1")).toBe(false)
     expect(EventManifest.ServerDefinitions).toContain(SessionEvent.UsageUpdated)
-    expect(EventManifest.Definitions.every((definition) => definition.durability !== undefined)).toBe(true)
+    expect(EventManifest.ServerDefinitions.every((definition) => definition.durability !== undefined)).toBe(true)
   })
 
   test("uses the current Session skill event as durable version 1", () => {
     expect(EventManifest.Durable.get("session.skill.activated.1")).toBe(SessionEvent.Skill.Activated)
-    expect(EventManifest.Latest.get("session.skill.activated")).toBe(SessionEvent.Skill.Activated)
+    expect(EventManifest.Server.get("session.skill.activated")).toBe(SessionEvent.Skill.Activated)
   })
 
   test("keeps simplified session fragment and tool payloads on durable version 1", () => {

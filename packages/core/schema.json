@@ -1,8 +1,8 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "5067fae0-90ff-4601-82d7-dd050ea9dc8f",
-  "prevIds": ["e98619ef-c334-45e3-8c48-9932ed1ef290"],
+  "id": "ead3a3c0-4c87-49e8-bc30-45fd7684b4fd",
+  "prevIds": ["5067fae0-90ff-4601-82d7-dd050ea9dc8f"],
   "ddl": [
     {
       "name": "account_state",
@@ -827,26 +827,6 @@
       "default": null,
       "generated": null,
       "name": "session_id",
-      "entityType": "columns",
-      "table": "instruction_state"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "epoch_start",
-      "entityType": "columns",
-      "table": "instruction_state"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "through_seq",
       "entityType": "columns",
       "table": "instruction_state"
     },

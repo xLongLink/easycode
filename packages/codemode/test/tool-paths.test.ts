@@ -341,6 +341,52 @@ describe("tool arguments cross in a useful form where JSON.stringify would give 
   })
 })
 
+describe("lazy tool discovery", () => {
+  test("known tools, custom search, and non-callable namespaces do not read discovery metadata", async () => {
+    let reads = 0
+    const tool = {
+      ...echo("List things", "listed"),
+      get description() {
+        reads++
+        return "List things"
+      },
+    }
+    const runtime = CodeMode.make({ tools: { "api.list": tool, search: tool } })
+    expect(reads).toBe(0)
+    expect(await value(runtime, `return await tools.api.list({})`)).toBe("listed")
+    expect(await value(runtime, `return await tools["api.list"]({})`)).toBe("listed")
+    expect(await value(runtime, `return await tools.search({})`)).toBe("listed")
+    expect((await failure(runtime, `return await tools.api({})`)).message).toBe("Tool 'api' is not callable.")
+    expect(reads).toBe(0)
+  })
+
+  test.each(["search({})", "tools.search({})", "tools.api.missing({})"])(
+    "%s builds discovery once and reuses it across executions",
+    async (call) => {
+      let reads = 0
+      const runtime = CodeMode.make({
+        tools: {
+          "api.list": {
+            ...echo("List things", "listed"),
+            get description() {
+              reads++
+              return "List things"
+            },
+          },
+        },
+      })
+      expect(reads).toBe(0)
+      const first = await Effect.runPromise(runtime.execute(`return await ${call}`))
+      expect(reads).toBeGreaterThan(0)
+      const indexedReads = reads
+      const second = await Effect.runPromise(runtime.execute(`return await ${call}`))
+      expect(second).toEqual(first)
+      expect(runtime.catalog.map((tool) => tool.path)).toEqual(["api.list"])
+      expect(reads).toBe(indexedReads)
+    },
+  )
+})
+
 describe("tools.search alias", () => {
   test("tools.search(...) behaves like the bare search(...) when no tool owns that path", async () => {
     const runtime = CodeMode.make({ tools: { api: { list: echo("List things", "listed") } } })

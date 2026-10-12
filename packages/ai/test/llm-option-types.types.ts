@@ -8,6 +8,8 @@ import {
 } from "../src/index.js"
 import { ai } from "../src/promise.js"
 import { OpenAIChat } from "../src/protocols.js"
+import type { RequestInput } from "../src/llm.js"
+import type { LLMRequest } from "../src/schema/index.js"
 
 interface ExampleOptions {
   readonly [key: string]: unknown
@@ -36,6 +38,9 @@ const generatedFromInput = LLM.generate({ model, prompt: "Hello", providerOption
 type InputGenerateRequirements = Assert<Equal<Requirements<typeof generatedFromInput>, LLMClientService>>
 const streamedFromInput = LLM.stream({ model, prompt: "Hello", providerOptions: { mode: "thorough" } })
 type InputStreamRequirements = Assert<Equal<StreamRequirements<typeof streamedFromInput>, LLMClientService>>
+declare const unionInput: RequestInput<typeof model> | LLMRequest
+LLM.generate(unionInput)
+LLM.stream(unionInput)
 
 LLM.request({
   model,

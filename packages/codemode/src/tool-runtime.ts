@@ -330,12 +330,14 @@ const namespaceKeys = <R>(root: ToolNode<R>, path: ReadonlyArray<string>): Reado
   return Array.from(node.children.keys())
 }
 
-const resolve = <R>(root: ToolNode<R>, path: ReadonlyArray<string>, index: ReadonlyArray<SearchEntry>): Tool<R> => {
-  const segments = canonicalSegments(path)
-  const node = lookup(root, segments)
+const resolve = <R>(prepared: Prepared<R>, segments: ReadonlyArray<string>): Tool<R> => {
+  const node = lookup(prepared.root, segments)
   if (node === undefined) {
+    // Models often write `tools.search(...)` for the bare `search(...)`; honor it unless a tool owns that path.
+    if (segments.length === 1 && segments[0] === "search") return makeSearchTool(prepared.searchIndex)
     const name = segments.join(".")
-    const ns = segments.length > 1 && root.children.has(segments[0]) ? segments[0] : undefined
+    const ns = segments.length > 1 && prepared.root.children.has(segments[0]) ? segments[0] : undefined
+    const index = prepared.searchIndex
     const closest = rank(
       ns ? index.filter((entry) => entry.description.path.startsWith(`${ns}.`)) : index,
       ns ? segments.slice(1).join(" ") : name,
@@ -448,10 +450,7 @@ export const make = <R>(
     execute: (path, args) =>
       Effect.suspend(() => {
         const segments = canonicalSegments(path)
-        // Models often write `tools.search(...)` for the bare `search(...)`; honor it unless a tool owns that path.
-        if (segments.length === 1 && segments[0] === "search" && lookup(root, segments) === undefined)
-          return executeTool("search", makeSearchTool(prepared.searchIndex), args)
-        return executeTool(segments.join("."), resolve(root, path, prepared.searchIndex), args)
+        return executeTool(segments.join("."), resolve(prepared, segments), args)
       }),
   }
 }

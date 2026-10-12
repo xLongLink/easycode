@@ -12,8 +12,7 @@ import { makeFormGroup } from "./groups/form.js"
 import { CommandGroup } from "./groups/command.js"
 import { SkillGroup } from "./groups/skill.js"
 import { RpcGroup } from "./groups/rpc.js"
-import { EventGroup, makeEventGroup } from "./groups/event.js"
-import type { Definition } from "@opencode/schema/event"
+import { EventGroup } from "./groups/event.js"
 import { AgentGroup } from "./groups/agent.js"
 import { PluginGroup } from "./groups/plugin.js"
 import { ServerGroup } from "./groups/server.js"
@@ -87,7 +86,6 @@ type ApiGroups<
   FormLocationService,
   SessionLocationId extends HttpApiMiddleware.AnyId,
   SessionLocationService,
-  Event extends HttpApiGroup.Constraint,
 > =
   | typeof ServerGroup
   | typeof DebugGroup
@@ -102,9 +100,7 @@ type ApiGroups<
   | FormGroups<LocationId, LocationService>
   | SessionGroups<SessionLocationId, SessionLocationService, FormLocationId, FormLocationService>
   | MixedMiddlewareGroups<LocationId, LocationService, SessionLocationId, SessionLocationService>
-  | Event
-
-type EventGroupFor<Definitions extends ReadonlyArray<Definition>> = ReturnType<typeof makeEventGroup<Definitions>>
+  | typeof EventGroup
 
 export type Api<
   LocationId extends HttpApiMiddleware.AnyId,
@@ -113,7 +109,6 @@ export type Api<
   FormLocationService,
   SessionLocationId extends HttpApiMiddleware.AnyId,
   SessionLocationService,
-  Event extends HttpApiGroup.Constraint,
 > = HttpApi.HttpApi<
   "server",
   HttpApiGroup.AddMiddleware<
@@ -124,8 +119,7 @@ export type Api<
         FormLocationId,
         FormLocationService,
         SessionLocationId,
-        SessionLocationService,
-        Event
+        SessionLocationService
       >,
       Authorization
     >,
@@ -134,98 +128,6 @@ export type Api<
 >
 
 // Protocol owns middleware placement, while Server injects concrete keys so Core service identities stay downstream.
-const makeApiFromGroup = <
-  const Group extends HttpApiGroup.Constraint,
-  LocationId extends HttpApiMiddleware.AnyId,
-  LocationService,
-  FormLocationId extends HttpApiMiddleware.AnyId,
-  FormLocationService,
-  SessionLocationId extends HttpApiMiddleware.AnyId,
-  SessionLocationService,
->(
-  eventGroup: Group,
-  locationMiddleware: Context.Key<LocationId, LocationService>,
-  formLocationMiddleware: Context.Key<FormLocationId, FormLocationService>,
-  sessionLocationMiddleware: Context.Key<SessionLocationId, SessionLocationService>,
-): Api<
-  LocationId,
-  LocationService,
-  FormLocationId,
-  FormLocationService,
-  SessionLocationId,
-  SessionLocationService,
-  Group
-> =>
-  HttpApi.make("server")
-    .add(ServerGroup)
-    .add(makeLocationGroup(locationMiddleware))
-    .add(AgentGroup.middleware(locationMiddleware))
-    .add(PluginGroup.middleware(locationMiddleware))
-    .add(makeSessionGroup(sessionLocationMiddleware, formLocationMiddleware))
-    .add(MessageGroup)
-    .add(ModelGroup.middleware(locationMiddleware))
-    .add(GenerateGroup)
-    .add(ProviderGroup.middleware(locationMiddleware))
-    .add(IntegrationGroup.middleware(locationMiddleware))
-    .add(McpGroup.middleware(locationMiddleware))
-    .add(CredentialGroup)
-    .add(ProjectGroup.middleware(locationMiddleware))
-    .add(makeFormGroup(locationMiddleware))
-    .add(makePermissionGroup(locationMiddleware, sessionLocationMiddleware))
-    .add(FileSystemGroup.middleware(locationMiddleware))
-    .add(CommandGroup.middleware(locationMiddleware))
-    .add(SkillGroup.middleware(locationMiddleware))
-    .add(RpcGroup.middleware(locationMiddleware))
-    .add(eventGroup)
-    .add(makePtyGroup(locationMiddleware))
-    .add(PersistentPtyGroup)
-    .add(ShellGroup.middleware(locationMiddleware))
-    .add(ReferenceGroup.middleware(locationMiddleware))
-    .add(WorktreeGroup)
-    .add(VcsGroup.middleware(locationMiddleware))
-    .add(DebugGroup)
-    .add(MigrationGroup)
-    .add(WebSearchGroup.middleware(locationMiddleware))
-    .add(ConfigGroup.middleware(locationMiddleware))
-    .annotateMerge(
-      OpenApi.annotations({
-        title: "opencode HttpApi",
-        version: "0.0.1",
-        description: "Experimental HttpApi surface for selected instance routes.",
-      }),
-    )
-    .middleware(Authorization)
-    .middleware(SchemaErrorMiddleware)
-
-export const makeApi = <
-  const Definitions extends ReadonlyArray<Definition>,
-  LocationId extends HttpApiMiddleware.AnyId,
-  LocationService,
-  FormLocationId extends HttpApiMiddleware.AnyId,
-  FormLocationService,
-  SessionLocationId extends HttpApiMiddleware.AnyId,
-  SessionLocationService,
->(options: {
-  readonly definitions: Definitions
-  readonly locationMiddleware: Context.Key<LocationId, LocationService>
-  readonly formLocationMiddleware: Context.Key<FormLocationId, FormLocationService>
-  readonly sessionLocationMiddleware: Context.Key<SessionLocationId, SessionLocationService>
-}): Api<
-  LocationId,
-  LocationService,
-  FormLocationId,
-  FormLocationService,
-  SessionLocationId,
-  SessionLocationService,
-  EventGroupFor<Definitions>
-> =>
-  makeApiFromGroup(
-    makeEventGroup(options.definitions),
-    options.locationMiddleware,
-    options.formLocationMiddleware,
-    options.sessionLocationMiddleware,
-  )
-
 export const makeDefaultApi = <
   LocationId extends HttpApiMiddleware.AnyId,
   LocationService,
@@ -237,18 +139,44 @@ export const makeDefaultApi = <
   readonly locationMiddleware: Context.Key<LocationId, LocationService>
   readonly formLocationMiddleware: Context.Key<FormLocationId, FormLocationService>
   readonly sessionLocationMiddleware: Context.Key<SessionLocationId, SessionLocationService>
-}): Api<
-  LocationId,
-  LocationService,
-  FormLocationId,
-  FormLocationService,
-  SessionLocationId,
-  SessionLocationService,
-  typeof EventGroup
-> =>
-  makeApiFromGroup(
-    EventGroup,
-    options.locationMiddleware,
-    options.formLocationMiddleware,
-    options.sessionLocationMiddleware,
-  )
+}): Api<LocationId, LocationService, FormLocationId, FormLocationService, SessionLocationId, SessionLocationService> =>
+  HttpApi.make("server")
+    .add(ServerGroup)
+    .add(makeLocationGroup(options.locationMiddleware))
+    .add(AgentGroup.middleware(options.locationMiddleware))
+    .add(PluginGroup.middleware(options.locationMiddleware))
+    .add(makeSessionGroup(options.sessionLocationMiddleware, options.formLocationMiddleware))
+    .add(MessageGroup)
+    .add(ModelGroup.middleware(options.locationMiddleware))
+    .add(GenerateGroup)
+    .add(ProviderGroup.middleware(options.locationMiddleware))
+    .add(IntegrationGroup.middleware(options.locationMiddleware))
+    .add(McpGroup.middleware(options.locationMiddleware))
+    .add(CredentialGroup)
+    .add(ProjectGroup.middleware(options.locationMiddleware))
+    .add(makeFormGroup(options.locationMiddleware))
+    .add(makePermissionGroup(options.locationMiddleware, options.sessionLocationMiddleware))
+    .add(FileSystemGroup.middleware(options.locationMiddleware))
+    .add(CommandGroup.middleware(options.locationMiddleware))
+    .add(SkillGroup.middleware(options.locationMiddleware))
+    .add(RpcGroup.middleware(options.locationMiddleware))
+    .add(EventGroup)
+    .add(makePtyGroup(options.locationMiddleware))
+    .add(PersistentPtyGroup)
+    .add(ShellGroup.middleware(options.locationMiddleware))
+    .add(ReferenceGroup.middleware(options.locationMiddleware))
+    .add(WorktreeGroup)
+    .add(VcsGroup.middleware(options.locationMiddleware))
+    .add(DebugGroup)
+    .add(MigrationGroup)
+    .add(WebSearchGroup.middleware(options.locationMiddleware))
+    .add(ConfigGroup.middleware(options.locationMiddleware))
+    .annotateMerge(
+      OpenApi.annotations({
+        title: "opencode HttpApi",
+        version: "0.0.1",
+        description: "Experimental HttpApi surface for selected instance routes.",
+      }),
+    )
+    .middleware(Authorization)
+    .middleware(SchemaErrorMiddleware)

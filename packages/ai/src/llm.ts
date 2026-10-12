@@ -37,20 +37,16 @@ export type RequestInput<SelectedLanguageModel extends LanguageModel = LanguageM
 }
 
 export function generate<const Model extends LanguageModel>(
-  input: RequestInput<Model>,
+  input: RequestInput<Model> | LLMRequest,
   options?: StreamOptions,
-): Effect.Effect<LLMResponse, AIError, Service>
-export function generate(input: LLMRequest, options?: StreamOptions): Effect.Effect<LLMResponse, AIError, Service>
-export function generate(input: RequestInput | LLMRequest, options?: StreamOptions) {
+): Effect.Effect<LLMResponse, AIError, Service> {
   return requestEffect(input).pipe(Effect.flatMap((request) => LLMClient.generate(request, options)))
 }
 
 export function stream<const Model extends LanguageModel>(
-  input: RequestInput<Model>,
+  input: RequestInput<Model> | LLMRequest,
   options?: StreamOptions,
-): Stream.Stream<LLMEvent, AIError, Service>
-export function stream(input: LLMRequest, options?: StreamOptions): Stream.Stream<LLMEvent, AIError, Service>
-export function stream(input: RequestInput | LLMRequest, options?: StreamOptions) {
+): Stream.Stream<LLMEvent, AIError, Service> {
   return Stream.unwrap(requestEffect(input).pipe(Effect.map((request) => LLMClient.stream(request, options))))
 }
 

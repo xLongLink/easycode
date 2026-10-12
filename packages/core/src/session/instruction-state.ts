@@ -89,7 +89,6 @@ export const prepare = Effect.fn("InstructionState.prepare")(function* (
 export const apply = Effect.fn("InstructionState.apply")(function* (
   db: DatabaseService,
   sessionID: SessionSchema.ID,
-  seq: number,
   delta: Instructions.Delta,
 ) {
   const stored = yield* find(db, sessionID)
@@ -99,8 +98,6 @@ export const apply = Effect.fn("InstructionState.apply")(function* (
       .insert(InstructionStateTable)
       .values({
         session_id: sessionID,
-        epoch_start: seq,
-        through_seq: seq,
         initial_values: current,
         current_values: current,
       })
@@ -110,7 +107,7 @@ export const apply = Effect.fn("InstructionState.apply")(function* (
   }
   yield* db
     .update(InstructionStateTable)
-    .set({ through_seq: seq, current_values: current })
+    .set({ current_values: current })
     .where(eq(InstructionStateTable.session_id, sessionID))
     .run()
     .pipe(Effect.orDie)
@@ -119,15 +116,12 @@ export const apply = Effect.fn("InstructionState.apply")(function* (
 export const initialize = Effect.fn("InstructionState.initialize")(function* (
   db: DatabaseService,
   sessionID: SessionSchema.ID,
-  seq: number,
   values: Instructions.Values,
 ) {
   yield* db
     .insert(InstructionStateTable)
     .values({
       session_id: sessionID,
-      epoch_start: seq,
-      through_seq: seq,
       initial_values: values,
       current_values: values,
     })
@@ -139,13 +133,10 @@ export const initialize = Effect.fn("InstructionState.initialize")(function* (
 export const advanceEpoch = Effect.fn("InstructionState.advanceEpoch")(function* (
   db: DatabaseService,
   sessionID: SessionSchema.ID,
-  epochStart: number,
 ) {
   yield* db
     .update(InstructionStateTable)
     .set({
-      epoch_start: epochStart,
-      through_seq: epochStart,
       initial_values: sql`${InstructionStateTable.current_values}`,
     })
     .where(eq(InstructionStateTable.session_id, sessionID))

@@ -317,6 +317,21 @@ describe("AI promise client", () => {
     await ai.dispose()
   })
 
+  test("malformed LLM stream input fails lazily with AIError without making a request", async () => {
+    const seen: Array<string> = []
+    const ai = AI.make({ layer: executor(seen) })
+    const stream = ai.llm.stream({
+      model: openai.chat("gpt-4o-mini"),
+      // @ts-expect-error Invalid input must fail during iteration, not throw synchronously.
+      messages: [{ role: "bogus" }],
+    })
+    expect(seen).toEqual([])
+    const failure = await Array.fromAsync(stream).catch((error: unknown) => error)
+    expect(failure instanceof AIError && failure.reason._tag).toBe("InvalidRequest")
+    expect(seen).toEqual([])
+    await ai.dispose()
+  })
+
   test("aborted calls reject and aborted streams throw with the signal's reason", async () => {
     const ai = AI.make({ layer: executor([]) })
     const slow = OpenAI.configure({ apiKey: "test", baseURL: "https://slow.test/v1" }).chat("gpt-4o-mini")

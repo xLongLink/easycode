@@ -24,12 +24,7 @@ import { fromRow } from "@opencode/core/session/info"
 import { SessionInbox } from "@opencode/core/session/inbox"
 import { SessionStore } from "@opencode/core/session/store"
 import { Shell } from "@opencode/schema/shell"
-import {
-  InstructionStateTable,
-  SessionInboxTable,
-  SessionMessageTable,
-  SessionTable,
-} from "@opencode/core/session/sql"
+import { InstructionStateTable, SessionInboxTable, SessionMessageTable, SessionTable } from "@opencode/core/session/sql"
 import { testEffect } from "./lib/effect"
 import { Snapshot } from "@opencode/core/snapshot"
 
@@ -165,8 +160,6 @@ describe("SessionProjector", () => {
         .insert(InstructionStateTable)
         .values({
           session_id: sessionID,
-          epoch_start: 0,
-          through_seq: 0,
           initial_values: {},
           current_values: {},
         })

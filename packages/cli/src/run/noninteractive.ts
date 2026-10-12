@@ -5,12 +5,11 @@ import type {
   OpenCodeClient,
   SessionMessageAssistantTool,
   SessionMessageInfo,
-  ToolContent,
 } from "@opencode/client/promise"
 import { SessionMessage } from "@opencode/schema/session-message"
 import { EOL } from "node:os"
 import { readFile } from "node:fs/promises"
-import { nonEmptyToolContent, toolOutputText, type MiniToolPart } from "@opencode/tui/mini/tool"
+import { toolOutputText, type MiniToolPart } from "@opencode/tui/mini/tool"
 import { UI } from "./ui"
 
 type Model = {
@@ -49,14 +48,12 @@ type StartedPart = {
 }
 
 type ToolState = StartedPart & {
-  assistantMessageID: string
   tool: string
   input: Record<string, JsonValue>
   raw?: string
   provider?: unknown
   providerState?: SessionMessageAssistantTool["providerState"]
   metadata: Record<string, JsonValue>
-  content: ToolContent[]
 }
 
 type V2Event = EventSubscribeOutput
@@ -344,11 +341,9 @@ export async function runNonInteractivePrompt(input: Input) {
         tools.set(toolKey(event.data.assistantMessageID, event.data.id), {
           id: partID(event.id),
           timestamp: time,
-          assistantMessageID: event.data.assistantMessageID,
           tool: event.data.name,
           input: {},
           metadata: {},
-          content: [],
         })
         continue
       }
@@ -369,14 +364,12 @@ export async function runNonInteractivePrompt(input: Input) {
         tools.set(key, {
           id: current?.id ?? partID(event.id),
           timestamp: current?.timestamp ?? time,
-          assistantMessageID: event.data.assistantMessageID,
           tool: current?.tool ?? "tool",
           input: event.data.input,
           raw: current?.raw,
           provider: { executed: event.data.executed, state: event.data.state },
           providerState: event.data.state,
           metadata: {},
-          content: [],
         })
         continue
       }
@@ -437,7 +430,7 @@ export async function runNonInteractivePrompt(input: Input) {
         const current = tools.get(key) ?? fallbackTool(event)
         const error = event.data.error.message
         const metadata = event.data.metadata ?? current.metadata
-        const content = event.data.content ?? nonEmptyToolContent(current.content)
+        const content = event.data.content
         const tool: SessionMessageAssistantTool = {
           type: "tool",
           id: event.data.id,
@@ -823,19 +816,13 @@ function projectedPartID(messageID: string, part: string) {
   return `prt_${messageID.replace(/^msg_/, "")}_${part}`
 }
 
-function fallbackTool(event: {
-  id: string
-  created: number
-  data: { assistantMessageID: string; id: string }
-}): ToolState {
+function fallbackTool(event: { id: string; created: number }): ToolState {
   return {
     id: partID(event.id),
     timestamp: toMillis(event.created),
-    assistantMessageID: event.data.assistantMessageID,
     tool: "tool",
     input: {},
     metadata: {},
-    content: [],
   }
 }
 

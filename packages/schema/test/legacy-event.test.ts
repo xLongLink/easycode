@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test"
-import { LegacyEventV1 } from "../src/legacy-event.js"
 import { PermissionV1 } from "../src/permission-v1.js"
 import { Project } from "../src/project.js"
 import { SessionV1 } from "../src/session-v1.js"
@@ -32,7 +31,6 @@ describe("legacy public event schemas", () => {
       PermissionV1.Event.Asked.type,
       PermissionV1.Event.Replied.type,
       Project.Event.Updated.type,
-      LegacyEventV1.CommandExecuted.type,
     ]).toEqual([
       "message.part.delta",
       "session.diff",
@@ -40,7 +38,6 @@ describe("legacy public event schemas", () => {
       "permission.asked",
       "permission.replied",
       "project.updated",
-      "command.executed",
     ])
   })
 })

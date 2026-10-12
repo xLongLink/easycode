@@ -3,7 +3,6 @@ import { makeDefaultApi } from "./api.js"
 import type { Api } from "./api.js"
 import type { Context } from "effect"
 import { HttpApiMiddleware } from "effect/http-api"
-import type { EventGroup } from "./groups/event.js"
 
 class LocationMiddleware extends HttpApiMiddleware.Service<LocationMiddleware>()(
   "@opencode/client/LocationMiddleware",
@@ -21,8 +20,7 @@ type ClientApiShape = Api<
   Context.Service.Identifier<typeof SessionLocationMiddleware>,
   Context.Service.Shape<typeof SessionLocationMiddleware>,
   Context.Service.Identifier<typeof SessionLocationMiddleware>,
-  Context.Service.Shape<typeof SessionLocationMiddleware>,
-  typeof EventGroup
+  Context.Service.Shape<typeof SessionLocationMiddleware>
 >
 
 export const ClientApi: ClientApiShape = makeDefaultApi({

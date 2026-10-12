@@ -8,11 +8,8 @@ import { Credential } from "./credential.js"
 import { Durable } from "./durable-event-manifest.js"
 import { Event } from "./event.js"
 import { FileSystem } from "./filesystem.js"
-import { FileSystemV1 } from "./filesystem-v1.js"
 import { Form } from "./form.js"
 import { Integration } from "./integration.js"
-import { LegacyEventV1 } from "./legacy-event.js"
-import { LspEvent } from "./lsp-event.js"
 import { LocationEvent } from "./location-event.js"
 import { McpEvent } from "./mcp-event.js"
 import { Model } from "./model.js"
@@ -25,16 +22,12 @@ import { Provider } from "./provider.js"
 import { Worktree } from "./worktree.js"
 import { Pty } from "./pty.js"
 import { Reference } from "./reference.js"
-import { ServerEvent } from "./server-event.js"
 import { Shell } from "./shell.js"
 import { Skill } from "./skill.js"
-import { SessionCompactionEvent } from "./session-compaction-event.js"
 import { SessionEvent } from "./session-event.js"
 import { SessionStatusEvent } from "./session-status-event.js"
 import { TuiEvent } from "./tui-event.js"
 import { VcsEvent } from "./vcs-event.js"
-import { WorkspaceEvent } from "./workspace-event.js"
-import { WorktreeEvent } from "./worktree-event.js"
 import { WebSearch } from "./websearch.js"
 
 const coreDefinitions = Event.inventory(...SessionEvent.Definitions)
@@ -81,20 +74,4 @@ export const Server = Event.latest(ServerDefinitions)
 export type ServerEvent = Schema.Schema.Type<(typeof ServerDefinitions)[number]>
 export const isServer = (event: { readonly type: string }): event is ServerEvent => Server.has(event.type)
 
-export const Definitions = Event.inventory(
-  ...foundationDefinitions,
-  ...featureDefinitions,
-  ...LspEvent.Definitions,
-  ...TuiEvent.Definitions,
-  ...McpEvent.Definitions,
-  ...LegacyEventV1.Definitions,
-  ...FileSystemV1.Event.Definitions,
-  ...SessionStatusEvent.Definitions,
-  ...SessionCompactionEvent.Definitions,
-  ...VcsEvent.Definitions,
-  ...WorkspaceEvent.Definitions,
-  ...WorktreeEvent.Definitions,
-  ...ServerEvent.Definitions,
-)
-export const Latest = Event.latest(Definitions)
 export { Durable }

@@ -303,7 +303,7 @@ describe("InstructionState", () => {
       // Tamper with the projected state; the authoritative row wins over event history.
       yield* db
         .update(InstructionStateTable)
-        .set({ through_seq: 0, current_values: { "test/context": Instructions.hash("Initial context") } })
+        .set({ current_values: { "test/context": Instructions.hash("Initial context") } })
         .where(eq(InstructionStateTable.session_id, sessionID))
         .run()
         .pipe(Effect.orDie)
@@ -484,21 +484,15 @@ describe("InstructionState", () => {
       expect(states).toHaveLength(2)
       expect(
         states.map((state) => ({
-          epoch_start: state.epoch_start,
-          through_seq: state.through_seq,
           initial_values: state.initial_values,
           current_values: state.current_values,
         })),
       ).toEqual([
         {
-          epoch_start: 0,
-          through_seq: 2,
           initial_values: { "test/context": Instructions.hash("initial") },
           current_values: {},
         },
         {
-          epoch_start: 0,
-          through_seq: 2,
           initial_values: { "test/context": Instructions.hash("initial") },
           current_values: {},
         },

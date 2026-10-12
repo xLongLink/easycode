@@ -548,6 +548,35 @@ describe("runNonInteractivePrompt", () => {
     ])
   })
 
+  test.each([true, false])("keeps absent failed-tool content absent (tracked: %s)", async (tracked) => {
+    const rendered: SessionMessageAssistantTool[] = []
+    const failed: SessionMessageAssistantTool[] = []
+    await capture({
+      turn: (inboxID) =>
+        failedTool(inboxID).flatMap<V2Event>((event) => {
+          if (event.type === "session.tool.failed") {
+            return [{ ...event, data: { ...event.data, content: undefined } }]
+          }
+          if (!tracked && event.type.startsWith("session.tool.")) return []
+          return [event]
+        }),
+      renderTool: async (part) => {
+        rendered.push(part)
+      },
+      renderToolError: async (part) => {
+        failed.push(part)
+      },
+    })
+    expect(rendered).toEqual([])
+    expect(failed).toHaveLength(1)
+    expect(failed[0]).toMatchObject({
+      id: "call_failed_tool",
+      name: tracked ? "shell" : "tool",
+      state: { status: "error", error: { message: "tool failed" } },
+    })
+    expect("content" in failed[0].state && failed[0].state.content).toBeUndefined()
+  })
+
   test("keeps failed tool partial output out of the explicit V1 JSON bridge shape", async () => {
     const output = await capture({ compatibility: "v1", format: "json", turn: failedTool })
     const events = output.stdout
