@@ -15,45 +15,28 @@ concurrency:
 
 permissions:
   contents: read
-  checks: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   unit:
-    name: unit (${{ matrix.settings.name }})
-    strategy:
-      fail-fast: false
-      matrix:
-        settings:
-          - name: linux
-            host: ubuntu-24.04
-    runs-on: ${{ matrix.settings.host }}
+    name: unit (linux)
+    runs-on: ubuntu-24.04
     defaults:
       run:
         shell: bash
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-
-      - name: Setup Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: "24"
 
       - name: Setup Bun
         uses: ./.github/actions/setup-bun
 
       - name: Test Effect simplification rules
-        if: runner.os == 'Linux'
         run: bun run test:effect-simplification-rules
 
       - name: Check Effect simplifications
-        if: runner.os == 'Linux'
         run: bun run lint:effect-simplifications
 
       - name: Test tooling configuration
@@ -82,12 +65,10 @@ jobs:
           GITHUB_ACTIONS=false bun run vp run -r --concurrency-limit 3 workspace:test
 
       - name: Verify published codemode package
-        if: runner.os == 'Linux'
         working-directory: packages/codemode
         run: bun run script/publish.ts --dry-run
 
       - name: Verify packed workerd SDK
-        if: runner.os == 'Linux'
         timeout-minutes: 15
         run: bun run vp run --filter @opencode/sdk workspace:verify:package
 
@@ -114,11 +95,9 @@ jobs:
           bun run script/service-smoke.ts --node
 
       - name: Check generated client
-        if: runner.os == 'Linux'
         working-directory: packages/client
         run: bun run check:generated
 
       - name: Check generated CLI schema
-        if: runner.os == 'Linux'
         working-directory: packages/cli
         run: bun script/schema.ts cli.schema.json --check

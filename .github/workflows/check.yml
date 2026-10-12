@@ -18,9 +18,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          # A pull request checks out its merge into the current base; the first parent is that base.
-          fetch-depth: 2
 
       - name: Setup Bun
         uses: ./.github/actions/setup-bun
