@@ -20,7 +20,7 @@ import { errorMessage } from "@/shell/layout/helpers"
 import { useSessionTabAvatarState } from "@/shell/layout/project-avatar-state"
 import { sessionTreeIDs } from "@/session/requests/session-request-tree"
 import { pathKey } from "@/workspaces/path-key"
-import { fetchSessionExport, saveSessionExport, sessionExportFilename } from "@/session/commands/export"
+import { exportSession } from "@/session/commands/export"
 import { usePlatform } from "@/runtime/platform/platform"
 import { sessionLabel, sessionTitle } from "@/session/title"
 import { showToast } from "@/shell/notifications/toast"
@@ -212,30 +212,13 @@ export function createHomeSessionsController(home: HomeController) {
       })
   }
 
-  const exportSession = async (server: ServerConnection.Key, session: SessionInfo) => {
+  const exportHomeSession = async (server: ServerConnection.Key, session: SessionInfo) => {
     const conn = home.server.list().find((item) => ServerConnection.key(item) === server)
     const ctx = conn ? home.server.context(conn) : undefined
 
     if (!ctx) return
 
-    try {
-      const data = await fetchSessionExport({ sessionID: session.id, api: ctx.sdk.api })
-      const filename = sessionExportFilename(data.info)
-
-      if (!(await saveSessionExport(filename, data, platform))) return
-      showToast({
-        variant: "success",
-        icon: "circle-check",
-        title: language.t("toast.session.export.success.title"),
-        description: language.t("toast.session.export.success.description", { filename }),
-      })
-    } catch (cause) {
-      showToast({
-        variant: "error",
-        title: language.t("toast.session.export.failed.title"),
-        description: cause instanceof Error ? cause.message : language.t("toast.session.export.failed.description"),
-      })
-    }
+    await exportSession({ sessionID: session.id, api: ctx.sdk.api, platform, t: language.t })
   }
 
   const remove = async (server: ServerConnection.Key, session: SessionInfo) => {
@@ -377,7 +360,7 @@ export function createHomeSessionsController(home: HomeController) {
         })
       },
       rename,
-      export: exportSession,
+      export: exportHomeSession,
       showDelete: (server: ServerConnection.Key, session: SessionInfo) =>
         dialog.show(() => <DeleteDialog server={server} session={session} />),
     },

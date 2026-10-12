@@ -1,10 +1,72 @@
 import { describe, expect, test } from "bun:test"
 import type { SessionMessage } from "@opencode/schema/session-message"
 import path from "node:path"
+import { pathToFileURL } from "node:url"
 import { tmpdir } from "../fixture/tmpdir"
-import { assistantMessage, fileDiff, makeSession, startWire } from "./wire-fixture"
+import { assistantMessage, fileDiff, makeSession, rpcError, startWire } from "./wire-fixture"
 
 describe("acp session replay over the wire", () => {
+  test("replays inline image and binary files while omitting unsupported and malformed file URIs", async () => {
+    await using acp = await startWire()
+    acp.server.sessions.set("ses_files", makeSession("ses_files"))
+    acp.server.messages.set("ses_files", [
+      {
+        id: "msg_files",
+        type: "user",
+        text: "attachments",
+        time: { created: 1 },
+        files: [
+          { data: "AAAA", mime: "image/png", name: "image.png", source: { type: "inline" } },
+          { data: "AQID", mime: "application/octet-stream", name: "file.bin", source: { type: "inline" } },
+          { data: "", mime: "text/plain", source: { type: "uri", uri: "https://example.com/file" } },
+          { data: "", mime: "text/plain", source: { type: "uri", uri: "data:text/plain,unencoded" } },
+        ],
+      },
+    ])
+    await acp.initialize()
+
+    await acp.request("session/load", { cwd: "/workspace", sessionId: "ses_files", mcpServers: [] })
+
+    expect(
+      acp.updates.flatMap((item) => (item.update.sessionUpdate === "user_message_chunk" ? [item.update.content] : [])),
+    ).toEqual([
+      { type: "text", text: "attachments" },
+      { type: "image", mimeType: "image/png", data: "AAAA", uri: pathToFileURL(path.resolve("image.png")).href },
+      {
+        type: "resource",
+        resource: {
+          mimeType: "application/octet-stream",
+          blob: "AQID",
+          uri: pathToFileURL(path.resolve("file.bin")).href,
+        },
+      },
+    ])
+  })
+
+  test("releases an attachment when replay fails and allows resume without replay", async () => {
+    await using acp = await startWire({
+      fetch: (request) =>
+        request.path === "/api/session/ses_failed/message"
+          ? Response.json(
+              { _tag: "SessionNotFoundError", sessionID: "ses_failed", message: "Session not found: ses_failed" },
+              { status: 404 },
+            )
+          : undefined,
+    })
+    acp.server.sessions.set("ses_failed", makeSession("ses_failed"))
+    await acp.initialize()
+
+    expect(
+      await rpcError(acp.request("session/load", { cwd: "/workspace", sessionId: "ses_failed", mcpServers: [] })),
+    ).toMatchObject({ code: -32602, data: { sessionId: "ses_failed" } })
+    expect(await rpcError(acp.request("session/set_mode", { sessionId: "ses_failed", modeId: "plan" }))).toMatchObject({
+      code: -32602,
+      data: { sessionId: "ses_failed" },
+    })
+    await acp.request("session/resume", { cwd: "/workspace", sessionId: "ses_failed" })
+    expect(await acp.request("session/set_mode", { sessionId: "ses_failed", modeId: "plan" })).toEqual({})
+  })
+
   test("replays user, text, reasoning, and tool messages in order on session/load", async () => {
     await using dir = await tmpdir()
     const edited = path.resolve(dir.path, "edited.ts")

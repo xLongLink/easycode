@@ -16,7 +16,7 @@ import { sessionTreeIDs } from "@/session/requests/session-request-tree"
 import { useServerSDK } from "@/runtime/server/client"
 import { sessionHref } from "@/shell/routes/session"
 import { sessionTitle } from "@/session/title"
-import { fetchSessionExport, saveSessionExport, sessionExportFilename } from "@/session/commands/export"
+import { exportSession } from "@/session/commands/export"
 import { showToast } from "@/shell/notifications/toast"
 import { usePlatform } from "@/runtime/platform/platform"
 import { applyTimelineMessageHandoff, timelineChildTitle, visibleTimelineMessages } from "./controller-projection"
@@ -230,27 +230,6 @@ export function createTimelineController(input: { session: TimelineSessionSource
     return tabs.newDraft({ server: server.key, directory: sdk().directory })
   }
 
-  const exportSession = async (id: string) => {
-    try {
-      const data = await fetchSessionExport({ sessionID: id, api: serverSDK.api })
-      const filename = sessionExportFilename(data.info)
-
-      if (!(await saveSessionExport(filename, data, platform))) return
-      showToast({
-        variant: "success",
-        icon: "circle-check",
-        title: language.t("toast.session.export.success.title"),
-        description: language.t("toast.session.export.success.description", { filename }),
-      })
-    } catch (error) {
-      showToast({
-        variant: "error",
-        title: language.t("toast.session.export.failed.title"),
-        description: error instanceof Error ? error.message : language.t("toast.session.export.failed.description"),
-      })
-    }
-  }
-
   const remove = async (id: string) => {
     const session = data.session.get(id)
 
@@ -339,7 +318,7 @@ export function createTimelineController(input: { session: TimelineSessionSource
     },
     action: {
       rename,
-      export: exportSession,
+      export: (id: string) => exportSession({ sessionID: id, api: serverSDK.api, platform, t: language.t }),
       showDelete: (id: string) => dialog.show(() => <DeleteDialog sessionID={id} />),
       navigateParent: () => {
         const id = input.session.data.parentID()

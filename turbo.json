@@ -14,10 +14,6 @@
     "@opencode/cli#typecheck": {
       "dependsOn": ["@opencode/core#typecheck"]
     },
-    "test:components": {
-      "outputs": [],
-      "cache": false
-    },
     "@opencode/sdk#typecheck": {
       "dependsOn": ["@opencode/core#typecheck"]
     },
@@ -62,18 +58,6 @@
       "outputs": []
     },
     "@opencode/latex#test": {
-      "dependsOn": ["^build"],
-      "outputs": []
-    },
-    "@opencode/app#test": {
-      "dependsOn": ["^build"],
-      "outputs": []
-    },
-    "@opencode/ui#test": {
-      "dependsOn": ["^build"],
-      "outputs": []
-    },
-    "@opencode/session-ui#test": {
       "dependsOn": ["^build"],
       "outputs": []
     },

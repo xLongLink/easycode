@@ -241,7 +241,7 @@ async function checkGuide() {
 
   await Promise.all(
     [guide, path.join(pkg, "AGENTS.md")].map(async (doc) =>
-      (await read(doc)).split("\n").forEach((line, index) =>
+      (doc === guide ? lines : (await read(doc)).split("\n")).forEach((line, index) =>
         [...line.matchAll(/\bctx\.([A-Za-z]+)/g)].forEach((match) => {
           if (match[1] && !members.has(match[1]))
             problems.push(`${relative(doc)}:${index + 1}  \`ctx.${match[1]}\` is not a context member`)

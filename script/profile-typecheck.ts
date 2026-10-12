@@ -106,6 +106,7 @@ function systemSnapshot() {
       .map((match) => [match[1], Number(match[2])]),
   )
   const swap = text(["sysctl", "-n", "vm.swapusage"])
+  const processes = processList()
   return {
     loadAverage: text(["sysctl", "-n", "vm.loadavg"]).trim(),
     thermalState: text(["pmset", "-g", "therm"]).trim(),
@@ -113,18 +114,18 @@ function systemSnapshot() {
     freeMemoryMB: ((fields["Pages free"] ?? 0) * pageSize) / 1024 / 1024,
     compressedMemoryMB: ((fields["Pages occupied by compressor"] ?? 0) * pageSize) / 1024 / 1024,
     pageouts: fields.Pageouts ?? 0,
-    relevantProcesses: processList()
+    relevantProcesses: processes
       .filter((process) =>
         /opencode|tsgo|tsserver|vtsls|eslintServer|tailwindcss-language-server/.test(process.command),
       )
       .sort((a, b) => b.rssKB - a.rssKB)
       .map(processSummary),
-    topCpuProcesses: processList()
-      .sort((a, b) => b.cpuPercent - a.cpuPercent)
+    topCpuProcesses: processes
+      .toSorted((a, b) => b.cpuPercent - a.cpuPercent)
       .slice(0, 15)
       .map(processSummary),
-    topMemoryProcesses: processList()
-      .sort((a, b) => b.rssKB - a.rssKB)
+    topMemoryProcesses: processes
+      .toSorted((a, b) => b.rssKB - a.rssKB)
       .slice(0, 15)
       .map(processSummary),
   }

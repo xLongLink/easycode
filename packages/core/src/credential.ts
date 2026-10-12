@@ -82,6 +82,13 @@ const layer = Layer.effect(
         const credential = stored(row)
         return credential ? [credential] : []
       })
+    const effective = (tx: Parameters<Parameters<typeof db.transaction>[0]>[0], integrationID: Integration.ID) =>
+      tx
+        .select({ id: CredentialTable.id, active: CredentialTable.active })
+        .from(CredentialTable)
+        .where(eq(CredentialTable.integration_id, integrationID))
+        .orderBy(desc(CredentialTable.active), desc(CredentialTable.time_created), desc(CredentialTable.id))
+        .get()
 
     return Service.of({
       all: Effect.fn("Credential.all")(() =>
@@ -115,12 +122,7 @@ const layer = Layer.effect(
         const activated = yield* db
           .transaction((tx) =>
             Effect.gen(function* () {
-              const current = yield* tx
-                .select({ id: CredentialTable.id, active: CredentialTable.active })
-                .from(CredentialTable)
-                .where(eq(CredentialTable.integration_id, credential.integrationID))
-                .orderBy(desc(CredentialTable.active), desc(CredentialTable.time_created), desc(CredentialTable.id))
-                .get()
+              const current = yield* effective(tx, credential.integrationID)
               const activate = input.activate !== false || !current
               if (activate)
                 yield* tx
@@ -175,12 +177,7 @@ const layer = Layer.effect(
             Effect.gen(function* () {
               const credential = yield* tx.select().from(CredentialTable).where(eq(CredentialTable.id, id)).get()
               if (!credential?.integration_id) return
-              const active = yield* tx
-                .select({ id: CredentialTable.id })
-                .from(CredentialTable)
-                .where(eq(CredentialTable.integration_id, credential.integration_id))
-                .orderBy(desc(CredentialTable.active), desc(CredentialTable.time_created), desc(CredentialTable.id))
-                .get()
+              const active = yield* effective(tx, credential.integration_id)
               if (active?.id === id) return
               yield* tx
                 .update(CredentialTable)
@@ -261,14 +258,7 @@ const layer = Layer.effect(
             Effect.gen(function* () {
               const credential = yield* tx.select().from(CredentialTable).where(eq(CredentialTable.id, id)).get()
               if (!credential) return
-              const active = credential.integration_id
-                ? yield* tx
-                    .select({ id: CredentialTable.id })
-                    .from(CredentialTable)
-                    .where(eq(CredentialTable.integration_id, credential.integration_id))
-                    .orderBy(desc(CredentialTable.active), desc(CredentialTable.time_created), desc(CredentialTable.id))
-                    .get()
-                : undefined
+              const active = credential.integration_id ? yield* effective(tx, credential.integration_id) : undefined
               yield* tx.delete(CredentialTable).where(eq(CredentialTable.id, id)).run()
               if (!credential.integration_id || active?.id !== id)
                 return { switched: false as const, integrationID: credential.integration_id }

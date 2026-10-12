@@ -7,8 +7,6 @@ export type PromptPart =
   | { readonly type: "text"; readonly text: string; readonly synthetic?: boolean; readonly ignored?: boolean }
   | { readonly type: "file"; readonly url: string; readonly filename?: string; readonly mime: string }
 
-type ReplayPart = PromptPart | { readonly type: "reasoning"; readonly text: string }
-
 export function promptContentToParts(content: readonly ContentBlock[]): PromptPart[] {
   return content.flatMap(contentBlockToParts)
 }
@@ -66,24 +64,8 @@ function contentBlockToParts(block: ContentBlock): PromptPart[] {
   }
 }
 
-export function partsToContentChunks(parts: readonly ReplayPart[]): ContentChunk[] {
+export function filesToContentChunks(parts: readonly Extract<PromptPart, { type: "file" }>[]): ContentChunk[] {
   return parts.flatMap((part): ContentChunk[] => {
-    if (part.type === "text") {
-      if (!part.text) return []
-      return [
-        {
-          content: {
-            type: "text",
-            text: part.text,
-            ...(part.synthetic ? { annotations: { audience: ["assistant" as const] } } : {}),
-            ...(!part.synthetic && part.ignored ? { annotations: { audience: ["user" as const] } } : {}),
-          },
-        },
-      ]
-    }
-    if (part.type === "reasoning") {
-      return part.text ? [{ content: { type: "text", text: part.text } }] : []
-    }
     if (part.url.startsWith("file://")) {
       return [
         {

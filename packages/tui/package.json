@@ -56,7 +56,6 @@
     "@opencode/schema": "workspace:*",
     "@opencode/simulation": "workspace:*",
     "@opencode/theme": "workspace:*",
-    "@opencode/ui": "workspace:*",
     "@opencode/util": "workspace:*",
     "@opentui/core": "catalog:",
     "@opentui/keymap": "catalog:",

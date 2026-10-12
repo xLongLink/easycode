@@ -10,7 +10,7 @@ import { useData } from "@/runtime/server/current"
 import { formatServerError } from "@/runtime/server/errors"
 import { useSettings } from "@/settings/model"
 import { showToast } from "@/shell/notifications/toast"
-import { fetchSessionExport, saveSessionExport, sessionExportFilename } from "@/session/commands/export"
+import { exportSession } from "@/session/commands/export"
 import { usePlatform } from "@/runtime/platform/platform"
 import type { SessionModel } from "@/session/model"
 import type { SessionRevert } from "@/session/revert"
@@ -117,33 +117,12 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   const mcpCommand = withCategory(language.t("command.category.mcp"))
   const permissionsCommand = withCategory(language.t("command.category.permissions"))
 
-  const exportSession = async () => {
+  const exportCurrentSession = async () => {
     const sessionID = actions.session.identity.params.id
 
     if (!sessionID) return
 
-    try {
-      const data = await fetchSessionExport({
-        sessionID,
-        api: serverSDK.api,
-      })
-
-      const filename = sessionExportFilename(data.info)
-
-      if (!(await saveSessionExport(filename, data, platform))) return
-      showToast({
-        variant: "success",
-        icon: "circle-check",
-        title: language.t("toast.session.export.success.title"),
-        description: language.t("toast.session.export.success.description", { filename }),
-      })
-    } catch (err) {
-      showToast({
-        variant: "error",
-        title: language.t("toast.session.export.failed.title"),
-        description: err instanceof Error ? err.message : language.t("toast.session.export.failed.description"),
-      })
-    }
+    await exportSession({ sessionID, api: serverSDK.api, platform, t: language.t })
   }
 
   const copySessionID = async () => {
@@ -318,7 +297,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       description: language.t("command.session.export.description"),
       slash: "export",
       disabled: !actions.session.identity.params.id,
-      onSelect: exportSession,
+      onSelect: exportCurrentSession,
     }),
     sessionCommand({
       id: "session.copyID",

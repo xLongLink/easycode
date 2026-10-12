@@ -6,7 +6,7 @@ import type { Capabilities } from "./capabilities"
 import { ACPClient } from "./client"
 import { ACPCompaction } from "./compaction"
 import type { ACPConnection } from "./connection"
-import { partsToContentChunks } from "./content"
+import { filesToContentChunks } from "./content"
 import { ACPPermission } from "./permission"
 import type { Attached } from "./sessions"
 import { ACPTranslate } from "./translate"
@@ -44,7 +44,7 @@ export function updates(message: SessionMessage.Info, cwd: string, capabilities:
   if (message.type === "user")
     return [
       { sessionUpdate: "user_message_chunk", messageId: message.id, content: { type: "text", text: message.text } },
-      ...partsToContentChunks(
+      ...filesToContentChunks(
         (message.files ?? []).map((file) => ({
           type: "file",
           url: file.source.type === "uri" ? file.source.uri : `data:${file.mime};base64,${file.data}`,

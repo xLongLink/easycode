@@ -1,6 +1,6 @@
 import { describe, expect } from "bun:test"
 import { eq } from "drizzle-orm"
-import { Effect } from "effect"
+import { Effect, Exit } from "effect"
 import { Bus } from "@opencode/core/bus"
 import { Credential } from "@opencode/core/credential"
 import { CredentialTable } from "@opencode/core/credential/sql"
@@ -113,27 +113,30 @@ describe("Credential", () => {
     }),
   )
 
-  it.effect("promotes the newest remaining legacy credential when the effective selection is removed", () =>
+  it.effect("breaks equal legacy timestamps by ID for activation and replacement after removal", () =>
     Effect.gen(function* () {
       const credentials = yield* Credential.Service
       const bus = yield* Bus.Service
       const database = yield* Database.Service
       const integrationID = Integration.ID.make("openai")
       const oldest = yield* credentials.create({
+        id: Credential.ID.make("cred_a"),
         integrationID,
         value: Credential.Key.make({ type: "key", key: "oldest" }),
       })
       const newer = yield* credentials.create({
+        id: Credential.ID.make("cred_b"),
         integrationID,
         value: Credential.Key.make({ type: "key", key: "newer" }),
       })
       const newest = yield* credentials.create({
+        id: Credential.ID.make("cred_c"),
         integrationID,
         value: Credential.Key.make({ type: "key", key: "newest" }),
       })
       yield* database.db
         .update(CredentialTable)
-        .set({ active: null })
+        .set({ active: null, time_created: 1 })
         .where(eq(CredentialTable.integration_id, integrationID))
         .run()
         .pipe(Effect.orDie)
@@ -219,12 +222,13 @@ describe("Credential", () => {
       expect((yield* credentials.list(integrationID)).at(-1)).toEqual(first)
 
       const legacy = yield* credentials.create({
+        id: Credential.ID.make("cred_9999legacy"),
         integrationID,
         value: Credential.Key.make({ type: "key", key: "legacy" }),
       })
       yield* database.db
         .update(CredentialTable)
-        .set({ active: null })
+        .set({ active: null, time_created: 1 })
         .where(eq(CredentialTable.integration_id, integrationID))
         .run()
         .pipe(Effect.orDie)
@@ -242,6 +246,48 @@ describe("Credential", () => {
         { type: Credential.Event.Switched.type, data: { integrationID, credentialID: legacy.id } },
         { type: Credential.Event.Updated.type, data: {} },
       ])
+    }),
+  )
+
+  it.effect("rolls back selection changes and publishes nothing when credential creation fails", () =>
+    Effect.gen(function* () {
+      const credentials = yield* Credential.Service
+      const bus = yield* Bus.Service
+      const database = yield* Database.Service
+      const integrationID = Integration.ID.make("openai")
+      const existing = yield* credentials.create({
+        integrationID,
+        value: Credential.Key.make({ type: "key", key: "existing" }),
+      })
+      yield* database.db
+        .update(CredentialTable)
+        .set({ active: null })
+        .where(eq(CredentialTable.integration_id, integrationID))
+        .run()
+        .pipe(Effect.orDie)
+      const before = yield* database.db.select().from(CredentialTable).all().pipe(Effect.orDie)
+      const events = new Array<Event.Payload>()
+      yield* bus.listen((event) => Effect.sync(() => events.push(event)))
+
+      yield* Effect.forEach([false, true], (activate) =>
+        Effect.gen(function* () {
+          expect(
+            Exit.isFailure(
+              yield* Effect.exit(
+                credentials.create({
+                  id: existing.id,
+                  integrationID,
+                  value: Credential.Key.make({ type: "key", key: "duplicate" }),
+                  activate,
+                }),
+              ),
+            ),
+          ).toBe(true)
+          expect(yield* database.db.select().from(CredentialTable).all().pipe(Effect.orDie)).toEqual(before)
+          expect(yield* credentials.get(existing.id)).toEqual(existing)
+          expect(events).toEqual([])
+        }),
+      )
     }),
   )
 })

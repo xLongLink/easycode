@@ -1,10 +1,38 @@
 import type { SessionInfo, SessionMessageInfo } from "@opencode/client/promise"
 import type { ServerApi } from "@/runtime/server/api"
 import type { Platform } from "@/runtime/platform/platform"
+import type { useLanguage } from "@/runtime/i18n/language"
+import { showToast } from "@/shell/notifications/toast"
 
 export type SessionExportData = {
   info: SessionInfo
   messages: SessionMessageInfo[]
+}
+
+export async function exportSession(input: {
+  sessionID: string
+  api: Pick<ServerApi, "session" | "message">
+  platform: Pick<Platform, "saveFile">
+  t: ReturnType<typeof useLanguage>["t"]
+}) {
+  try {
+    const data = await fetchSessionExport(input)
+    const filename = sessionExportFilename(data.info)
+
+    if (!(await saveSessionExport(filename, data, input.platform))) return
+    showToast({
+      variant: "success",
+      icon: "circle-check",
+      title: input.t("toast.session.export.success.title"),
+      description: input.t("toast.session.export.success.description", { filename }),
+    })
+  } catch (error) {
+    showToast({
+      variant: "error",
+      title: input.t("toast.session.export.failed.title"),
+      description: error instanceof Error ? error.message : input.t("toast.session.export.failed.description"),
+    })
+  }
 }
 
 export async function fetchSessionExport(input: {

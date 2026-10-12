@@ -3,10 +3,10 @@ import path from "node:path"
 
 const require = createRequire(import.meta.url)
 const resolve = (name: string) => {
-  const key = `@opencode/ui/audio/${name}`
+  const key = `@opencode/tui/audio/${name}`
   return process.env.OPENCODE_NODE_ASSETS_DIR
     ? path.join(process.env.OPENCODE_NODE_ASSETS_DIR, key)
-    : require.resolve(key)
+    : require.resolve(`./assets/audio/${name}`)
 }
 
 export const defaultSoundPath = resolve("bip-bop-01.mp3")

@@ -45,7 +45,7 @@ export async function collectNodeAssets(target: NodeTarget) {
     })),
     ...attentionSoundAssets.map((key) => ({
       key,
-      source: path.resolve(dir, "../ui/src/assets/audio", path.basename(key)),
+      source: path.resolve(dir, "../tui/src/assets/audio", path.basename(key)),
     })),
     ...(opencodePty && target.opencodePtyAsset ? [{ key: target.opencodePtyAsset, source: opencodePty.source }] : []),
     ...(await collectFiles(ptyRoot))

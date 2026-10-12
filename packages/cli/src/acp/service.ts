@@ -102,6 +102,14 @@ export function make(input: {
     return session
   })
 
+  const attachSession = Effect.fnUntraced(function* (params: LoadSessionRequest | ResumeSessionRequest) {
+    const directories = yield* ACPDirectories.parse(params.cwd, params.additionalDirectories)
+    const mcpServers = yield* supportedMcpServers(params.mcpServers)
+    const session = yield* getSession(params.sessionId, params.cwd)
+    yield* ACPDirectories.activate(input.client, session, directories)
+    return yield* input.sessions.attach(session, session.location.directory, mcpServers)
+  })
+
   return {
     initialize: Effect.fnUntraced(function* (params) {
       yield* Ref.set(input.capabilities, ACPCapabilities.parse(params.clientCapabilities))
@@ -146,11 +154,7 @@ export function make(input: {
       return { sessionId: attachment.attached.id, configOptions: attachment.configOptions }
     }),
     loadSession: Effect.fnUntraced(function* (params) {
-      const directories = yield* ACPDirectories.parse(params.cwd, params.additionalDirectories)
-      const mcpServers = yield* supportedMcpServers(params.mcpServers)
-      const session = yield* getSession(params.sessionId, params.cwd)
-      yield* ACPDirectories.activate(input.client, session, directories)
-      const attachment = yield* input.sessions.attach(session, session.location.directory, mcpServers)
+      const attachment = yield* attachSession(params)
       return yield* ACPReplay.history(
         input.client,
         input.connection,
@@ -201,11 +205,7 @@ export function make(input: {
       return {}
     }),
     resumeSession: Effect.fnUntraced(function* (params) {
-      const directories = yield* ACPDirectories.parse(params.cwd, params.additionalDirectories)
-      const mcpServers = yield* supportedMcpServers(params.mcpServers)
-      const session = yield* getSession(params.sessionId, params.cwd)
-      yield* ACPDirectories.activate(input.client, session, directories)
-      const attachment = yield* input.sessions.attach(session, session.location.directory, mcpServers)
+      const attachment = yield* attachSession(params)
       return { configOptions: attachment.configOptions }
     }),
     closeSession: Effect.fnUntraced(function* (params) {

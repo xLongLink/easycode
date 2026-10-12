@@ -354,4 +354,73 @@ describe("Form", () => {
       expect(yield* service.state(formID)).toEqual({ status: "answered", answer: { name: "Ava" } })
     }),
   )
+
+  it.effect("keeps ask pending when cancellation publication fails and allows retry", () =>
+    Effect.gen(function* () {
+      const service = yield* Form.Service
+      const bus = yield* Bus.Service
+      const created = yield* Deferred.make<void>()
+      const unsubscribe = yield* bus.listen((event) => {
+        if (event.type === Form.Event.Created.type) return Deferred.succeed(created, undefined).pipe(Effect.asVoid)
+        if (event.type === Form.Event.Cancelled.type) return Effect.die("cancel listener failed")
+        return Effect.void
+      })
+      yield* Effect.addFinalizer(() => unsubscribe)
+      const fiber = yield* service.ask(input).pipe(Effect.forkScoped)
+      yield* Deferred.await(created)
+
+      expect(Exit.isFailure(yield* Effect.exit(service.cancel(formID, { message: "failed" })))).toBe(true)
+      expect(yield* service.state(formID)).toEqual({ status: "pending" })
+      expect(yield* service.list()).toEqual([input])
+      expect(fiber.pollUnsafe()).toBeUndefined()
+
+      yield* unsubscribe
+      yield* service.cancel(formID, { message: "retry" })
+      expect(yield* Fiber.join(fiber)).toEqual({ status: "cancelled", message: "retry" })
+      expect(yield* service.state(formID)).toEqual({ status: "cancelled", message: "retry" })
+    }),
+  )
+
+  for (const operation of ["reply", "cancel"] as const) {
+    it.effect(`rejects repeated settlement after ${operation} before validating answers`, () =>
+      Effect.gen(function* () {
+        const service = yield* Form.Service
+        const bus = yield* Bus.Service
+        const events = new Array<{ type: string; data: unknown }>()
+        yield* bus.listen((event) =>
+          Effect.gen(function* () {
+            if (event.type !== Form.Event.Replied.type && event.type !== Form.Event.Cancelled.type) return
+            expect(yield* service.state(formID).pipe(Effect.orDie)).toEqual({ status: "pending" })
+            events.push({ type: event.type, data: event.data })
+          }),
+        )
+        expect(yield* service.reply({ id: formID, answer: {} }).pipe(Effect.flip)).toEqual(
+          new Form.NotFoundError({ id: formID }),
+        )
+        expect(yield* service.cancel(formID).pipe(Effect.flip)).toEqual(new Form.NotFoundError({ id: formID }))
+        yield* service.create(input)
+        if (operation === "reply") yield* service.reply({ id: formID, answer: { name: "Ava" } })
+        if (operation === "cancel") yield* service.cancel(formID, { message: "Cancelled by user" })
+
+        expect(yield* service.reply({ id: formID, answer: {} }).pipe(Effect.flip)).toEqual(
+          new Form.AlreadySettledError({ id: formID }),
+        )
+        expect(yield* service.cancel(formID).pipe(Effect.flip)).toEqual(new Form.AlreadySettledError({ id: formID }))
+        expect(yield* service.list()).toEqual([])
+        expect(events).toEqual([
+          operation === "reply"
+            ? {
+                type: Form.Event.Replied.type,
+                data: { id: formID, sessionID: input.sessionID, answer: { name: "Ava" } },
+              }
+            : { type: Form.Event.Cancelled.type, data: { id: formID, sessionID: input.sessionID } },
+        ])
+        expect(yield* service.state(formID)).toEqual(
+          operation === "reply"
+            ? { status: "answered", answer: { name: "Ava" } }
+            : { status: "cancelled", message: "Cancelled by user" },
+        )
+      }),
+    )
+  }
 })

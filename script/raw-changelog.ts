@@ -67,7 +67,7 @@ async function diff(base: string, head: string) {
 }
 
 function section(areas: Set<string>) {
-  const priority = ["core", "tui", "app", "tauri", "sdk", "plugin", "extensions/vscode", "github"]
+  const priority = Object.keys(sections)
   for (const area of priority) {
     if (areas.has(area)) return sections[area as keyof typeof sections]
   }
@@ -103,12 +103,12 @@ function reverted(commits: Commit[]) {
   return [...seen.values()]
 }
 
-async function commits(from: string, to: string) {
+async function commits(from: string, to: string, comparison: Diff[]) {
   const base = ref(from)
   const head = ref(to)
 
   const data = new Map<string, { login: string | null; message: string }>()
-  for (const item of await diff(base, head)) {
+  for (const item of comparison) {
     data.set(item.sha, { login: item.login, message: item.message.split("\n")[0] ?? "" })
   }
 
@@ -145,12 +145,9 @@ async function commits(from: string, to: string) {
   return reverted(list)
 }
 
-async function contributors(from: string, to: string) {
-  const base = ref(from)
-  const head = ref(to)
-
+function contributors(comparison: Diff[]) {
   const users: User = new Map()
-  for (const item of await diff(base, head)) {
+  for (const item of comparison) {
     const title = item.message.split("\n")[0] ?? ""
     if (!item.login || team.includes(item.login)) continue
     if (title.match(/^(ignore:|test:|chore:|ci:|release:)/i)) continue
@@ -172,11 +169,11 @@ async function published(to: string) {
   return lines.slice(start).join("\n").trim()
 }
 
-async function thanks(from: string, to: string, reuse: boolean) {
+async function thanks(to: string, reuse: boolean, comparison: Diff[]) {
   const release = reuse ? await published(to) : undefined
   if (release) return release.split(/\r?\n/)
 
-  const users = await contributors(from, to)
+  const users = contributors(comparison)
   if (users.size === 0) return []
 
   const lines = [`**Thank you to ${users.size} community contributor${users.size > 1 ? "s" : ""}:**`]
@@ -270,6 +267,7 @@ Examples:
 
   const to = values.to!
   const from = values.from ?? (await latest())
-  const list = await commits(from, to)
-  console.log(format(from, to, list, await thanks(from, to, !values.from)))
+  const comparison = await diff(ref(from), ref(to))
+  const list = await commits(from, to, comparison)
+  console.log(format(from, to, list, await thanks(to, !values.from, comparison)))
 }

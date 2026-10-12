@@ -16,7 +16,6 @@ import { ServiceConfig } from "./services/service-config"
 import { RetainedImage } from "./services/retained-image"
 import { ServiceRegistration } from "./services/service-registration"
 import { RemoteTunnel } from "./services/remote-tunnel"
-import { WebUi } from "./services/web-ui"
 import { databasePath } from "./database-path"
 
 export type Mode = "default" | "service" | "stdio"
@@ -89,7 +88,6 @@ const processEffect = Effect.fnUntraced(function* (options: Options) {
             : randomBytes(32).toString("base64url")
       if (!password) return yield* Effect.fail(new Error("Missing server password"))
       const instanceID = randomUUID()
-      const transform = yield* WebUi.handler()
       const remote = { urls: [] as ReadonlyArray<string> }
       const launch = start(
         {
@@ -146,7 +144,7 @@ const processEffect = Effect.fnUntraced(function* (options: Options) {
                   })
                 }),
             },
-        transform,
+        undefined,
         () => remote.urls,
       )
       const server = yield* launch.pipe(
