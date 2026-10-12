@@ -7,7 +7,6 @@ import SidebarMcp from "../feature-plugins/sidebar/mcp"
 import DiffViewer from "../feature-plugins/system/diff-viewer"
 import Notifications from "../feature-plugins/system/notifications"
 import Plugins from "../feature-plugins/system/plugins"
-import Storybook from "../feature-plugins/system/storybook"
 import Stats from "../feature-plugins/system/stats"
 
 export const builtins = [
@@ -20,8 +19,5 @@ export const builtins = [
   Notifications,
   Plugins,
   Stats,
-  // The storybook is a development tool; keep its route and palette commands out of
-  // normal launches and register it only for OPENCODE_STORY runs.
-  ...(process.env.OPENCODE_STORY ? [Storybook] : []),
   DiffViewer,
 ]

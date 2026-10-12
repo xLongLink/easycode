@@ -325,20 +325,9 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
                             >
                               <TuiStartupProvider
                                 value={{
-                                  initialRoute: process.env.OPENCODE_STORY
-                                    ? {
-                                        type: "plugin",
-                                        id: "opencode.storybook",
-                                        name: "storybook",
-                                        // OPENCODE_STORY=1 opens the index; any other value opens that story.
-                                        data:
-                                          process.env.OPENCODE_STORY === "1"
-                                            ? undefined
-                                            : { story: process.env.OPENCODE_STORY },
-                                      }
-                                    : process.env.OPENCODE_ROUTE
-                                      ? JSON.parse(process.env.OPENCODE_ROUTE)
-                                      : undefined,
+                                  initialRoute: process.env.OPENCODE_ROUTE
+                                    ? JSON.parse(process.env.OPENCODE_ROUTE)
+                                    : undefined,
                                   skipInitialLoading: Boolean(process.env.OPENCODE_FAST_BOOT),
                                 }}
                               >
