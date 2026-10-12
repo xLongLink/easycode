@@ -46,9 +46,3 @@ if ((await $`gh release view ${tag} --repo ${repo}`.nothrow()).exitCode !== 0) {
   await $`gh release create ${tag} --repo ${repo} --target ${target} --title ${tag} --notes ${process.env.OPENCODE_RELEASE_NOTES ?? ""} ${Script.preview ? ["--prerelease"] : []}`
 }
 await $`gh release upload ${tag} ${files} ${path.resolve(dir, "../../install")} --repo ${repo} --clobber`
-
-if (Script.channel === "latest" && Script.release) {
-  await $`docker buildx build --platform linux/amd64,linux/arm64 --tag ghcr.io/anomalyco/opencode:${Script.version} --push .`.cwd(
-    dir,
-  )
-}
