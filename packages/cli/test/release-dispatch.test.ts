@@ -1,9 +1,11 @@
-import { expect, test } from "bun:test"
-import { chmod, mkdtemp, rm } from "node:fs/promises"
+import { beforeAll, expect, test } from "bun:test"
+import { chmod, mkdir, mkdtemp, rm } from "node:fs/promises"
 import path from "node:path"
 
 const root = path.resolve(import.meta.dir, "../../..")
 const version = (await Bun.file(path.join(root, "package.json")).json()).version
+
+beforeAll(() => mkdir("/tmp/opencode", { recursive: true }))
 
 test.each([
   { args: ["--help"], answer: "", exitCode: 0, output: "Usage:", dispatch: false },

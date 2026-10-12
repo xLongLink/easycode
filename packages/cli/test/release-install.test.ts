@@ -1,9 +1,11 @@
-import { expect, test } from "bun:test"
-import { chmod, mkdtemp, readdir, rm } from "node:fs/promises"
+import { beforeAll, expect, test } from "bun:test"
+import { chmod, mkdir, mkdtemp, readdir, rm } from "node:fs/promises"
 import path from "node:path"
 
 const cli = path.resolve(import.meta.dir, "..")
 const installer = path.resolve(cli, "../../install")
+
+beforeAll(() => mkdir("/tmp/opencode", { recursive: true }))
 
 test("release archives contain executable standalone binaries", async () => {
   const root = await mkdtemp("/tmp/opencode/release-archives-")
