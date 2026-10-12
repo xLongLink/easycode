@@ -33,7 +33,7 @@ if [ "$os" = linux ] && { [ -f /etc/alpine-release ] || ldd --version 2>&1 | gre
     target="$target-musl"
 fi
 
-install_dir=${UNCODE_INSTALL_DIR:-${XDG_BIN_DIR:-$HOME/.uncode/bin}}
+install_dir=${UNCODE_INSTALL_DIR:-$HOME/.uncode/bin}
 tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/uncode_install.XXXXXXXX")
 trap 'rm -rf -- "$tmp_dir"' EXIT
 

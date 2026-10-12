@@ -36,7 +36,7 @@ test("release archives contain executable standalone binaries", async () => {
   }
 })
 
-test.each(["default", "override", "xdg", "download-failure", "extraction-failure"])(
+test.each(["default", "override", "xdg-ignored", "download-failure", "extraction-failure"])(
   "latest release installation: %s",
   async (mode) => {
     const root = await mkdtemp("/tmp/opencode/release-install-")
@@ -75,7 +75,7 @@ exec "${curl}" "\${args[@]}"
       )
       await chmod(path.join(root, "bin/curl"), 0o755)
       await Bun.write(path.join(root, ".bashrc"), "# existing configuration\n")
-      const destination = path.join(root, mode === "override" ? "bin with spaces" : mode === "xdg" ? "xdg" : ".uncode/bin")
+      const destination = path.join(root, mode === "override" ? "bin with spaces" : ".uncode/bin")
       const result = await Bun.$`bash ${installer}`
         .env({
           ...process.env,
@@ -84,7 +84,7 @@ exec "${curl}" "\${args[@]}"
           TMPDIR: root,
           GH_REPO: "example/uncode",
           UNCODE_INSTALL_DIR: mode === "override" ? destination : "",
-          XDG_BIN_DIR: mode === "xdg" || mode === "override" ? path.join(root, "xdg") : "",
+          XDG_BIN_DIR: mode === "xdg-ignored" || mode === "override" ? path.join(root, "xdg") : "",
         })
         .nothrow()
         .quiet()
@@ -100,6 +100,7 @@ exec "${curl}" "\${args[@]}"
       expect((await Bun.$`${path.join(destination, "uncode")}`.text()).trim()).toBe("fixture-version")
       expect(result.stdout.toString()).toContain(`Installed uncode to ${destination}/uncode`)
       expect(await Bun.file(path.join(destination, "opencode")).exists()).toBe(false)
+      expect(await Bun.file(path.join(root, "xdg", "uncode")).exists()).toBe(false)
     } finally {
       server.stop(true)
       await rm(root, { recursive: true, force: true })
