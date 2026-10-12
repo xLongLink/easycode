@@ -1,12 +1,11 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "@opencode/cli",
-  "version": "2.0.27",
+  "version": "0.0.0",
   "type": "module",
   "license": "MIT",
   "bin": {
-    "opencode": "./bin/opencode.cjs",
-    "opencode2": "./bin/opencode2.cjs"
+    "easycode": "./bin/opencode.cjs"
   },
   "files": [
     "bin"

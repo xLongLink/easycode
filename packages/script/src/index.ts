@@ -39,11 +39,10 @@ const VERSION = await (async () => {
   if (env.OPENCODE_VERSION) return env.OPENCODE_VERSION
   if (IS_PREVIEW) return `0.0.0-${CHANNEL}-${previewBuildNumber()}`
   const version = (
-    await $`gh release view --repo ${process.env.GH_REPO ?? "anomalyco/opencode"} --json tagName --jq .tagName`.text()
+    await $`gh release view --repo ${process.env.GH_REPO ?? "xLongLink/easycode"} --json tagName --jq .tagName`.text()
   )
     .trim()
     .replace(/^v/, "")
-  if (semver.lt(version, "2.0.0")) return "2.0.0"
   const [major, minor, patch] = version.split(".").map((x: string) => Number(x) || 0)
   const t = env.OPENCODE_BUMP?.toLowerCase()
   if (t === "major") return `${major + 1}.0.0`
@@ -78,4 +77,4 @@ export const Script = {
     return team
   },
 }
-console.log(`opencode script`, JSON.stringify(Script, null, 2))
+console.log(`easycode script`, JSON.stringify(Script, null, 2))

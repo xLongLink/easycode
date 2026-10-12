@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
-APP=opencode
-SOURCE_APP=opencode
-REPO=${GH_REPO:-anomalyco/opencode}
+APP=easycode
+SOURCE_APP=easycode
+REPO=${GH_REPO:-xLongLink/easycode}
 
 MUTED='\033[0;2m'
 RED='\033[0;31m'
@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 
 usage() {
     cat <<EOF
-OpenCode Installer
+easycode Installer
 
 Usage: install.sh [options]
 
@@ -20,17 +20,19 @@ Options:
     -v, --version <version> Install a specific version (e.g., 0.0.0-beta-17236)
     -b, --binary <path>     Install from a local binary instead of downloading
         --no-modify-path    Don't modify shell config files (.zshrc, .bashrc, etc.)
+        --install-dir <dir> Set the installation directory
 
 Examples:
     curl -fsSL https://github.com/$REPO/releases/latest/download/install | bash
     curl -fsSL https://github.com/$REPO/releases/latest/download/install | bash -s -- --version 0.0.0-beta-17236
-    ./install --binary /path/to/opencode
+    ./install --binary /path/to/easycode
 EOF
 }
 
 requested_version=${VERSION:-}
 no_modify_path=false
 binary_path=""
+install_dir=${EASYCODE_INSTALL_DIR:-${XDG_BIN_DIR:-$HOME/.easycode/bin}}
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -56,6 +58,14 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             ;;
+        --install-dir)
+            if [[ -z "${2:-}" ]]; then
+                echo "Error: --install-dir requires a directory" >&2
+                exit 1
+            fi
+            install_dir="$2"
+            shift 2
+            ;;
         --no-modify-path)
             no_modify_path=true
             shift
@@ -67,7 +77,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-INSTALL_DIR=$HOME/.opencode/bin
+INSTALL_DIR=$install_dir
 mkdir -p "$INSTALL_DIR"
 
 # If --binary is provided, skip all download/detection logic
@@ -103,7 +113,7 @@ else
 
     combo="$os-$arch"
     case "$combo" in
-      linux-x64|linux-arm64|darwin-x64|darwin-arm64|windows-x64)
+      linux-x64|linux-arm64|darwin-x64|darwin-arm64|windows-x64|windows-arm64)
         ;;
       *)
         echo -e "${RED}Unsupported OS/Arch: $os/$arch${NC}"
@@ -180,7 +190,7 @@ else
         specific_version=$requested_version
     fi
 
-    filename="opencode-$target.tar.gz"
+    filename="easycode-$target.tar.gz"
     url="https://github.com/$REPO/releases/download/v$specific_version/$filename"
     binary_name="$SOURCE_APP"
     if [ "$os" = "windows" ]; then
@@ -335,36 +345,12 @@ install_from_binary() {
     chmod 755 "$INSTALL_DIR/$installed_binary"
 }
 
-install_legacy_shim() {
-    local shim_os="${os:-}"
-    if [[ -z "$shim_os" ]]; then
-        case "$(uname -s)" in
-            MINGW*|MSYS*|CYGWIN*) shim_os="windows" ;;
-        esac
-    fi
-    rm -f "$INSTALL_DIR/opencode2" "$INSTALL_DIR/opencode2.exe" "$INSTALL_DIR/opencode2.cmd"
-    if [[ "$shim_os" == "windows" ]]; then
-        cat > "$INSTALL_DIR/opencode2.cmd" <<'EOF'
-@echo off
-"%~dp0opencode.exe" %*
-exit /b %errorlevel%
-EOF
-        return
-    fi
-    cat > "$INSTALL_DIR/opencode2" <<'EOF'
-#!/bin/sh
-exec "$(dirname "$0")/opencode" "$@"
-EOF
-    chmod 755 "$INSTALL_DIR/opencode2"
-}
-
 if [ -n "$binary_path" ]; then
     install_from_binary
 else
     check_version
     download_and_install
 fi
-install_legacy_shim
 
 
 add_to_path() {
@@ -374,9 +360,9 @@ add_to_path() {
     if grep -Fxq "$command" "$config_file"; then
         print_message info "Command already exists in $config_file, skipping write."
     elif [[ -w $config_file ]]; then
-        echo -e "\n# opencode" >> "$config_file"
+        echo -e "\n# easycode" >> "$config_file"
         echo "$command" >> "$config_file"
-        print_message info "${MUTED}Successfully added ${NC}opencode ${MUTED}to \$PATH in ${NC}$config_file"
+        print_message info "${MUTED}Successfully added ${NC}easycode ${MUTED}to \$PATH in ${NC}$config_file"
     else
         print_message warning "Manually add the directory to $config_file (or similar):"
         print_message info "  $command"
@@ -452,17 +438,14 @@ if [ -n "${GITHUB_ACTIONS-}" ] && [ "${GITHUB_ACTIONS}" == "true" ]; then
 fi
 
 echo -e ""
-echo -e "${MUTED}                    ${NC}             ▄     "
-echo -e "${MUTED}█▀▀█ █▀▀█ █▀▀█ █▀▀▄ ${NC}█▀▀▀ █▀▀█ █▀▀█ █▀▀█"
-echo -e "${MUTED}█░░█ █░░█ █▀▀▀ █░░█ ${NC}█░░░ █░░█ █░░█ █▀▀▀"
-echo -e "${MUTED}▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀  ▀ ${NC}▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀"
+echo -e "easycode"
 echo -e ""
 echo -e ""
-echo -e "${MUTED}OpenCode includes free models, to start:${NC}"
+echo -e "${MUTED}To start:${NC}"
 echo -e ""
 echo -e "cd <project>  ${MUTED}# Open directory${NC}"
-echo -e "opencode      ${MUTED}# Run command${NC}"
+echo -e "easycode      ${MUTED}# Run command${NC}"
 echo -e ""
-echo -e "${MUTED}For more information visit ${NC}https://opencode.ai/v2/docs"
+echo -e "${MUTED}For more information visit ${NC}https://github.com/$REPO"
 echo -e ""
 echo -e ""

@@ -7,7 +7,7 @@ import { Script } from "@opencode/script"
 const dir = path.resolve(import.meta.dir, "..")
 const root = path.resolve(process.env.OPENCODE_CLI_DIST ?? path.join(dir, "dist"))
 const dryRun = process.argv.includes("--dry-run")
-const repo = process.env.GH_REPO ?? "anomalyco/opencode"
+const repo = process.env.GH_REPO ?? "xLongLink/easycode"
 const tag = `v${Script.version}`
 
 if (!Script.release && !dryRun) {
@@ -18,13 +18,13 @@ if (!Script.release && !dryRun) {
 const files = await Promise.all(
   (await Array.fromAsync(new Bun.Glob("**/bin/*").scan({ cwd: root })))
     .filter((file) =>
-      /^(?:node\/cli-node-|cli-)(?:linux|darwin)-[^/]+\/bin\/(?:opencode|opencode2-node)$/.test(file),
+      /^cli-(?:linux|darwin)-[^/]+\/bin\/easycode$/.test(file),
     )
     .map(async (file) => {
       const source = path.join(root, file)
       const binary = path.basename(file)
       const target = path.basename(path.dirname(path.dirname(file)))
-      const name = target.replace(/^cli-node-/, "opencode-node-").replace(/^cli-/, "opencode-")
+      const name = target.replace(/^cli-/, "easycode-")
       const output = path.join(root, `${name}.tar.gz`)
       if (!Bun.file(source).size) throw new Error(`Empty release binary: ${source}`)
       // CI downloads do not preserve executable permissions.
