@@ -10,10 +10,11 @@ test.skipIf(process.platform === "win32")("release archives contain executable s
   const targets = [
     { directory: "cli-linux-x64", binary: "opencode", archive: "opencode-linux-x64" },
     { directory: "cli-linux-x64-baseline-musl", binary: "opencode", archive: "opencode-linux-x64-baseline-musl" },
-    { directory: "cli-windows-arm64", binary: "opencode.exe", archive: "opencode-windows-arm64" },
+    { directory: "cli-darwin-arm64", binary: "opencode", archive: "opencode-darwin-arm64" },
     { directory: "node/cli-node-linux-arm64", binary: "opencode2-node", archive: "opencode-node-linux-arm64" },
   ]
   try {
+    await Bun.write(path.join(root, "cli-windows-arm64/bin/opencode.exe"), "unsupported")
     await Promise.all(
       targets.map((target) => Bun.write(path.join(root, target.directory, "bin", target.binary), "fixture")),
     )
@@ -27,6 +28,7 @@ test.skipIf(process.platform === "win32")("release archives contain executable s
       })
       .quiet()
     expect(result.exitCode).toBe(0)
+    expect(await Bun.file(path.join(root, "opencode-windows-arm64.tar.gz")).exists()).toBe(false)
     for (const target of targets) {
       const archive = path.join(root, `${target.archive}.tar.gz`)
       expect((await Bun.$`tar -tzf ${archive}`.text()).trim()).toBe(target.binary)

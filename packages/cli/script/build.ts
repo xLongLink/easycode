@@ -30,7 +30,7 @@ const solidPlugin = createSolidTransformPlugin()
 const releaseAssets = new Map<string, Promise<Map<string, string>>>()
 
 const allTargets: {
-  os: string
+  os: "linux" | "darwin"
   arch: "arm64" | "x64"
   abi?: "musl"
   avx2?: false
@@ -44,9 +44,6 @@ const allTargets: {
   { os: "darwin", arch: "arm64" },
   { os: "darwin", arch: "x64" },
   { os: "darwin", arch: "x64", avx2: false },
-  { os: "win32", arch: "arm64" },
-  { os: "win32", arch: "x64" },
-  { os: "win32", arch: "x64", avx2: false },
 ]
 
 const targets =
@@ -155,7 +152,6 @@ export default { path: file, version: ${JSON.stringify(opencodePty.version)}, sh
         "--no-warnings",
         "--",
       ],
-      windows: {},
     },
     define: {
       OPENCODE_VERSION: `'${Script.version}'`,
@@ -182,10 +178,9 @@ async function compileExecutable(item: (typeof allTargets)[number]) {
   const release = process.env.BUN_COMPILE_RELEASE
   if (!release) return
 
-  const platform = item.os === "win32" ? "windows" : item.os
   const name = [
     "bun",
-    platform,
+    item.os,
     item.arch === "arm64" ? "aarch64" : item.arch,
     item.abi,
     item.avx2 === false ? "baseline" : undefined,
@@ -193,7 +188,7 @@ async function compileExecutable(item: (typeof allTargets)[number]) {
     .filter(Boolean)
     .join("-")
   const cache = path.join(outdir, ".bun", release)
-  const executable = path.join(cache, name, item.os === "win32" ? "bun.exe" : "bun")
+  const executable = path.join(cache, name, "bun")
   if (await Bun.file(executable).exists()) return executable
 
   await mkdir(cache, { recursive: true })
@@ -251,7 +246,7 @@ function compileReleaseAssets(release: string) {
 function targetName(item: (typeof allTargets)[number]) {
   return [
     binary,
-    item.os === "win32" ? "windows" : item.os,
+    item.os,
     item.arch,
     item.avx2 === false ? "baseline" : undefined,
     item.abi,

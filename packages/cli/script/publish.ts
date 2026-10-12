@@ -18,7 +18,7 @@ if (!Script.release && !dryRun) {
 const files = await Promise.all(
   (await Array.fromAsync(new Bun.Glob("**/bin/*").scan({ cwd: root })))
     .filter((file) =>
-      /^(?:node\/cli-node-|cli-)[^/]+\/bin\/(?:opencode(?:\.exe)?|opencode2-node(?:\.exe)?)$/.test(file),
+      /^(?:node\/cli-node-|cli-)(?:linux|darwin)-[^/]+\/bin\/(?:opencode|opencode2-node)$/.test(file),
     )
     .map(async (file) => {
       const source = path.join(root, file)

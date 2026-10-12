@@ -9,7 +9,7 @@ import os from "node:os"
 import path from "node:path"
 
 const nodeBuild = process.argv.includes("--node")
-const target = `cli${nodeBuild ? "-node" : ""}-${process.platform === "win32" ? "windows" : process.platform}-${process.arch}`
+const target = `cli${nodeBuild ? "-node" : ""}-${process.platform}-${process.arch}`
 const directory = path.resolve(
   import.meta.dir,
   "..",
@@ -18,17 +18,13 @@ const directory = path.resolve(
   target,
   "bin",
 )
-const binary = path.join(
-  directory,
-  `${nodeBuild ? "opencode2-node" : "opencode"}${process.platform === "win32" ? ".exe" : ""}`,
-)
+const binary = path.join(directory, nodeBuild ? "opencode2-node" : "opencode")
 if (!(await Bun.file(binary).exists())) throw new Error(`Missing compiled CLI in ${directory}`)
 
 const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "opencode-service-smoke-")))
 const env = {
   ...process.env,
   HOME: root,
-  USERPROFILE: root,
   OPENCODE_DB: path.join(root, "opencode.db"),
   OPENCODE_TEST_HOME: root,
   XDG_CACHE_HOME: path.join(root, "cache"),
@@ -102,8 +98,7 @@ try {
 }
 
 const output = await Promise.all(errors)
-// Windows can retain directory handles briefly after the service processes exit.
-await fs.rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }).catch((cause: unknown) => {
+await fs.rm(root, { recursive: true, force: true }).catch((cause: unknown) => {
   console.error("Failed to remove service smoke-test directory", cause)
   failure ??= cause
 })

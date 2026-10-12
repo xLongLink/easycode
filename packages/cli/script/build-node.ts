@@ -26,12 +26,11 @@ const bundleOnly = process.argv.includes("--bundle-only")
 const single = process.argv.includes("--single")
 const skipInstall = process.argv.includes("--skip-install")
 const requested = process.argv.find((arg) => arg.startsWith("--target="))?.slice("--target=".length)
+if (process.platform === "win32") throw new Error("Windows builds are not supported")
 const allTargets = [
   nodeTarget("linux", "arm64"),
   nodeTarget("linux", "x64"),
   nodeTarget("darwin", "arm64"),
-  nodeTarget("win32", "arm64"),
-  nodeTarget("win32", "x64"),
 ]
 const targets = requested
   ? allTargets.filter((target) => targetName(target) === requested)
@@ -98,8 +97,7 @@ for (const target of targets) {
   if (bundleOnly) continue
 
   const name = `cli-node-${targetName(target)}`
-  const binary = target.platform === "win32" ? "opencode2-node.exe" : "opencode2-node"
-  const output = path.join(outdir, name, "bin", binary)
+  const output = path.join(outdir, name, "bin", "opencode2-node")
   if (!builder) throw new Error("Node SEA builder is unavailable")
   await mkdir(path.dirname(output), { recursive: true })
   const config = {
@@ -116,7 +114,7 @@ for (const target of targets) {
   }
   await writeFile("dist-node/sea.json", `${JSON.stringify(config, null, 2)}\n`)
   run(builder, ["--build-sea", "dist-node/sea.json"])
-  if (target.platform !== "win32") await chmod(output, 0o755)
+  await chmod(output, 0o755)
   if (target.platform === "darwin" && process.platform === "darwin") run("codesign", ["--sign", "-", output])
   if (target.platform === "darwin" && process.platform !== "darwin") {
     console.warn(`${output} must be signed on macOS before it can run`)
@@ -145,10 +143,9 @@ async function resolveHostNode() {
 async function resolveTargetNode(target: NodeTarget, host?: string) {
   if (host && target.platform === process.platform && target.arch === process.arch) return host
   const cache = path.resolve(dir, ".cache", "node")
-  const platform = target.platform === "win32" ? "win" : target.platform
-  const archiveName = `node-v${NODE_VERSION}-${platform}-${target.arch}`
+  const archiveName = `node-v${NODE_VERSION}-${target.platform}-${target.arch}`
   const targetDirectory = path.join(cache, archiveName)
-  const executable = path.join(targetDirectory, target.platform === "win32" ? "node.exe" : "bin/node")
+  const executable = path.join(targetDirectory, "bin/node")
   if (
     (await stat(executable).then(
       () => true,
@@ -161,8 +158,7 @@ async function resolveTargetNode(target: NodeTarget, host?: string) {
   )
     return realpath(executable)
   await mkdir(cache, { recursive: true })
-  const extension = target.platform === "win32" ? "zip" : "tar.gz"
-  const filename = `${archiveName}.${extension}`
+  const filename = `${archiveName}.tar.gz`
   const archive = path.join(cache, filename)
   const base = `https://nodejs.org/dist/v${NODE_VERSION}`
   const [response, sums] = await Promise.all([fetch(`${base}/${filename}`), fetch(`${base}/SHASUMS256.txt`)])
@@ -179,11 +175,7 @@ async function resolveTargetNode(target: NodeTarget, host?: string) {
   const temporary = path.join(cache, `${archiveName}.${process.pid}.tmp`)
   await rm(temporary, { recursive: true, force: true })
   await mkdir(temporary)
-  if (target.platform !== "win32") run("tar", ["-xzf", archive, "-C", temporary])
-  if (target.platform === "win32" && process.platform === "win32") {
-    run(path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe"), ["-xf", archive, "-C", temporary])
-  }
-  if (target.platform === "win32" && process.platform !== "win32") run("unzip", ["-q", archive, "-d", temporary])
+  run("tar", ["-xzf", archive, "-C", temporary])
   await rm(targetDirectory, { recursive: true, force: true })
   await rename(path.join(temporary, archiveName), targetDirectory)
   await writeFile(path.join(targetDirectory, ".verified"), `${expected}\n`)
@@ -196,14 +188,14 @@ async function smoke(output: string) {
   const root = await mkdtemp(path.join(os.tmpdir(), "opencode-node-smoke-"))
   const executable = path.join(root, path.basename(output))
   await copyFile(output, executable)
-  if (process.platform !== "win32") await chmod(executable, 0o755)
+  await chmod(executable, 0o755)
   run(executable, ["--version"], root)
   run(executable, ["--help"], root)
   await rm(root, { recursive: true, force: true })
 }
 
 function targetName(target: NodeTarget) {
-  return `${target.platform === "win32" ? "windows" : target.platform}-${target.arch}`
+  return `${target.platform}-${target.arch}`
 }
 
 function run(command: string, args: readonly string[], cwd = dir) {
