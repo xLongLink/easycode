@@ -21,10 +21,7 @@ test("release archives contain executable standalone binaries", async () => {
     )
     const result = await Bun.$`bun script/package.ts`
       .cwd(cli)
-      .env({
-        ...process.env,
-        OPENCODE_CLI_DIST: root,
-      })
+      .env({ ...process.env, OPENCODE_CLI_DIST: root })
       .quiet()
     expect(result.exitCode).toBe(0)
     expect(await Bun.file(path.join(root, "uncode-windows-arm64.tar.gz")).exists()).toBe(false)
@@ -39,10 +36,8 @@ test("release archives contain executable standalone binaries", async () => {
   }
 })
 
-test
-  .skipIf(process.platform !== "linux")
-  .each(["latest", "version", "local", "download-failure", "extraction-failure"])(
-  "uncode installation cleans up after %s",
+test.each(["default", "override", "xdg", "download-failure", "extraction-failure"])(
+  "latest release installation: %s",
   async (mode) => {
     const root = await mkdtemp("/tmp/opencode/release-install-")
     const requests: string[] = []
@@ -51,19 +46,16 @@ test
       fetch(request) {
         const pathname = new URL(request.url).pathname
         requests.push(pathname)
-        if (pathname === "/repos/example/uncode/releases/latest") return Response.json({ tag_name: "v2.3.4" })
-        if (pathname.startsWith("/example/uncode/releases/download/v2.3.4/uncode-linux-")) {
-          if (mode === "download-failure") return new Response("Download failed", { status: 503 })
-          if (mode === "extraction-failure") return new Response("Invalid archive")
-          return new Response(Bun.file(path.join(root, "binary.tar.gz")))
+        if (!/^\/example\/uncode\/releases\/latest\/download\/uncode-(linux|darwin)-.*\.tar\.gz$/.test(pathname)) {
+          return new Response("Not found", { status: 404 })
         }
-        return new Response("Not found", { status: 404 })
+        if (mode === "download-failure") return new Response("Download failed", { status: 503 })
+        if (mode === "extraction-failure") return new Response("Invalid archive")
+        return new Response(Bun.file(path.join(root, "binary.tar.gz")))
       },
     })
     try {
-      const binary = path.join(root, "uncode")
-      await Bun.write(binary, "#!/bin/sh\necho fixture-version\n")
-      await chmod(binary, 0o755)
+      await Bun.write(path.join(root, "uncode"), "#!/bin/sh\necho fixture-version\n")
       await Bun.$`tar -czf ${path.join(root, "binary.tar.gz")} -C ${root} uncode`.quiet()
       const curl = Bun.which("curl")
       if (!curl) throw new Error("curl is required for the installer contract")
@@ -74,7 +66,6 @@ test
 args=()
 for arg in "$@"; do
   case "$arg" in
-    https://api.github.com/*) args+=("${server.url.origin}\${arg#https://api.github.com}") ;;
     https://github.com/*) args+=("${server.url.origin}\${arg#https://github.com}") ;;
     *) args+=("$arg") ;;
   esac
@@ -83,100 +74,38 @@ exec "${curl}" "\${args[@]}"
 `,
       )
       await chmod(path.join(root, "bin/curl"), 0o755)
-      const args = mode === "local" ? ["--binary", binary] : mode === "latest" ? [] : ["--version", "v2.3.4"]
-      const result = await Bun.$`bash ${installer} --no-modify-path ${args}`
+      await Bun.write(path.join(root, ".bashrc"), "# existing configuration\n")
+      const destination = path.join(root, mode === "override" ? "bin with spaces" : mode === "xdg" ? "xdg" : ".uncode/bin")
+      const result = await Bun.$`bash ${installer}`
         .env({
           ...process.env,
           PATH: `${path.join(root, "bin")}:${process.env.PATH}`,
           HOME: root,
-          SHELL: "/bin/bash",
           TMPDIR: root,
           GH_REPO: "example/uncode",
-          VERSION: "",
-          UNCODE_INSTALL_DIR: "",
-          XDG_BIN_DIR: "",
-          GITHUB_ACTIONS: "false",
+          UNCODE_INSTALL_DIR: mode === "override" ? destination : "",
+          XDG_BIN_DIR: mode === "xdg" || mode === "override" ? path.join(root, "xdg") : "",
         })
         .nothrow()
         .quiet()
+      expect(requests).toHaveLength(1)
       expect((await readdir(root)).filter((name) => name.startsWith("uncode_install."))).toEqual([])
+      expect(await Bun.file(path.join(root, ".bashrc")).text()).toBe("# existing configuration\n")
       if (mode.endsWith("-failure")) {
         expect(result.exitCode).not.toBe(0)
-        expect(await Bun.file(path.join(root, ".uncode/bin/uncode")).exists()).toBe(false)
-        expect(requests.filter((request) => request.includes("/releases/download/"))).toHaveLength(1)
+        expect(await Bun.file(path.join(destination, "uncode")).exists()).toBe(false)
         return
       }
       expect(result.exitCode).toBe(0)
-      expect((await Bun.$`${path.join(root, ".uncode/bin/uncode")}`.text()).trim()).toBe("fixture-version")
-      expect(await Bun.file(path.join(root, ".uncode/bin/opencode")).exists()).toBe(false)
-      expect(await Bun.file(path.join(root, ".uncode/bin/opencode2")).exists()).toBe(false)
-      expect(requests.some((request) => request.endsWith("/releases/latest"))).toBe(mode === "latest")
-      expect(requests.some((request) => request.includes("/releases/download/v2.3.4/"))).toBe(mode !== "local")
+      expect((await Bun.$`${path.join(destination, "uncode")}`.text()).trim()).toBe("fixture-version")
+      expect(result.stdout.toString()).toContain(`Installed uncode to ${destination}/uncode`)
+      expect(await Bun.file(path.join(destination, "opencode")).exists()).toBe(false)
     } finally {
       server.stop(true)
       await rm(root, { recursive: true, force: true })
     }
   },
 )
-
-for (const shell of ["bash", "sh", "zsh", "fish"]) {
-  test
-    .skipIf(!Bun.which(shell))
-    .each(["bin with spaces", "bin'quote", "bin\\slash", "bin$(touch injected)`touch injected`;$HOME"])(
-    "installer writes a literal, idempotent PATH entry for " + shell + ": %s",
-    async (directory) => {
-      const root = await mkdtemp("/tmp/opencode/release-shell-")
-      try {
-        const home = path.join(root, "home with spaces")
-        const config = path.join(
-          home,
-          shell === "fish"
-            ? ".config/fish/config.fish"
-            : shell === "zsh"
-              ? ".zshrc"
-              : shell === "sh"
-                ? ".profile"
-                : ".bashrc",
-        )
-        const binary = path.join(root, "binary")
-        const installDir = path.join(home, ".uncode", directory)
-        await Bun.write(config, "# existing configuration\n")
-        await Bun.write(binary, "#!/bin/sh\necho fixture-version\n")
-        const env = {
-          ...process.env,
-          HOME: home,
-          SHELL: shell,
-          UNCODE_INSTALL_DIR: installDir,
-          XDG_BIN_DIR: "",
-          XDG_CONFIG_HOME: path.join(home, ".config"),
-          ZDOTDIR: home,
-          GITHUB_ACTIONS: "false",
-        }
-        await Bun.$`bash ${installer} --binary ${binary}`.env(env).quiet()
-        const content = await Bun.file(config).text()
-        await Bun.$`bash ${installer} --binary ${binary}`.env(env).quiet()
-        expect(await Bun.file(config).text()).toBe(content)
-        expect(content).toStartWith("# existing configuration\n")
-        const command =
-          shell === "fish"
-            ? 'source "$CONFIG"; printf "%s\\n" $PATH[1]; uncode'
-            : '. "$CONFIG"; printf "%s\\n" "$PATH"; uncode'
-        const result = await Bun.$`${shell} -c ${command}`
-          .cwd(root)
-          .env({ ...env, CONFIG: config })
-          .quiet()
-        expect(result.exitCode).toBe(0)
-        expect(result.stdout.toString().split("\n")[0]).toBe(
-          shell === "fish" ? installDir : `${installDir}:${process.env.PATH}`,
-        )
-        expect(result.stdout.toString()).toEndWith("fixture-version\n")
-        expect(await Bun.file(path.join(root, "injected")).exists()).toBe(false)
-      } finally {
-        await rm(root, { recursive: true, force: true })
-      }
-    },
-  )
-}
 
 test.each(["MINGW64_NT-10.0", "MSYS_NT-10.0", "CYGWIN_NT-10.0"])(
   "installer rejects native Windows %s before creating files",
@@ -185,23 +114,27 @@ test.each(["MINGW64_NT-10.0", "MSYS_NT-10.0", "CYGWIN_NT-10.0"])(
     try {
       await Bun.write(path.join(root, "bin/uname"), '#!/bin/sh\nprintf "%s\\n" "$INSTALL_TEST_PLATFORM"\n')
       await chmod(path.join(root, "bin/uname"), 0o755)
-      for (const args of [[], ["--binary", path.join(root, "missing")]]) {
-        const result = await Bun.$`bash ${installer} --no-modify-path ${args}`
-          .env({
-            ...process.env,
-            PATH: `${path.join(root, "bin")}:${process.env.PATH}`,
-            HOME: root,
-            UNCODE_INSTALL_DIR: path.join(root, "installation"),
-            INSTALL_TEST_PLATFORM: platform,
-          })
-          .nothrow()
-          .quiet()
-        expect(result.exitCode).toBe(1)
-        expect(result.stderr.toString()).toContain("supports Linux and macOS only")
-        expect(await readdir(root)).toEqual(["bin"])
-      }
+      const result = await Bun.$`bash ${installer}`
+        .env({
+          ...process.env,
+          PATH: `${path.join(root, "bin")}:${process.env.PATH}`,
+          HOME: root,
+          UNCODE_INSTALL_DIR: path.join(root, "installation"),
+          INSTALL_TEST_PLATFORM: platform,
+        })
+        .nothrow()
+        .quiet()
+      expect(result.exitCode).toBe(1)
+      expect(result.stderr.toString()).toContain("supports Linux and macOS only")
+      expect(await readdir(root)).toEqual(["bin"])
     } finally {
       await rm(root, { recursive: true, force: true })
     }
   },
 )
+
+test("installer rejects command-line options", async () => {
+  const result = await Bun.$`bash ${installer} --version v2.3.4`.nothrow().quiet()
+  expect(result.exitCode).toBe(1)
+  expect(result.stderr.toString()).toContain("Run install without arguments")
+})

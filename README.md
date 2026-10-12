@@ -27,6 +27,9 @@ The install script respects the following priority order for the installation pa
 2. `$XDG_BIN_DIR` - XDG Base Directory Specification compliant path
 3. `$HOME/.uncode/bin` - Default fallback
 
+It installs the latest release without command-line options or changing shell
+configuration. Add the installation directory to your `PATH` if needed.
+
 ```bash
 # Examples
 curl -fsSL https://github.com/xLongLink/uncode/releases/latest/download/install | UNCODE_INSTALL_DIR=$HOME/.local/bin bash

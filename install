@@ -1,322 +1,48 @@
 #!/usr/bin/env bash
 set -euo pipefail
-APP=uncode
-SOURCE_APP=uncode
-REPO=${GH_REPO:-xLongLink/uncode}
+
+if [ "$#" -ne 0 ]; then
+    echo "Run install without arguments. Set UNCODE_INSTALL_DIR to change the destination." >&2
+    exit 1
+fi
 
 case "$(uname -s)" in
-    Linux|Darwin) ;;
-    *) echo "Unsupported operating system: uncode supports Linux and macOS only." >&2; exit 1 ;;
+    Linux) os=linux ;;
+    Darwin) os=darwin ;;
+    *) echo "uncode supports Linux and macOS only." >&2; exit 1 ;;
 esac
 
-MUTED='\033[0;2m'
-RED='\033[0;31m'
-ORANGE='\033[38;5;214m'
-NC='\033[0m' # No Color
+case "$(uname -m)" in
+    x86_64) arch=x64 ;;
+    aarch64|arm64) arch=arm64 ;;
+    *) echo "uncode supports x64 and ARM64 only." >&2; exit 1 ;;
+esac
 
-usage() {
-    cat <<EOF
-uncode Installer
+if [ "$os" = darwin ] && [ "$arch" = x64 ] && [ "$(sysctl -n sysctl.proc_translated 2>/dev/null || true)" = 1 ]; then
+    arch=arm64
+fi
 
-Usage: install.sh [options]
+target="$os-$arch"
+if [ "$arch" = x64 ]; then
+    if { [ "$os" = linux ] && ! grep -qwi avx2 /proc/cpuinfo; } ||
+       { [ "$os" = darwin ] && [ "$(sysctl -n hw.optional.avx2_0 2>/dev/null || true)" != 1 ]; }; then
+        target="$target-baseline"
+    fi
+fi
+if [ "$os" = linux ] && { [ -f /etc/alpine-release ] || ldd --version 2>&1 | grep -qi musl; }; then
+    target="$target-musl"
+fi
 
-Options:
-    -h, --help              Display this help message
-    -v, --version <version> Install a specific version (e.g., 0.0.0-beta-17236)
-    -b, --binary <path>     Install from a local binary instead of downloading
-        --no-modify-path    Don't modify shell config files (.zshrc, .bashrc, etc.)
-        --install-dir <dir> Set the installation directory
-
-Examples:
-    curl -fsSL https://github.com/$REPO/releases/latest/download/install | bash
-    curl -fsSL https://github.com/$REPO/releases/latest/download/install | bash -s -- --version 0.0.0-beta-17236
-    ./install --binary /path/to/uncode
-EOF
-}
-
-requested_version=${VERSION:-}
-no_modify_path=false
-binary_path=""
 install_dir=${UNCODE_INSTALL_DIR:-${XDG_BIN_DIR:-$HOME/.uncode/bin}}
+tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/uncode_install.XXXXXXXX")
+trap 'rm -rf -- "$tmp_dir"' EXIT
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        -h|--help)
-            usage
-            exit 0
-            ;;
-        -v|--version)
-            if [[ -n "${2:-}" ]]; then
-                requested_version="$2"
-                shift 2
-            else
-                echo -e "${RED}Error: --version requires a version argument${NC}"
-                exit 1
-            fi
-            ;;
-        -b|--binary)
-            if [[ -n "${2:-}" ]]; then
-                binary_path="$2"
-                shift 2
-            else
-                echo -e "${RED}Error: --binary requires a path argument${NC}"
-                exit 1
-            fi
-            ;;
-        --install-dir)
-            if [[ -z "${2:-}" ]]; then
-                echo "Error: --install-dir requires a directory" >&2
-                exit 1
-            fi
-            install_dir="$2"
-            shift 2
-            ;;
-        --no-modify-path)
-            no_modify_path=true
-            shift
-            ;;
-        *)
-            echo -e "${ORANGE}Warning: Unknown option '$1'${NC}" >&2
-            shift
-            ;;
-    esac
-done
+curl -fsSL "https://github.com/${GH_REPO:-xLongLink/uncode}/releases/latest/download/uncode-$target.tar.gz" -o "$tmp_dir/uncode.tar.gz"
+tar -xzf "$tmp_dir/uncode.tar.gz" -C "$tmp_dir"
+mkdir -p "$install_dir"
+install -m 755 "$tmp_dir/uncode" "$install_dir/uncode"
 
-INSTALL_DIR=$install_dir
-mkdir -p "$INSTALL_DIR"
-
-# If --binary is provided, skip all download/detection logic
-if [ -n "$binary_path" ]; then
-    if [ ! -f "$binary_path" ]; then
-        echo -e "${RED}Error: Binary not found at ${binary_path}${NC}"
-        exit 1
-    fi
-    specific_version="local"
-else
-    raw_os=$(uname -s)
-    os=$(echo "$raw_os" | tr '[:upper:]' '[:lower:]')
-    case "$raw_os" in
-      Darwin*) os="darwin" ;;
-      Linux*) os="linux" ;;
-    esac
-
-    arch=$(uname -m)
-    if [[ "$arch" == "aarch64" ]]; then
-      arch="arm64"
-    fi
-    if [[ "$arch" == "x86_64" ]]; then
-      arch="x64"
-    fi
-
-    if [ "$os" = "darwin" ] && [ "$arch" = "x64" ]; then
-      rosetta_flag=$(sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)
-      if [ "$rosetta_flag" = "1" ]; then
-        arch="arm64"
-      fi
-    fi
-
-    combo="$os-$arch"
-    case "$combo" in
-      linux-x64|linux-arm64|darwin-x64|darwin-arm64)
-        ;;
-      *)
-        echo -e "${RED}Unsupported OS/Arch: $os/$arch${NC}"
-        exit 1
-        ;;
-    esac
-
-    is_musl=false
-    if [ "$os" = "linux" ]; then
-      if [ -f /etc/alpine-release ]; then
-        is_musl=true
-      fi
-
-      if command -v ldd >/dev/null 2>&1; then
-        if ldd --version 2>&1 | grep -qi musl; then
-          is_musl=true
-        fi
-      fi
-    fi
-
-    needs_baseline=false
-    if [ "$arch" = "x64" ]; then
-      if [ "$os" = "linux" ]; then
-        if ! grep -qwi avx2 /proc/cpuinfo 2>/dev/null; then
-          needs_baseline=true
-        fi
-      fi
-
-      if [ "$os" = "darwin" ]; then
-        avx2=$(sysctl -n hw.optional.avx2_0 2>/dev/null || echo 0)
-        if [ "$avx2" != "1" ]; then
-          needs_baseline=true
-        fi
-      fi
-
-    fi
-
-    target="$os-$arch"
-    if [ "$needs_baseline" = "true" ]; then
-      target="$target-baseline"
-    fi
-    if [ "$is_musl" = "true" ]; then
-      target="$target-musl"
-    fi
-
-    if ! command -v tar >/dev/null 2>&1; then
-        echo -e "${RED}Error: 'tar' is required but not installed.${NC}"
-        exit 1
-    fi
-
-    if [ -z "$requested_version" ]; then
-        metadata=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" || true)
-        specific_version=$(echo "$metadata" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"v\([^"]*\)".*/\1/p')
-        if [ -z "$specific_version" ]; then
-            echo -e "${RED}Failed to fetch version information${NC}"
-            exit 1
-        fi
-    else
-        # Strip leading 'v' if present
-        requested_version="${requested_version#v}"
-        specific_version=$requested_version
-    fi
-
-    filename="uncode-$target.tar.gz"
-    url="https://github.com/$REPO/releases/download/v$specific_version/$filename"
-    binary_name="$SOURCE_APP"
+echo "Installed uncode to $install_dir/uncode"
+if [[ ":$PATH:" != *":$install_dir:"* ]]; then
+    echo "Add $install_dir to your PATH to run uncode."
 fi
-
-print_message() {
-    local level=$1
-    local message=$2
-    local color=""
-
-    case $level in
-        info) color="${NC}" ;;
-        warning) color="${NC}" ;;
-        error) color="${RED}" ;;
-    esac
-
-    echo -e "${color}${message}${NC}"
-}
-
-check_version() {
-    if command -v "$APP" >/dev/null 2>&1; then
-        opencode_path=$(which "$APP")
-
-        ## Check the installed version
-        installed_version=$("$APP" --version 2>/dev/null || echo "")
-        installed_version="${installed_version##* }"
-        installed_version="${installed_version#v}"
-
-        print_message info "${MUTED}Installed version: ${NC}$installed_version."
-    fi
-}
-
-download_and_install() (
-    print_message info "\n${MUTED}Installing ${NC}$APP ${MUTED}version: ${NC}$specific_version"
-    tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/uncode_install.XXXXXXXX")
-    trap 'rm -rf -- "$tmp_dir"' EXIT
-    curl -f -# -L -o "$tmp_dir/$filename" "$url"
-
-    tar -xzf "$tmp_dir/$filename" -C "$tmp_dir"
-    mv "$tmp_dir/$binary_name" "$INSTALL_DIR/$APP"
-    chmod 755 "$INSTALL_DIR/$APP"
-)
-
-install_from_binary() {
-    print_message info "\n${MUTED}Installing ${NC}$APP ${MUTED}from: ${NC}$binary_path"
-    local installed_binary="$APP"
-    cp "$binary_path" "$INSTALL_DIR/$installed_binary"
-    chmod 755 "$INSTALL_DIR/$installed_binary"
-}
-
-if [ -n "$binary_path" ]; then
-    install_from_binary
-else
-    check_version
-    download_and_install
-fi
-
-
-add_to_path() {
-    local config_file=$1
-    local command=$2
-
-    if grep -Fxq "$command" "$config_file"; then
-        print_message info "Command already exists in $config_file, skipping write."
-    elif [[ -w $config_file ]]; then
-        echo -e "\n# uncode" >> "$config_file"
-        printf '%s\n' "$command" >> "$config_file"
-        print_message info "${MUTED}Successfully added ${NC}uncode ${MUTED}to \$PATH in ${NC}$config_file"
-    else
-        print_message warning "Manually add the directory to $config_file (or similar):"
-        print_message info "  $command"
-    fi
-}
-
-XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
-
-if [[ "$no_modify_path" != "true" ]]; then
-    current_shell=$(basename "$SHELL")
-    case $current_shell in
-        fish)
-            config_files=("$HOME/.config/fish/config.fish")
-            # Fish single quotes escape backslashes and single quotes.
-            quoted_dir=${INSTALL_DIR//\\/\\\\}
-            quoted_dir=${quoted_dir//\'/\\\'}
-            path_command="fish_add_path '$quoted_dir'"
-        ;;
-        *)
-            quoted_dir=${INSTALL_DIR//\'/\'\\\'\'}
-            path_command="export PATH='$quoted_dir':\$PATH"
-            case $current_shell in
-                zsh) config_files=("${ZDOTDIR:-$HOME}/.zshrc" "${ZDOTDIR:-$HOME}/.zshenv" "$XDG_CONFIG_HOME/zsh/.zshrc" "$XDG_CONFIG_HOME/zsh/.zshenv") ;;
-                bash) config_files=("$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.profile" "$XDG_CONFIG_HOME/bash/.bashrc" "$XDG_CONFIG_HOME/bash/.bash_profile") ;;
-                ash|sh) config_files=("$HOME/.ashrc" "$HOME/.profile" "/etc/profile") ;;
-                *) config_files=("$HOME/.bashrc" "$HOME/.bash_profile" "$XDG_CONFIG_HOME/bash/.bashrc" "$XDG_CONFIG_HOME/bash/.bash_profile") ;;
-            esac
-        ;;
-    esac
-    config_file=""
-    for file in "${config_files[@]}"; do
-        if [[ -f $file ]]; then
-            config_file=$file
-            break
-        fi
-    done
-
-    if [[ -z $config_file ]]; then
-        print_message warning "No config file found for $current_shell. You may need to manually add to PATH:"
-        print_message info "  $path_command"
-    elif [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
-        case $current_shell in
-            fish|zsh|bash|ash|sh)
-                add_to_path "$config_file" "$path_command"
-            ;;
-            *)
-                export PATH=$INSTALL_DIR:$PATH
-                print_message warning "Manually add the directory to $config_file (or similar):"
-                print_message info "  $path_command"
-            ;;
-        esac
-    fi
-fi
-
-if [ -n "${GITHUB_ACTIONS-}" ] && [ "${GITHUB_ACTIONS}" == "true" ]; then
-    echo "$INSTALL_DIR" >> $GITHUB_PATH
-    print_message info "Added $INSTALL_DIR to \$GITHUB_PATH"
-fi
-
-echo -e ""
-echo -e "uncode"
-echo -e ""
-echo -e ""
-echo -e "${MUTED}To start:${NC}"
-echo -e ""
-echo -e "cd <project>  ${MUTED}# Open directory${NC}"
-echo -e "uncode      ${MUTED}# Run command${NC}"
-echo -e ""
-echo -e "${MUTED}For more information visit ${NC}https://github.com/$REPO"
-echo -e ""
-echo -e ""
