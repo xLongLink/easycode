@@ -18,9 +18,6 @@
       "outputs": [],
       "cache": false
     },
-    "@opencode/enterprise#typecheck": {
-      "dependsOn": ["@opencode/core#typecheck"]
-    },
     "@opencode/sdk#typecheck": {
       "dependsOn": ["@opencode/core#typecheck"]
     },
@@ -47,9 +44,6 @@
     },
     "@opencode/core#test": {
       "dependsOn": ["^build"],
-      "outputs": []
-    },
-    "@opencode/function#test": {
       "outputs": []
     },
     "@opencode/desktop#test": {
