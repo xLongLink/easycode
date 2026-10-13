@@ -1,12 +1,21 @@
 <div align="center">
 
-<h3 >
-unCode
+<img src="banner.png" alt="LongLink banner" />
+
+
+<h3>
+Build with an AI coding agent in your terminal
 </h3>
 
-An open source AI coding agent with a core runtime and terminal UI, based on OpenCode.
 
-</div >
+unCode is an open source AI coding agent based on OpenCode, with a core runtime and terminal UI to help you explore, write, and improve code.
+
+[![Tests](https://github.com/xLongLink/uncode/actions/workflows/test.yml/badge.svg)](https://github.com/xLongLink/uncode/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/github/v/release/xLongLink/uncode)](https://github.com/xLongLink/uncode/releases/latest)
+
+
+</div>
 
 
 <br />
@@ -35,6 +44,29 @@ curl -fsSL https://github.com/xLongLink/uncode/releases/latest/download/install 
 ```
 
 </details>
+
+<br />
+
+## 📝 Changes
+
+Changes from OpenCode, focused on keeping the core runtime and terminal UI.
+
+**Removed**:
+
+- 🖥️ Desktop and browser interfaces.
+- 🪟 Native Windows and Workerd support.
+- 🔗 Device pairing and remote tunnels.
+- 📦 Self-updates, release channel selection, and package-manager distribution.
+- 🗂️ Session tabs, mini interactive mode, and the getting-started sidebar card.
+- 🎨 Light mode and additional terminal themes.
+- ⌨️ `/init` and `/editor` slash commands.
+- 🧹 Mermaid and LaTeX rendering packages, TUI Storybook demos, and unused tooling.
+
+**Added**:
+
+- 🔁 Built-in **Loop** agent for iterative repository review and improvements.
+- 🎙️ Built-in **GPT-Live** voice support with a Node audio helper.
+- 🛠️ Simplified GitHub release installation and a `make uncode` local build/install command.
 
 <br />
 
