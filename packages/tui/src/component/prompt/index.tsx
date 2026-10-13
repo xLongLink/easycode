@@ -69,6 +69,7 @@ import { directoryRecentValue } from "../../prompt/directory-completion"
 import { useWorkingDirectoryActions } from "../../ui/working-directory-actions"
 import { truncateFilePath } from "../../ui/file-path"
 import { PromptMetadataRow } from "./metadata"
+import { DialogDictate } from "../dialog-dictate"
 
 export type PromptProps = {
   sessionID?: string
@@ -571,6 +572,25 @@ export function Prompt(props: PromptProps) {
           })
           restoreExtmarksFromPrompt(store.prompt)
           input.cursorOffset = stringWidth(normalized)
+        },
+      },
+      {
+        title: "Dictate prompt",
+        name: "prompt.dictate",
+        category: "Prompt",
+        slash: { name: "dictate" },
+        enabled: store.mode === "normal",
+        run: () => {
+          const sessionID = props.sessionID
+          dialog.replace(() => (
+            <DialogDictate
+              onText={(text) => {
+                if (disposed || input.isDestroyed || disabled() || props.sessionID !== sessionID) return
+                input.insertText(text)
+                setStore("prompt", "text", input.plainText)
+              }}
+            />
+          ))
         },
       },
       {

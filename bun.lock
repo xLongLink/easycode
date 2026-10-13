@@ -260,6 +260,18 @@
         "@opentui/core": "catalog:",
       },
     },
+    "packages/needle": {
+      "name": "@opencode/needle",
+      "version": "2.0.27",
+      "dependencies": {
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@tsconfig/bun": "catalog:",
+        "@types/bun": "catalog:",
+        "@typescript/native-preview": "catalog:",
+      },
+    },
     "packages/plugin": {
       "name": "@opencode/plugin",
       "version": "2.0.27",
@@ -400,6 +412,7 @@
         "@opencode/client": "workspace:*",
         "@opencode/core": "workspace:*",
         "@opencode/live": "workspace:*",
+        "@opencode/needle": "workspace:*",
         "@opencode/plugin": "workspace:*",
         "@opencode/schema": "workspace:*",
         "@opencode/simulation": "workspace:*",
@@ -935,6 +948,8 @@
     "@opencode/httpapi-codegen": ["@opencode/httpapi-codegen@workspace:packages/httpapi-codegen"],
 
     "@opencode/live": ["@opencode/live@workspace:packages/live"],
+
+    "@opencode/needle": ["@opencode/needle@workspace:packages/needle"],
 
     "@opencode/plugin": ["@opencode/plugin@workspace:packages/plugin"],
 
