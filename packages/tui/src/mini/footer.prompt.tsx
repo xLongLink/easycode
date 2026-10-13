@@ -53,7 +53,7 @@ import {
 } from "./prompt.shared"
 import { parseFileLineRange, parseSlashHead, stripFileLineRange } from "../prompt/parse"
 import { Keymap } from "../context/keymap"
-import { realignEditorPromptParts, resolveEditorSlashValue } from "./prompt.editor"
+import { realignEditorPromptParts } from "./prompt.editor"
 import { FOOTER_COMPACT_WIDTH, FOOTER_MENU_ROWS, createFooterMenuState, type RunFooterMenuItem } from "./footer.menu"
 import type { RunFooterTheme } from "./theme"
 import type {
@@ -105,7 +105,7 @@ type Auto = RunFooterMenuItem & {
 type SlashOption = RunFooterMenuItem & {
   kind: "slash"
   name: string
-  action?: "editor" | "settings"
+  action?: "settings"
 }
 
 type PromptOption = Auto | SlashOption
@@ -512,13 +512,6 @@ export function createPromptState(input: PromptInput): PromptState {
   const mentionOptions = createMemo(() => [...agents(), ...files(), ...references()])
   const slashOptions = createMemo<SlashOption[]>(() => {
     const builtins = [
-      {
-        kind: "slash",
-        action: "editor" as const,
-        name: "editor",
-        display: "/editor",
-        description: "compose in your external editor",
-      } satisfies SlashOption,
       {
         kind: "slash",
         action: "settings" as const,
@@ -1039,13 +1032,6 @@ export function createPromptState(input: PromptInput): PromptState {
     }
 
     if (next.kind === "slash") {
-      if (next.action === "editor") {
-        void openEditor({
-          value: resolveEditorSlashValue(area.plainText),
-        })
-        return
-      }
-
       if (next.action === "settings" && !shell()) {
         cancelAutocomplete()
         input.onSettings()

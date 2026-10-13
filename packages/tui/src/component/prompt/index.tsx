@@ -549,7 +549,6 @@ export function Prompt(props: PromptProps) {
         title: "Open editor",
         category: "Session",
         name: "prompt.editor",
-        slash: { name: "editor" },
         run: async () => {
           dialog.clear()
 

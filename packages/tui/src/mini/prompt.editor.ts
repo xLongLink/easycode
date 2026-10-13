@@ -1,17 +1,7 @@
 import type { RunPromptPart } from "./types"
 import { realignPromptMentions } from "../prompt/mention"
-import { parseSlashHead } from "../prompt/parse"
 
 type Mention = Extract<RunPromptPart, { type: "file" | "agent" | "skill" }>
-
-export function resolveEditorSlashValue(text: string) {
-  const head = parseSlashHead(text)
-  if (!head || head.name.toLowerCase() !== "editor") {
-    return text
-  }
-
-  return head.arguments
-}
 
 export function realignEditorPromptParts(content: string, parts: RunPromptPart[]): RunPromptPart[] {
   const matches = realignPromptMentions(

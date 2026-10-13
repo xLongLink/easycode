@@ -877,7 +877,7 @@ test("direct command panel renders grouped actions without catalog commands", as
     expect(frame).toContain("Session")
     expect(frame).toContain("Agent")
     expect(frame).toContain("Open editor")
-    expect(frame).toContain("/editor")
+    expect(frame).not.toContain("/editor")
     expect(frame).toContain("Show status")
     expect(frame).toContain("Compact session")
     expect(frame).toContain("/compact")
