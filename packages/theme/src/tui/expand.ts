@@ -42,7 +42,7 @@ function expandText(definition: TextDefinition | undefined): TextDefinition | un
     ...definition,
     muted: definition.muted ?? (definition.base ? "$text.base" : undefined),
     action: expandActions(definition.action, "text.action"),
-    formfield: expandFormfield(definition.formfield, "text.formfield"),
+    formfield: expandStatefulColor(definition.formfield, "text.formfield"),
     feedback: definition.feedback
       ? Object.fromEntries(
           Object.entries(definition.feedback).map(([kind, feedback]) => {
@@ -64,11 +64,11 @@ function expandBackground(definition: BackgroundDefinition | undefined): Backgro
   return {
     ...definition,
     action: expandActions(definition.action, "background.action"),
-    formfield: expandFormfield(definition.formfield, "background.formfield"),
+    formfield: expandStatefulColor(definition.formfield, "background.formfield"),
   }
 }
 
-function expandFormfield(definition: StatefulColorDefinition | undefined, path: string) {
+function expandStatefulColor(definition: StatefulColorDefinition | undefined, path: string) {
   if (!definition?.base) return definition
   return {
     ...definition,
@@ -84,18 +84,7 @@ function expandActions<Definition extends Partial<Record<string, StatefulColorDe
 ) {
   if (!definition) return
   return Object.fromEntries(
-    Object.entries(definition).map(([variant, value]) => {
-      if (!value?.base) return [variant, value]
-      return [
-        variant,
-        {
-          ...value,
-          ...Object.fromEntries(
-            ActionState.literals.map((state) => [`$${state}`, value[`$${state}`] ?? `$${path}.${variant}.base`]),
-          ),
-        },
-      ]
-    }),
+    Object.entries(definition).map(([variant, value]) => [variant, expandStatefulColor(value, `${path}.${variant}`)]),
   ) as Definition
 }
 

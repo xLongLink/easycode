@@ -1,21 +1,7 @@
-import type { LanguageModelV3 } from "@ai-sdk/provider"
-import type { Model } from "@opencode/schema/model"
+import type { HookPayload } from "../hooks.js"
 import type { ModelHooks } from "./registration.js"
 
-export interface AISDKHooks {
-  sdk: {
-    readonly model: Model.Info
-    readonly package: string
-    readonly options: Record<string, any>
-    sdk?: any
-  }
-  language: {
-    readonly model: Model.Info
-    readonly sdk: any
-    readonly options: Record<string, any>
-    language?: LanguageModelV3
-  }
-}
+export interface AISDKHooks extends HookPayload.AISDKHooks {}
 
 export interface AISDKDomain {
   readonly hook: ModelHooks<AISDKHooks>

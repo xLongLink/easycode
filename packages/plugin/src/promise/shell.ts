@@ -1,14 +1,9 @@
+import type { HookPayload } from "../hooks.js"
 import type { Hooks } from "./registration.js"
 
-export interface ShellCreateBefore {
-  command: string
-  cwd: string
-  timeout: number
-  shell: string
-  env: Record<string, string | undefined>
-}
+export interface ShellCreateBefore extends HookPayload.ShellCreateBefore {}
 
-export interface ShellHooks {
+export interface ShellHooks extends HookPayload.ShellHooks {
   readonly "create.before": ShellCreateBefore
 }
 
