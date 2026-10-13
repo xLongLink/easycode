@@ -9,7 +9,7 @@ import { Standalone } from "./standalone"
 export type Args = {
   readonly server?: string
   readonly standalone?: boolean
-  readonly mismatch?: "replace" | "ignore" | "error"
+  readonly mismatch?: "replace" | "ignore"
   readonly onStart?: EnsureOptions["onStart"]
 }
 
@@ -42,10 +42,9 @@ export const resolve = Effect.fn("cli.server-connection.resolve")(function* (arg
     return { endpoint: yield* Standalone.start() } satisfies Resolved
   }
 
-  const mismatch = args.mismatch ?? "ignore"
-  const options = yield* ServiceConfig.options({ checkVersion: mismatch !== "ignore" })
+  const options = yield* ServiceConfig.options({ checkVersion: args.mismatch === "replace" })
   return {
-    endpoint: yield* resolveManaged({ ...options, onStart: args.onStart }, mismatch),
+    endpoint: yield* Service.ensure({ ...options, onStart: args.onStart }),
     service: managedService(options),
   } satisfies Resolved
 })
@@ -69,18 +68,6 @@ export const shutdownPersistentPty = Effect.fn("cli.server-connection.shutdown-p
   if (!endpoint) return
   const client = OpenCode.make({ baseUrl: endpoint.url, headers: Service.headers(endpoint) })
   yield* Effect.tryPromise(() => client.experimental.persistentPty.shutdown())
-})
-
-const resolveManaged = Effect.fnUntraced(function* (options: EnsureOptions, mismatch: NonNullable<Args["mismatch"]>) {
-  if (mismatch === "replace") return yield* Service.ensure(options)
-  if (mismatch === "ignore") return yield* Service.ensure({ ...options, version: undefined })
-
-  const compatible = yield* Service.discover(options)
-  if (compatible !== undefined) return compatible
-  const existing = yield* Service.discover({ ...options, version: undefined })
-  if (existing !== undefined)
-    return yield* Effect.fail(new Error("Background server version does not match this client"))
-  return yield* Service.ensure(options)
 })
 
 function connectError(endpoint: Endpoint, cause: unknown) {

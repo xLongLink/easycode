@@ -345,6 +345,42 @@ test("portable schema failures become tool failures", async () => {
   )
 })
 
+test.each(["throw", "reject"])("portable validator %s failures retain tool issue policy", async (mode) => {
+  const schema = {
+    "~standard": {
+      version: 1,
+      vendor: "test",
+      validate: () => {
+        if (mode === "reject") return Promise.reject(new Error("validator failed"))
+        throw new Error("validator failed")
+      },
+    },
+  }
+  const tool: Info = {
+    name: "portable",
+    description: "Portable tool",
+    input: schema,
+    execute: () => Effect.die("invalid input must not execute"),
+  }
+  expect(await Effect.runPromise(Effect.flip(execute(tool, {}, context)))).toEqual(
+    new Tool.Error({
+      message:
+        'Invalid arguments for tool "portable":\n- root: validator failed\n\nArguments provided:\n{}\n\nUpdate the arguments and call the tool again.',
+    }),
+  )
+  expect(
+    await Effect.runPromise(
+      Effect.flip(
+        execute(
+          { ...tool, input: Schema.Unknown, output: schema, execute: () => Effect.succeed({ output: "raw" }) },
+          {},
+          context,
+        ),
+      ),
+    ),
+  ).toEqual(new Tool.Error({ message: "Tool returned an invalid value for its output schema: validator failed" }))
+})
+
 test("Effect schema failures use normalized input issues", async () => {
   const tool: Info = {
     name: "effect",

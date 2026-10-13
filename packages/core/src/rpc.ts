@@ -12,6 +12,7 @@ import { Context, Deferred, Effect, JsonSchema, Layer, Schema, SchemaRepresentat
 import { Bus } from "./bus.js"
 import { Location } from "./location.js"
 import { optional, statics } from "./schema.js"
+import { invokeStandardValidator } from "./util/standard-schema.js"
 
 export interface Interface {
   readonly register: RpcDomain["register"]
@@ -204,9 +205,7 @@ function parse(schema: Tool.ValueSchema, value: unknown): Effect.Effect<unknown,
   if (Schema.isSchema(schema)) return Schema.decodeUnknownEffect(schema)(value)
   if (isStandardSchema(schema)) {
     return Effect.gen(function* () {
-      const parsed = yield* Effect.try({ try: () => schema["~standard"].validate(value), catch: (cause) => cause })
-      const result =
-        parsed instanceof Promise ? yield* Effect.tryPromise({ try: () => parsed, catch: (cause) => cause }) : parsed
+      const result = yield* invokeStandardValidator(schema, value)
       if (result.issues) return yield* Effect.fail(new Error(result.issues.map((issue) => issue.message).join("\n")))
       return result.value
     })

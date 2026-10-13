@@ -292,14 +292,7 @@ type PendingCommandAttempt = {
   scope: Scope.Closeable
   time: AttemptTime
 }
-type TerminalCommandAttempt = {
-  status: "complete" | "failed" | "expired"
-  integrationID: ID
-  message?: string
-  removeAt: number
-  time: AttemptTime
-}
-type CommandAttemptEntry = PendingCommandAttempt | TerminalCommandAttempt
+type CommandAttemptEntry = PendingCommandAttempt | TerminalAttempt
 
 const layer = Layer.effect(
   Service,
@@ -515,7 +508,7 @@ const layer = Layer.effect(
         value: Credential.Key.make({ type: "key", key: exit.value }),
       }).pipe(Effect.asVoid, Effect.exit)
       const settledAt = yield* Clock.currentTimeMillis
-      const terminal: TerminalCommandAttempt = Exit.isSuccess(persistence)
+      const terminal: TerminalAttempt = Exit.isSuccess(persistence)
         ? {
             status: "complete",
             integrationID: attempt.integrationID,
@@ -533,9 +526,11 @@ const layer = Layer.effect(
       yield* close(attempt.scope)
     }, Effect.uninterruptible)
 
-    const scrub = Effect.fnUntraced(function* () {
+    const scrub = Effect.fnUntraced(function* <Pending extends PendingAttempt | PendingCommandAttempt>(
+      registry: SynchronizedRef.SynchronizedRef<Map<AttemptID, Pending | TerminalAttempt>>,
+    ): Effect.fn.Return<void> {
       const now = yield* Clock.currentTimeMillis
-      const expired = yield* SynchronizedRef.modify(attempts, (current) => {
+      const expired = yield* SynchronizedRef.modify(registry, (current) => {
         const next = new Map(current)
         const scopes: Scope.Closeable[] = []
         for (const [id, attempt] of current) {
@@ -556,31 +551,8 @@ const layer = Layer.effect(
       yield* Effect.forEach(expired, close, { discard: true })
     })
 
-    const scrubCommands = Effect.fnUntraced(function* () {
-      const now = yield* Clock.currentTimeMillis
-      const expired = yield* SynchronizedRef.modify(commandAttempts, (current) => {
-        const next = new Map(current)
-        const scopes: Scope.Closeable[] = []
-        for (const [id, attempt] of current) {
-          if (attempt.status === "pending" && !attempt.persisting && attempt.time.expires <= now) {
-            scopes.push(attempt.scope)
-            next.set(id, {
-              status: "expired",
-              integrationID: attempt.integrationID,
-              time: attempt.time,
-              removeAt: now + terminalRetention,
-            })
-            continue
-          }
-          if (attempt.status !== "pending" && attempt.removeAt <= now) next.delete(id)
-        }
-        return [scopes, next]
-      })
-      yield* Effect.forEach(expired, close, { discard: true })
-    })
-
-    yield* scrub().pipe(Effect.repeat(Schedule.spaced(scrubInterval)), Effect.forkIn(scope))
-    yield* scrubCommands().pipe(Effect.repeat(Schedule.spaced(scrubInterval)), Effect.forkIn(scope))
+    yield* scrub(attempts).pipe(Effect.repeat(Schedule.spaced(scrubInterval)), Effect.forkIn(scope))
+    yield* scrub(commandAttempts).pipe(Effect.repeat(Schedule.spaced(scrubInterval)), Effect.forkIn(scope))
 
     const connectOAuth = Effect.fn("Integration.oauth.connect")(function* (input: {
       readonly integrationID: ID

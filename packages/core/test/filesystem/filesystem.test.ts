@@ -338,25 +338,6 @@ describe("FSUtil", () => {
     )
   })
 
-  describe("globUp", () => {
-    it(
-      "finds files walking up directories",
-      Effect.gen(function* () {
-        const fs = yield* FSUtil.Service
-        const filesys = yield* FileSystem.FileSystem
-        const tmp = yield* filesys.makeTempDirectoryScoped()
-        yield* filesys.writeFileString(path.join(tmp, "root.md"), "root")
-        const child = path.join(tmp, "a", "b")
-        yield* filesys.makeDirectory(child, { recursive: true })
-        yield* filesys.writeFileString(path.join(child, "leaf.md"), "leaf")
-
-        const result = yield* fs.globUp("*.md", child, tmp)
-        expect(result).toContain(path.join(child, "leaf.md"))
-        expect(result).toContain(path.join(tmp, "root.md"))
-      }),
-    )
-  })
-
   describe("built-in passthrough", () => {
     it(
       "exists works",

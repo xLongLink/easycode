@@ -12,7 +12,8 @@ export const DynamicProviderPlugin = define({
       Effect.fn(function* (evt) {
         if (evt.sdk) return
 
-        evt.sdk = ((yield* loadSDKFactory(npm, evt.package)) as (options: any) => any)(evt.options)
+        const factory = yield* loadSDKFactory(npm, evt.package)
+        evt.sdk = factory(evt.options)
       }),
     )
   }),

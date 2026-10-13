@@ -41,7 +41,6 @@ type CreateInput = Shell.CreateInput & {
 type Active = {
   // Immutable snapshot; lifecycle updates replace it via immer `produce`.
   info: Info
-  file: string
   size: number
   newlines: number
   // Resolves with the terminal Info once the command exits, times out, or is killed. A wait
@@ -165,7 +164,7 @@ const layer = () =>
         if (command.timeoutFiber) yield* Fiber.interrupt(command.timeoutFiber)
         // Unblock any wait still pending when the command is removed before it terminated.
         yield* Deferred.fail(command.done, new NotFoundError({ id }))
-        yield* Effect.promise(() => unlink(command.file).catch(() => {}))
+        yield* Effect.promise(() => unlink(command.info.file).catch(() => {}))
         yield* bus.publish(Shell.Event.Deleted, { id })
       })
 
@@ -206,7 +205,7 @@ const layer = () =>
         const bytesRead = yield* Effect.promise(
           () =>
             new Promise<number>((resolve) => {
-              const stream = createReadStream(command.file, { start, end: start + length - 1 })
+              const stream = createReadStream(command.info.file, { start, end: start + length - 1 })
               let offset = 0
               stream.on("data", (chunk: string | Buffer) => {
                 const bytes = Buffer.from(chunk)
@@ -313,7 +312,6 @@ const layer = () =>
                 info: produce(info, (draft) => {
                   draft.pid = handle.pid
                 }),
-                file,
                 size: 0,
                 newlines: 0,
                 done: Deferred.makeUnsafe<Info, NotFoundError>(),

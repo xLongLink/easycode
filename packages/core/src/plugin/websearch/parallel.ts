@@ -5,6 +5,7 @@ import { Effect, Schema, Scope } from "effect"
 import { HttpClient } from "effect/http"
 import { App } from "../../app.js"
 import { WebSearchMcp } from "./mcp.js"
+import { WebSearchIntegration } from "./integration.js"
 
 export const endpoint = "https://search.parallel.ai/mcp"
 
@@ -52,17 +53,7 @@ export const Plugin = define<HttpClient.HttpClient | Scope.Scope>({
   id: "opencode.websearch.parallel",
   effect: Effect.fn("WebSearchParallel.Plugin")(function* (ctx) {
     const http = yield* HttpClient.HttpClient
-    yield* ctx.integration.transform((editor) => {
-      editor.update("parallel", (integration) => (integration.name = "Parallel"))
-      editor.method.update({
-        integrationID: "parallel",
-        method: { type: "key" },
-      })
-      editor.method.update({
-        integrationID: "parallel",
-        method: { type: "env", names: ["PARALLEL_API_KEY"] },
-      })
-    })
+    yield* WebSearchIntegration.register(ctx.integration, "parallel", "Parallel", "PARALLEL_API_KEY")
     yield* ctx.websearch.transform((editor) => {
       editor.add({
         id: "parallel",

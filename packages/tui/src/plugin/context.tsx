@@ -507,7 +507,7 @@ export function PluginProvider(props: ParentProps<{ packages: PackageSource; dir
   // order within one plugin. The resolver's last-wins rules depend on it.
   const claims = createMemo(() =>
     Object.entries(store.registrations).flatMap(([id, registration]) =>
-      Object.entries(registration.active ? registration.slots : {}).map(([key, slot]) => {
+      Object.values(registration.active ? registration.slots : {}).map((slot) => {
         // Rows downstream diff by reference; a stable claim per render
         // function keeps untouched plugins' slot rows (and their state)
         // alive across other plugins' reloads.
@@ -515,7 +515,7 @@ export function PluginProvider(props: ParentProps<{ packages: PackageSource; dir
         if (cached) return cached
         // Placements are immutable once registered; unwrap the store proxy
         // so resolver reads don't subscribe tracked scopes.
-        const item = { key: `${id}/${key}`, plugin: id, placement: unwrap(slot.placement), render: slot.render }
+        const item = { plugin: id, placement: unwrap(slot.placement), render: slot.render }
         slotItems.set(slot.render, item)
         return item
       }),

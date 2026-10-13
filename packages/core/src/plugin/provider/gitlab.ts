@@ -2,7 +2,7 @@ import os from "os"
 import { App } from "../../app.js"
 import { Clock, Deferred, Effect, Exit, Option, Schema, Semaphore, Stream } from "effect"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http"
-import type { Server, ServerResponse } from "node:http"
+import type { Server } from "node:http"
 import { define } from "@opencode/plugin/effect/plugin"
 import { Form } from "@opencode/schema/form"
 import type { DiscoveredWorkflowModel } from "gitlab-ai-provider"
@@ -11,7 +11,7 @@ import { Credential } from "../../credential.js"
 import { Integration } from "../../integration.js"
 import { IntegrationConnection } from "../../integration/connection.js"
 import { Model } from "../../model.js"
-import { OauthCallbackPage } from "../../oauth/page.js"
+import { oauthLoopback } from "../../oauth/loopback.js"
 import { Provider } from "../../provider.js"
 import type { PluginInternal } from "../internal.js"
 
@@ -186,32 +186,11 @@ export const GitLabPlugin = define({
             ).toString("base64url")
             const state = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url")
 
-            const callback = yield* Deferred.make<{ code: string; response: ServerResponse }, Error>()
-            const { createServer } = yield* Effect.promise(() => import("node:http"))
-            const server = createServer((request, response) => {
-              const url = new URL(request.url ?? "/", `http://${callbackHost}`)
-              if (request.method !== "GET" || url.pathname !== "/callback") {
-                response.writeHead(404).end()
-                return
-              }
-              const error = callbackError(url.searchParams, state)
-              if (error) {
-                response
-                  .writeHead(400, { "Content-Type": "text/html" })
-                  .end(OauthCallbackPage.error(error, { provider: "GitLab" }))
-                Effect.runSync(Deferred.fail(callback, new Error(error)))
-                return
-              }
-              if (!Effect.runSync(Deferred.succeed(callback, { code: url.searchParams.get("code") ?? "", response })))
-                response.writeHead(409).end("OAuth callback already received")
+            const callback = yield* oauthLoopback({
+              provider: "GitLab",
+              validate: (params) => callbackError(params, state),
             })
-            yield* Effect.addFinalizer(() =>
-              Effect.sync(() => {
-                server.close()
-                server.closeAllConnections()
-              }),
-            )
-            yield* listen(server)
+            yield* listen(callback.server)
 
             return {
               mode: "auto" as const,
@@ -225,37 +204,20 @@ export const GitLabPlugin = define({
                 code_challenge_method: "S256",
               }).toString()}`,
               instructions: "Complete authorization in your browser. This window will close automatically.",
-              callback: Effect.gen(function* () {
-                const request = yield* Deferred.await(callback)
-                const respond = (error?: string) =>
-                  Effect.sync(() =>
-                    request.response
-                      .writeHead(error ? 400 : 200, { "Content-Type": "text/html" })
-                      .end(
-                        error
-                          ? OauthCallbackPage.error(error, { provider: "GitLab" })
-                          : OauthCallbackPage.success({ provider: "GitLab" }),
-                      ),
-                  )
-                return yield* exchange(
+              callback: callback.complete((code) =>
+                exchange(
                   http,
                   instanceUrl,
                   clientID,
                   {
                     grant_type: "authorization_code",
-                    code: request.code,
+                    code,
                     redirect_uri: redirectURI,
                     code_verifier: verifier,
                   },
                   describeGrantFailure,
-                ).pipe(
-                  Effect.flatMap((tokens) => credential(instanceUrl, clientID, tokens)),
-                  Effect.tap(() => respond()),
-                  Effect.tapError((error) => respond(error.message)),
-                  // Bun's server.closeAllConnections() leaves an unanswered callback response pending.
-                  Effect.onInterrupt(() => Effect.sync(() => request.response.destroy())),
-                )
-              }),
+                ).pipe(Effect.flatMap((tokens) => credential(instanceUrl, clientID, tokens))),
+              ),
             }
           }),
       })

@@ -32,6 +32,35 @@ const it = webSearchIntegrationTest
 
 describe("built-in web search providers", () => {
   ;[
+    { plugin: WebSearchExa.Plugin, id: "exa", name: "Exa", env: "EXA_API_KEY" },
+    { plugin: WebSearchFirecrawl.Plugin, id: "firecrawl", name: "Firecrawl", env: "FIRECRAWL_API_KEY" },
+    { plugin: WebSearchParallel.Plugin, id: "parallel", name: "Parallel", env: "PARALLEL_API_KEY" },
+    { plugin: WebSearchTavily.Plugin, id: "tavily", name: "Tavily", env: "TAVILY_API_KEY" },
+    { plugin: WebSearchTinyFish.Plugin, id: "tinyfish", name: "TinyFish", env: "TINYFISH_API_KEY" },
+  ].forEach((provider) => {
+    it.effect(`registers and disposes ${provider.name} authentication in its plugin scope`, () =>
+      Effect.gen(function* () {
+        const integrations = yield* Integration.Service
+        const websearch = yield* WebSearch.Service
+        const integrationID = Integration.ID.make(provider.id)
+        const registration = { id: WebSearch.ID.make(provider.id), name: provider.name }
+        expect(yield* integrations.get(integrationID)).toBeUndefined()
+        yield* Effect.gen(function* () {
+          yield* provider.plugin.effect(
+            host({ integration: integrationHost(integrations), websearch: webSearchHost(websearch) }),
+          )
+          const info = yield* integrations.get(integrationID)
+          expect(info?.id).toBe(integrationID)
+          expect(info?.name).toBe(provider.name)
+          expect(info?.methods).toEqual([{ type: "key" }, { type: "env", names: [provider.env] }])
+          expect(yield* websearch.providers()).toContainEqual(registration)
+        }).pipe(Effect.scoped)
+        expect(yield* integrations.get(integrationID)).toBeUndefined()
+        expect(yield* websearch.providers()).not.toContainEqual(registration)
+      }),
+    )
+  })
+  ;[
     WebSearchExa.Plugin,
     WebSearchParallel.Plugin,
     WebSearchFirecrawl.Plugin,

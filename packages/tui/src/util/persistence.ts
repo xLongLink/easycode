@@ -22,12 +22,10 @@ export async function appendText(filePath: string, content: string) {
 export async function writeJsonAtomic(filePath: string, value: unknown) {
   await mkdir(path.dirname(filePath), { recursive: true })
   const temporary = `${filePath}.${process.pid}.${crypto.randomUUID()}.tmp`
-  await writeFile(temporary, JSON.stringify(value)).catch(async (error) => {
-    await rm(temporary, { force: true }).catch(() => undefined)
-    throw error
-  })
-  await rename(temporary, filePath).catch(async (error) => {
-    await rm(temporary, { force: true }).catch(() => undefined)
-    throw error
-  })
+  await writeFile(temporary, JSON.stringify(value))
+    .then(() => rename(temporary, filePath))
+    .catch(async (error) => {
+      await rm(temporary, { force: true }).catch(() => undefined)
+      throw error
+    })
 }

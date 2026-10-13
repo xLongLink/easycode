@@ -8,53 +8,51 @@ import { Api } from "../api"
 import { response } from "../location"
 
 export const FileSystemHandler = HttpApiBuilder.group(Api, "server.fs", (handlers) =>
-  Effect.gen(function* () {
-    return handlers
-      .handleRaw("fs.read", (ctx) =>
+  handlers
+    .handleRaw("fs.read", (ctx) =>
+      Effect.gen(function* () {
+        const path = yield* decodeRequestPath(ctx.request.url)
+        const fs = yield* FileSystem.Service
+        const file = yield* fs
+          .read({ path })
+          .pipe(
+            Effect.mapError(
+              (error) => new FileNotFoundError({ path: error.path, message: `File not found: ${error.path}` }),
+            ),
+          )
+        return serveFile(ctx.request, file)
+      }),
+    )
+    .handle("fs.list", (ctx) =>
+      response(
         Effect.gen(function* () {
-          const path = yield* decodeRequestPath(ctx.request.url)
           const fs = yield* FileSystem.Service
-          const file = yield* fs
-            .read({ path })
+          return yield* fs
+            .list(ctx.query)
             .pipe(
               Effect.mapError(
-                (error) => new FileNotFoundError({ path: error.path, message: `File not found: ${error.path}` }),
+                (error) => new FileNotFoundError({ path: error.path, message: `Directory not found: ${error.path}` }),
               ),
             )
-          return serveFile(ctx.request, file)
         }),
-      )
-      .handle("fs.list", (ctx) =>
-        response(
-          Effect.gen(function* () {
-            const fs = yield* FileSystem.Service
-            return yield* fs
-              .list(ctx.query)
-              .pipe(
-                Effect.mapError(
-                  (error) => new FileNotFoundError({ path: error.path, message: `Directory not found: ${error.path}` }),
-                ),
-              )
-          }),
-        ),
-      )
-      .handle("fs.find", (ctx) =>
-        response(
-          Effect.gen(function* () {
-            const fs = yield* FileSystem.Service
-            return yield* fs.find(ctx.query)
-          }),
-        ),
-      )
-      .handle("fs.write", (ctx) =>
-        response(
-          Effect.gen(function* () {
-            const fs = yield* FileSystem.Service
-            return yield* fs.write({ path: ctx.query.path, data: ctx.payload })
-          }),
-        ),
-      )
-  }),
+      ),
+    )
+    .handle("fs.find", (ctx) =>
+      response(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.Service
+          return yield* fs.find(ctx.query)
+        }),
+      ),
+    )
+    .handle("fs.write", (ctx) =>
+      response(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.Service
+          return yield* fs.write({ path: ctx.query.path, data: ctx.payload })
+        }),
+      ),
+    ),
 )
 
 function decodeRequestPath(url: string) {

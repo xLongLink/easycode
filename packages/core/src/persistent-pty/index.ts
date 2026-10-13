@@ -191,23 +191,27 @@ const makeLayer = (options: Options = {}) =>
         return undefined
       })
 
+      const controllerOperation = Effect.fnUntraced(function* (id: Pty.ID, payload: () => object) {
+        const terminal = yield* get(id)
+        const response = yield* request(daemon, payload())
+        if (response.type !== "ok") return yield* unexpected(response)
+        current.set(terminal.sessionID, id)
+        return undefined
+      })
+
       const resize = Effect.fn("PersistentPty.resize")(function* (
         id: Pty.ID,
         cols: number,
         rows: number,
         attachmentID?: string,
       ) {
-        const terminal = yield* get(id)
-        const response = yield* request(daemon, {
+        return yield* controllerOperation(id, () => ({
           op: "resize",
           id: fromID(id),
           attachment_id: attachmentID ?? null,
           cols,
           rows,
-        })
-        if (response.type !== "ok") return yield* unexpected(response)
-        current.set(terminal.sessionID, id)
-        return undefined
+        }))
       })
 
       const control = Effect.fn("PersistentPty.control")(function* (
@@ -216,17 +220,13 @@ const makeLayer = (options: Options = {}) =>
         cols: number,
         rows: number,
       ) {
-        const terminal = yield* get(id)
-        const response = yield* request(daemon, {
+        return yield* controllerOperation(id, () => ({
           op: "control",
           id: fromID(id),
           attachment_id: attachmentID,
           cols,
           rows,
-        })
-        if (response.type !== "ok") return yield* unexpected(response)
-        current.set(terminal.sessionID, id)
-        return undefined
+        }))
       })
 
       const input = Effect.fn("PersistentPty.input")(function* (
@@ -236,18 +236,14 @@ const makeLayer = (options: Options = {}) =>
         rows: number,
         data: Uint8Array,
       ) {
-        const terminal = yield* get(id)
-        const response = yield* request(daemon, {
+        return yield* controllerOperation(id, () => ({
           op: "input",
           id: fromID(id),
           attachment_id: attachmentID,
           cols,
           rows,
           data_base64: Buffer.from(data).toString("base64"),
-        })
-        if (response.type !== "ok") return yield* unexpected(response)
-        current.set(terminal.sessionID, id)
-        return undefined
+        }))
       })
 
       const snapshot = Effect.fn("PersistentPty.snapshot")(function* (id: Pty.ID) {

@@ -4,7 +4,7 @@ import { open } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { monitorEventLoopDelay } from "node:perf_hooks"
-import { createMemo, createResource, createSignal, For, onCleanup, onMount, Show, type ParentProps } from "solid-js"
+import { createMemo, createResource, createSignal, onCleanup, onMount, Show, type ParentProps } from "solid-js"
 import { useClient } from "../context/client"
 import { useConfig } from "../config"
 import { useData } from "../context/data"
@@ -12,7 +12,6 @@ import { useLocation } from "../context/location"
 import { useRoute } from "../context/route"
 import { Keymap } from "../context/keymap"
 import { useTheme, useThemes } from "../context/theme"
-import { DevTools } from "../devtools"
 import { useDialog } from "../ui/dialog"
 import { DialogExperiments } from "./dialog-experiments"
 import { usePlugin } from "../plugin/context"
@@ -50,7 +49,6 @@ export function DevToolsBar() {
   let focus: Renderable | null
   const connected = createMemo(() => client.connection.status() === "connected")
   const serverIndicator = createMemo(() => connectionIndicator(client.connection.status(), client.connection.attempt()))
-  const groups = DevTools.data
   const [server] = createResource(connected, async () => {
     const info = await client.api.server.info()
     return {
@@ -403,16 +401,6 @@ export function DevToolsBar() {
                 </Action>
               </Show>
             </box>
-            <For each={groups()}>
-              {(group) => (
-                <box marginTop={1}>
-                  <text fg={elevatedTheme.text.base} attributes={TextAttributes.BOLD}>
-                    {group.title}
-                  </text>
-                  <For each={group.entries}>{(entry) => <Row label={entry.key} value={String(entry.value)} />}</For>
-                </box>
-              )}
-            </For>
           </PanelBox>
         </Show>
       </BarItem>

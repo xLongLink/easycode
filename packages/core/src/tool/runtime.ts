@@ -4,6 +4,7 @@ import { Tool } from "@opencode/schema/tool"
 import type { StandardJSONSchemaV1, StandardSchemaV1 } from "@standard-schema/spec"
 import { Cache, Effect, JsonPointer, JsonSchema, Schema, SchemaIssue, SchemaRepresentation } from "effect"
 import { $ZodType, toJSONSchema } from "zod/v4/core"
+import { invokeStandardValidator } from "../util/standard-schema.js"
 
 const formatEffectIssues = SchemaIssue.makeFormatterStandardSchemaV1()
 
@@ -143,10 +144,7 @@ const validateStandard = (
   schema: StandardSchemaV1<any, any>,
   value: unknown,
 ): Effect.Effect<StandardSchemaV1.Result<unknown>> =>
-  Effect.gen(function* () {
-    const result = yield* Effect.try({ try: () => schema["~standard"].validate(value), catch: (error) => error })
-    return result instanceof Promise ? yield* Effect.tryPromise({ try: () => result, catch: (error) => error }) : result
-  }).pipe(
+  invokeStandardValidator(schema, value).pipe(
     Effect.match({
       onFailure: (error) => ({ issues: [{ message: error instanceof Error ? error.message : String(error) }] }),
       onSuccess: (result) => result,

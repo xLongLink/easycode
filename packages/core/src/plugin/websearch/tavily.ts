@@ -4,6 +4,7 @@ import { define } from "@opencode/plugin/effect/plugin"
 import { Duration, Effect, Schema, Scope } from "effect"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http"
 import { App } from "../../app.js"
+import { WebSearchIntegration } from "./integration.js"
 
 export const endpoint = "https://api.tavily.com/search"
 
@@ -28,17 +29,7 @@ export const Plugin = define<HttpClient.HttpClient | Scope.Scope>({
   id: "opencode.websearch.tavily",
   effect: Effect.fn("WebSearchTavily.Plugin")(function* (ctx) {
     const http = yield* HttpClient.HttpClient
-    yield* ctx.integration.transform((editor) => {
-      editor.update("tavily", (integration) => (integration.name = "Tavily"))
-      editor.method.update({
-        integrationID: "tavily",
-        method: { type: "key" },
-      })
-      editor.method.update({
-        integrationID: "tavily",
-        method: { type: "env", names: ["TAVILY_API_KEY"] },
-      })
-    })
+    yield* WebSearchIntegration.register(ctx.integration, "tavily", "Tavily", "TAVILY_API_KEY")
     yield* ctx.websearch.transform((editor) => {
       editor.add({
         id: "tavily",

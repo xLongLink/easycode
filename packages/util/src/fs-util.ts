@@ -49,7 +49,6 @@ export namespace FSUtil {
     readonly resolve: (path: string) => Effect.Effect<string>
     readonly findUp: (target: string, start: string, stop?: string) => Effect.Effect<string[], Error>
     readonly up: (options: UpOptions) => Effect.Effect<string[], Error>
-    readonly globUp: (pattern: string, start: string, stop?: string) => Effect.Effect<string[], Error>
     readonly scan: (pattern: string, options?: Glob.Options) => Effect.Effect<string[], Error>
     readonly globMatch: (pattern: string, filepath: string) => boolean
   }
@@ -57,7 +56,7 @@ export namespace FSUtil {
   export class Service extends Context.Service<Service, Interface>()("@opencode/FSUtil") {}
 
   // Exported so simulation can wrap this layer and override the methods that
-  // bypass the injected FileSystem (readDirectoryEntries, scan, globUp).
+  // bypass the injected FileSystem (readDirectoryEntries, scan).
   export const layer = Layer.effect(
     Service,
     Effect.gen(function* () {
@@ -181,22 +180,6 @@ export namespace FSUtil {
         up({ targets: [target], start, stop }),
       )
 
-      const globUp = Effect.fn("FileSystem.globUp")(function* (pattern: string, start: string, stop?: string) {
-        const result: string[] = []
-        let current = start
-        while (true) {
-          const matches = yield* scan(pattern, { cwd: current, absolute: true, include: "file", dot: true }).pipe(
-            Effect.orElseSucceed(() => [] as string[]),
-          )
-          result.push(...matches)
-          if (stop && sameDirectory(stop, current)) break
-          const parent = dirname(current)
-          if (parent === current) break
-          current = parent
-        }
-        return result
-      })
-
       return Service.of({
         ...fs,
         existsSafe,
@@ -211,7 +194,6 @@ export namespace FSUtil {
         writeWithDirs,
         findUp,
         up,
-        globUp,
         scan,
         globMatch: Glob.match,
       })

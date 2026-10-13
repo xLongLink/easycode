@@ -4,7 +4,7 @@ import { contenderPool, spawnServiceContender } from "../service-contender.js"
 import { defaultEnsureTiming, ensureTiming, type EnsureTiming } from "../service-timing.js"
 import { matchesVersion } from "../service-version.js"
 import { PtyHandoff } from "../pty-handoff.js"
-import { decide, fallback, headers, probeResult, same } from "../service-probe.js"
+import { decide, fallback, headers, probeResult, same, timeoutTracker } from "../service-probe.js"
 
 export * from "../service.js"
 export { headers }
@@ -49,7 +49,7 @@ export const incumbent = Effect.fn("service.incumbent")(function* (
 export const ensure = Effect.fn("service.ensure")(function* (options: EnsureOptions = {}) {
   const timing = ensureTiming(options)
   const pool = contenderPool(timing)
-  let timeouts: { readonly info: Info; readonly count: number } | undefined
+  const timeouts = timeoutTracker()
   let announced = false
   const announce = (reason: "missing" | "version-mismatch", previousVersion?: string) =>
     Effect.sync(() => {
@@ -72,21 +72,16 @@ export const ensure = Effect.fn("service.ensure")(function* (options: EnsureOpti
     const registration = yield* registered(options.file, timing.requestTimeout)
     const info = registration.info
     const service = registration.service
-    if (registration.timedOut && info !== undefined) {
-      timeouts = {
-        info,
-        count: timeouts !== undefined && same(timeouts.info, info) ? timeouts.count + 1 : 1,
-      }
-      if (timeouts.count >= 3) {
-        yield* announce("missing")
-        yield* Effect.logWarning("Background service is unresponsive; recovery cannot preserve persistent terminals")
-        yield* Effect.tryPromise(() => PtyHandoff.clear(options.file ?? fallback()))
-        yield* terminate(info, options, timing)
-        pool.evict(info.pid)
-        pool.recruitNow()
-        timeouts = undefined
-      }
-    } else timeouts = undefined
+    const unresponsive = timeouts.record(registration)
+    if (unresponsive !== undefined) {
+      yield* announce("missing")
+      yield* Effect.logWarning("Background service is unresponsive; recovery cannot preserve persistent terminals")
+      yield* Effect.tryPromise(() => PtyHandoff.clear(options.file ?? fallback()))
+      yield* terminate(unresponsive, options, timing)
+      pool.evict(unresponsive.pid)
+      pool.recruitNow()
+      timeouts.reset()
+    }
     if (service !== undefined) {
       pool.serviceAnswered()
       const decision = decide(service, options)

@@ -15,6 +15,7 @@ import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
 
 const fixtureProvider = new URL("./fixtures/provider-factory.ts", import.meta.url).href
+const noncallableProvider = new URL("./fixtures/provider-noncallable-factory.ts", import.meta.url).href
 const it = testEffect(PluginTestLayer)
 const itWithAISDK = testEffect(Layer.mergeAll(PluginTestLayer, AppNodeBuilder.build(AISDK.node)))
 
@@ -50,6 +51,47 @@ function tempPackage(source: string) {
 }
 
 describe("DynamicProviderPlugin", () => {
+  it.effect("rejects the first create export when it is not callable", () =>
+    Effect.gen(function* () {
+      const aisdk = yield* AISDK.Service
+      yield* addPlugin()
+      const exit = yield* aisdk
+        .runSDK({
+          model: Model.Info.default(Provider.ID.make("custom"), Model.ID.make("test-model")),
+          package: noncallableProvider,
+          options: {},
+        })
+        .pipe(Effect.exit)
+      expect(exit._tag).toBe("Failure")
+      if (exit._tag !== "Failure") return
+      expect(Cause.squash(exit.cause)).toEqual(
+        new Error(`Package ${noncallableProvider} provider factory export is not callable`),
+      )
+    }),
+  )
+
+  itWithAISDK.effect("wraps a noncallable selected factory as an AISDK init error", () =>
+    Effect.gen(function* () {
+      const aisdk = yield* AISDK.Service
+      yield* addPlugin()
+      const result = yield* aisdk
+        .language(
+          Model.Info.make({
+            ...Model.Info.default(Provider.ID.make("custom"), Model.ID.make("test-model")),
+            package: Provider.aisdk(noncallableProvider),
+          }),
+        )
+        .pipe(Effect.result)
+      expect(result._tag).toBe("Failure")
+      if (result._tag !== "Failure") return
+      expect(result.failure).toBeInstanceOf(AISDK.InitError)
+      expect(result.failure.providerID).toBe(Provider.ID.make("custom"))
+      expect(result.failure.cause).toEqual(
+        new Error(`Package ${noncallableProvider} provider factory export is not callable`),
+      )
+    }),
+  )
+
   it.effect("creates an SDK from a provider factory export", () =>
     Effect.gen(function* () {
       const aisdk = yield* AISDK.Service

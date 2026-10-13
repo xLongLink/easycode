@@ -25,12 +25,7 @@ export function collapseToolOutput(output: string, maxLines: number, maxChars: n
 
 export function collapseShellOutput(input: string, output: string, maxLines: number, maxChars: number) {
   if (!input) {
-    const collapsed = collapseToolOutput(output, maxLines, maxChars)
-    return {
-      input,
-      output: collapsed.overflow ? collapseTail(output, maxLines, maxChars) : output,
-      overflow: collapsed.overflow,
-    }
+    return { input, ...collapseTail(output, maxLines, maxChars) }
   }
 
   const commandLines = Math.min(2, maxLines)
@@ -40,10 +35,10 @@ export function collapseShellOutput(input: string, output: string, maxLines: num
 
   const lines = Math.max(1, maxLines - command.lines - 1)
   const chars = Math.max(1, maxChars - Array.from(command.output).length - 2)
-  const collapsed = collapseToolOutput(output, lines, chars)
+  const collapsed = collapseTail(output, lines, chars)
   return {
     input: command.output,
-    output: collapsed.overflow ? collapseTail(output, lines, chars) : output,
+    output: collapsed.output,
     overflow: command.overflow || collapsed.overflow,
   }
 }
@@ -82,14 +77,14 @@ function collapseShellCommand(input: string, maxLines: number, lineWidth: number
 
 function collapseTail(output: string, maxLines: number, maxChars: number) {
   const lines = output.split("\n")
-  if (lines.length <= maxLines && Array.from(output).length <= maxChars) return output
+  if (lines.length <= maxLines && Array.from(output).length <= maxChars) return { output, overflow: false }
 
   const count = Math.max(1, lines.length - Math.max(0, maxLines - 1))
   const label = `(${count} earlier ${count === 1 ? "line" : "lines"})`
-  if (maxLines <= 1) return label
+  if (maxLines <= 1) return { output: label, overflow: true }
 
   const preview = Array.from(lines.slice(-(maxLines - 1)).join("\n"))
   const available = maxChars - Array.from(label).length - 1
-  if (available <= 0) return label
-  return `${label}\n${preview.slice(-available).join("")}`
+  if (available <= 0) return { output: label, overflow: true }
+  return { output: `${label}\n${preview.slice(-available).join("")}`, overflow: true }
 }

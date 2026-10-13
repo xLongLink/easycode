@@ -112,6 +112,25 @@ function init() {
     }, 1)
   }
 
+  function dismiss(clearInput: boolean) {
+    if (renderer.getSelection()) {
+      renderer.clearSelection()
+      return
+    }
+    if (clearInput) {
+      const editor = renderer.currentFocusedEditor
+      if (editor?.plainText) {
+        if (editor instanceof InputRenderable) editor.value = ""
+        else editor.setText("")
+        return
+      }
+    }
+    const current = store.stack.at(-1)
+    current?.onClose?.()
+    setStore("stack", store.stack.slice(0, -1))
+    refocus()
+  }
+
   Keymap.createLayer(() => ({
     mode: "modal",
     enabled: store.stack.length > 0,
@@ -120,37 +139,13 @@ function init() {
         bind: "escape",
         title: "Close dialog",
         group: "Dialog",
-        run: () => {
-          if (renderer.getSelection()) {
-            renderer.clearSelection()
-            return
-          }
-          const current = store.stack.at(-1)
-          current?.onClose?.()
-          setStore("stack", store.stack.slice(0, -1))
-          refocus()
-        },
+        run: () => dismiss(false),
       },
       {
         bind: "ctrl+c",
         title: "Close dialog",
         group: "Dialog",
-        run: () => {
-          if (renderer.getSelection()) {
-            renderer.clearSelection()
-            return
-          }
-          const editor = renderer.currentFocusedEditor
-          if (editor?.plainText) {
-            if (editor instanceof InputRenderable) editor.value = ""
-            else editor.setText("")
-            return
-          }
-          const current = store.stack.at(-1)
-          current?.onClose?.()
-          setStore("stack", store.stack.slice(0, -1))
-          refocus()
-        },
+        run: () => dismiss(true),
       },
     ],
   }))

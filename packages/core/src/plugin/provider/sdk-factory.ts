@@ -1,3 +1,4 @@
+import type { ProviderV3 } from "@ai-sdk/provider"
 import { Effect } from "effect"
 import { Npm } from "@opencode/util/npm"
 import { importModule, resolveModule } from "@opencode/util/runtime-import"
@@ -13,7 +14,10 @@ export const loadSDKFactory = Effect.fnUntraced(function* (npm: Npm.Interface, p
   const mod = (yield* Effect.promise(() => importModule(installedPath))) as Record<string, unknown>
   const match = Object.keys(mod).find((name) => name.startsWith("create"))
   if (!match) return yield* Effect.die(new Error(`Package ${packageName} has no provider factory export`))
-  return mod[match]
+  const factory = mod[match]
+  if (typeof factory !== "function")
+    return yield* Effect.die(new Error(`Package ${packageName} provider factory export is not callable`))
+  return factory as (options: Record<string, unknown>) => ProviderV3
 })
 
 // The AI SDK bridge only supports AI SDK v6 providers. Official `@ai-sdk/*` packages now publish AI SDK v7 under

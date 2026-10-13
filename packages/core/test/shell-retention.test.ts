@@ -68,7 +68,9 @@ it.live("eviction makes progress past an already-removed shell", () =>
       const shell = yield* Shell.Service
       const removed = yield* shell.create({ shell: "sh", command: "removed", timeout: 0 })
       const finishRemoved = yield* Queue.take(completions)
+      expect(yield* Effect.promise(() => Bun.file(removed.file).exists())).toBe(true)
       yield* shell.remove(removed.id)
+      expect(yield* Effect.promise(() => Bun.file(removed.file).exists())).toBe(false)
       expect((yield* shell.result(removed)).capture).toBeUndefined()
       yield* finishRemoved
 
@@ -84,10 +86,15 @@ it.live("eviction makes progress past an already-removed shell", () =>
       expect(yield* shell.get(oldest.id).pipe(Effect.flip)).toBeInstanceOf(Shell.NotFoundError)
 
       const survivor = yield* complete
+      expect(yield* shell.get(survivor.id)).toMatchObject({ status: "exited", file: survivor.file })
+      expect(yield* Effect.promise(() => Bun.file(survivor.file).text())).toBe("hello")
+      expect((yield* shell.output(survivor.id)).output).toBe("hello")
       expect(yield* shell.result(survivor)).toMatchObject({
         info: { status: "exited", exit: 0 },
         capture: { output: "hello", truncated: false },
       })
+      yield* shell.remove(survivor.id)
+      expect(yield* Effect.promise(() => Bun.file(survivor.file).exists())).toBe(false)
     }).pipe(
       Effect.provide(
         AppNodeBuilder.build(Shell.node, [

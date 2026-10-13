@@ -83,12 +83,13 @@ describe("AppProcess", () => {
       "requireSuccess fails on non-zero exit",
       Effect.gen(function* () {
         const svc = yield* AppProcess.Service
-        const error = yield* svc
-          .run(cmd("-e", "process.exit(1)"))
-          .pipe(Effect.flatMap(AppProcess.requireSuccess), Effect.flip)
+        const script = "process.stderr.write('failure\\n'); process.exit(1)"
+        const error = yield* svc.run(cmd("-e", script)).pipe(Effect.flatMap(AppProcess.requireSuccess), Effect.flip)
         expect(error).toBeInstanceOf(AppProcess.AppProcessError)
         expect(error.exitCode).toBe(1)
-        expect(error.message).toContain("Command failed (exit 1)")
+        expect(error.command).toBe(`${NODE} -e ${script}`)
+        expect(error.stderr).toBe("failure\n")
+        expect(error.message).toBe(`Command failed (exit 1): ${NODE} -e ${script}: failure`)
       }),
     )
 
@@ -96,7 +97,8 @@ describe("AppProcess", () => {
       "requireSuccess succeeds on exit 0",
       Effect.gen(function* () {
         const svc = yield* AppProcess.Service
-        const result = yield* svc.run(cmd("-e", "process.exit(0)")).pipe(Effect.flatMap(AppProcess.requireSuccess))
+        const result = yield* svc.run(cmd("-e", "process.exit(0)"))
+        expect(yield* AppProcess.requireSuccess(result)).toBe(result)
         expect(result.exitCode).toBe(0)
       }),
     )
@@ -108,11 +110,15 @@ describe("AppProcess", () => {
         const requireZeroOrOne = AppProcess.requireExitIn([0, 1])
         const okZero = yield* svc.run(cmd("-e", "process.exit(0)")).pipe(Effect.flatMap(requireZeroOrOne))
         expect(okZero.exitCode).toBe(0)
-        const okOne = yield* svc.run(cmd("-e", "process.exit(1)")).pipe(Effect.flatMap(requireZeroOrOne))
+        const one = yield* svc.run(cmd("-e", "process.exit(1)"))
+        const okOne = yield* requireZeroOrOne(one)
+        expect(okOne).toBe(one)
         expect(okOne.exitCode).toBe(1)
         const error = yield* svc.run(cmd("-e", "process.exit(2)")).pipe(Effect.flatMap(requireZeroOrOne), Effect.flip)
         expect(error).toBeInstanceOf(AppProcess.AppProcessError)
         expect(error.exitCode).toBe(2)
+        expect(error.command).toBe(`${NODE} -e process.exit(2)`)
+        expect(error.stderr).toBe("")
       }),
     )
 

@@ -69,3 +69,50 @@ test("service options only require a matching version when requested", async () 
     await fs.rm(root, { recursive: true, force: true })
   }
 })
+
+test("outdated managed registration is reused by default and ignore, but replace announces a version mismatch", async () => {
+  const root = await fs.mkdtemp(path.join("/tmp/uncode", "opencode-server-mismatch-"))
+  const version = "2.0.0-old"
+  const server = Bun.serve({
+    port: 0,
+    fetch: () => Response.json({ version, pid: process.pid, urls: [] }),
+  })
+  const registration = path.join(root, "state", ServiceConfig.filename())
+  const layer = Global.layerWith({ config: path.join(root, "config"), state: path.join(root, "state") })
+  const runPromise = <A, E>(effect: Effect.Effect<A, E, Global.Service | FileSystem.FileSystem | Scope.Scope>) =>
+    Effect.runPromise(effect.pipe(Effect.provide(layer), Effect.provide(NodeFileSystem.layer), Effect.scoped))
+  const starts: [string, string | undefined][] = []
+
+  try {
+    await fs.mkdir(path.dirname(registration), { recursive: true })
+    await Bun.write(registration, JSON.stringify({ version, url: server.url.toString(), pid: process.pid }))
+    for (const mismatch of [undefined, "ignore"] as const) {
+      const resolved = await runPromise(
+        ServerConnection.resolve({
+          mismatch,
+          onStart: (reason, previous) => starts.push([reason, previous]),
+        }),
+      )
+      expect(resolved.endpoint.url).toBe(server.url.toString())
+      expect(resolved.service).toBeDefined()
+    }
+    expect(starts).toEqual([])
+    // Stop at admission: the registered PID belongs to this test process.
+    await expect(
+      runPromise(
+        ServerConnection.resolve({
+          mismatch: "replace",
+          onStart: (reason, previous) => {
+            starts.push([reason, previous])
+            throw new Error("Replacement admitted")
+          },
+        }),
+      ),
+    ).rejects.toThrow("Replacement admitted")
+    expect(starts).toEqual([["version-mismatch", version]])
+    expect((await Bun.file(registration).json()).version).toBe(version)
+  } finally {
+    await server.stop(true)
+    await fs.rm(root, { recursive: true, force: true })
+  }
+})

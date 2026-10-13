@@ -29,7 +29,7 @@ const layer = Layer.effect(
   Effect.gen(function* () {
     const location = yield* Location.Service
     const processes = yield* AppProcess.Service
-    const commands = new WeakMap<Info, string[] | false>()
+    const commands = new WeakMap<Info, string[]>()
     const state = State.create<Data, Editor>({
       name: "formatter",
       initial: () => ({ formatters: [] }),

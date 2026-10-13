@@ -1,10 +1,9 @@
 import { define } from "@opencode/plugin/effect/plugin"
-import { Clock, Deferred, Effect, Option, Schema } from "effect"
+import { Clock, Effect, Option, Schema } from "effect"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http"
-import type { ServerResponse } from "node:http"
 import { Credential } from "../../credential.js"
 import { Integration } from "../../integration.js"
-import { OauthCallbackPage } from "../../oauth/page.js"
+import { oauthLoopback } from "../../oauth/loopback.js"
 
 const integrationID = Integration.ID.make("poe")
 const methodID = Integration.MethodID.make("browser")
@@ -45,34 +44,13 @@ export const PoePlugin = define({
               yield* Effect.promise(() => crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier))),
             ).toString("base64url")
             const state = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url")
-            const callback = yield* Deferred.make<{ code: string; response: ServerResponse }, Error>()
-            const { createServer } = yield* Effect.promise(() => import("node:http"))
-            const { EventEmitter } = yield* Effect.promise(() => import("node:events"))
-            const server = createServer((request, response) => {
-              const url = new URL(request.url ?? "/", "http://127.0.0.1")
-              if (request.method !== "GET" || url.pathname !== "/callback") {
-                response.writeHead(404).end()
-                return
-              }
-              const error = callbackError(url.searchParams, state)
-              if (error) {
-                response
-                  .writeHead(400, { "Content-Type": "text/html" })
-                  .end(OauthCallbackPage.error(error, { provider: "Poe" }))
-                Effect.runSync(Deferred.fail(callback, new Error(error)))
-                return
-              }
-              if (!Effect.runSync(Deferred.succeed(callback, { code: url.searchParams.get("code") ?? "", response })))
-                response.writeHead(409).end("OAuth callback already received")
+            const callback = yield* oauthLoopback({
+              provider: "Poe",
+              validate: (params) => callbackError(params, state),
             })
-            yield* Effect.addFinalizer(() =>
-              Effect.sync(() => {
-                server.close()
-                server.closeAllConnections()
-              }),
-            )
-            yield* Effect.tryPromise(() => EventEmitter.once(server.listen(0, "127.0.0.1"), "listening"))
-            const address = server.address()
+            const { EventEmitter } = yield* Effect.promise(() => import("node:events"))
+            yield* Effect.tryPromise(() => EventEmitter.once(callback.server.listen(0, "127.0.0.1"), "listening"))
+            const address = callback.server.address()
             if (!address || typeof address === "string")
               return yield* Effect.fail(new Error("Missing OAuth callback port"))
             const redirect = `http://127.0.0.1:${address.port}/callback`
@@ -88,25 +66,7 @@ export const PoePlugin = define({
                 state,
               }).toString()}`,
               instructions: "Complete authorization in your browser. This window will close automatically.",
-              callback: Effect.gen(function* () {
-                const request = yield* Deferred.await(callback)
-                const respond = (error?: string) =>
-                  Effect.sync(() =>
-                    request.response
-                      .writeHead(error ? 400 : 200, { "Content-Type": "text/html" })
-                      .end(
-                        error
-                          ? OauthCallbackPage.error(error, { provider: "Poe" })
-                          : OauthCallbackPage.success({ provider: "Poe" }),
-                      ),
-                  )
-                return yield* exchangeCode(http, { code: request.code, redirect, verifier }).pipe(
-                  Effect.tap(() => respond()),
-                  Effect.tapError((error) => respond(error.message)),
-                  // Bun's server.closeAllConnections() leaves an unanswered callback response pending.
-                  Effect.onInterrupt(() => Effect.sync(() => request.response.destroy())),
-                )
-              }),
+              callback: callback.complete((code) => exchangeCode(http, { code, redirect, verifier })),
             }
           }),
       })

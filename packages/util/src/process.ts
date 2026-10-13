@@ -56,17 +56,6 @@ export type Interface = ChildProcessSpawner["Service"] & {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/AppProcess") {}
 
-export const requireSuccess = (result: RunResult): Effect.Effect<RunResult, AppProcessError> =>
-  result.exitCode === 0
-    ? Effect.succeed(result)
-    : Effect.fail(
-        new AppProcessError({
-          command: result.command,
-          exitCode: result.exitCode,
-          stderr: result.stderr.toString("utf8"),
-        }),
-      )
-
 export const requireExitIn =
   (codes: ReadonlyArray<number>) =>
   (result: RunResult): Effect.Effect<RunResult, AppProcessError> =>
@@ -79,6 +68,8 @@ export const requireExitIn =
             stderr: result.stderr.toString("utf8"),
           }),
         )
+
+export const requireSuccess = requireExitIn([0])
 
 const describeCommand = (command: ChildProcess.Command): string => {
   if (command._tag === "StandardCommand") {

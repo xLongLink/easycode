@@ -96,7 +96,6 @@ type JsonRpcMessage = Schema.Schema.Type<typeof JsonRpcMessageSchema>
 export type EditorSelection = Schema.Schema.Type<typeof EditorSelectionSchema>
 export type EditorMention = Schema.Schema.Type<typeof EditorMentionSchema>
 export type EditorLabelState = "pending" | "sent" | "none"
-type EditorServerInfo = Schema.Schema.Type<typeof EditorServerInfoSchema>
 
 type EditorConnection = {
   url: string
@@ -125,12 +124,10 @@ export const { use: useEditorContext, provider: EditorContextProvider } = create
       status: "disabled" | "connecting" | "connected"
       selection: EditorSelection | undefined
       selectionSent: boolean
-      server: EditorServerInfo | undefined
     }>({
       status: "disabled",
       selection: undefined,
       selectionSent: false,
-      server: undefined,
     })
 
     let socket: WebSocket | undefined
@@ -255,7 +252,6 @@ export const { use: useEditorContext, provider: EditorContextProvider } = create
 
         const initialize = method === "initialize" ? decodeEditorServerInfo(message.result) : Option.none()
         if (Option.isSome(initialize)) {
-          setStore("server", initialize.value)
           send({ method: "notifications/initialized" })
           return
         }
@@ -304,7 +300,6 @@ export const { use: useEditorContext, provider: EditorContextProvider } = create
         current.close()
       }
       setStore("status", "disabled")
-      setStore("server", undefined)
       connect()
     }
 
@@ -347,9 +342,6 @@ export const { use: useEditorContext, provider: EditorContextProvider } = create
       onMention(listener: (mention: EditorMention) => void) {
         mentionListeners.add(listener)
         return () => mentionListeners.delete(listener)
-      },
-      server() {
-        return store.server
       },
       reconnect(directory?: string) {
         reconnectWithDirectory(directory)

@@ -4,7 +4,7 @@ import { contenderPool, spawnServiceContender } from "../service-contender.js"
 import { defaultEnsureTiming, ensureTiming, type EnsureTiming } from "../service-timing.js"
 import { matchesVersion } from "../service-version.js"
 import { PtyHandoff } from "../pty-handoff.js"
-import { decide, fallback, headers, probeResult, same } from "../service-probe.js"
+import { decide, fallback, headers, probeResult, same, timeoutTracker } from "../service-probe.js"
 
 export * from "../service.js"
 export { headers }
@@ -29,7 +29,7 @@ export async function ensure(options: EnsureOptions = {}): Promise<Endpoint> {
   const timing = ensureTiming(options)
   const deadline = Date.now() + timing.promiseTimeout
   const pool = contenderPool(timing)
-  let timeouts: { readonly info: Info; readonly count: number } | undefined
+  const timeouts = timeoutTracker()
   let announced = false
 
   const announce = (reason: "missing" | "version-mismatch", previousVersion?: string) => {
@@ -52,21 +52,16 @@ export async function ensure(options: EnsureOptions = {}): Promise<Endpoint> {
       if (Date.now() >= deadline)
         throw pool.failure() ?? new Error("Timed out waiting for the background service to start")
       const registration = await registered(options.file, timing.requestTimeout)
-      if (registration.timedOut && registration.info !== undefined) {
-        timeouts = {
-          info: registration.info,
-          count: timeouts !== undefined && same(timeouts.info, registration.info) ? timeouts.count + 1 : 1,
-        }
-        if (timeouts.count >= 3) {
-          announce("missing")
-          console.warn("Background service is unresponsive; recovery cannot preserve persistent terminals")
-          await PtyHandoff.clear(options.file ?? fallback())
-          await terminate(registration.info, options, timing)
-          pool.evict(registration.info.pid)
-          pool.recruitNow()
-          timeouts = undefined
-        }
-      } else timeouts = undefined
+      const unresponsive = timeouts.record(registration)
+      if (unresponsive !== undefined) {
+        announce("missing")
+        console.warn("Background service is unresponsive; recovery cannot preserve persistent terminals")
+        await PtyHandoff.clear(options.file ?? fallback())
+        await terminate(unresponsive, options, timing)
+        pool.evict(unresponsive.pid)
+        pool.recruitNow()
+        timeouts.reset()
+      }
 
       if (registration.service !== undefined) {
         pool.serviceAnswered()

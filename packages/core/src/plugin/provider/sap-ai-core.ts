@@ -18,9 +18,6 @@ export const SapAICorePlugin = define({
         if (serviceKey && !process.env.AICORE_SERVICE_KEY) process.env.AICORE_SERVICE_KEY = serviceKey
 
         const factory = yield* loadSDKFactory(npm, evt.package)
-        if (typeof factory !== "function")
-          return yield* Effect.die(new Error(`Package ${evt.package} provider factory export is not callable`))
-
         evt.sdk = factory(
           serviceKey
             ? { deploymentId: process.env.AICORE_DEPLOYMENT_ID, resourceGroup: process.env.AICORE_RESOURCE_GROUP }

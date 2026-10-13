@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import { createRoot } from "solid-js"
 import { createClientConnection } from "../src/solid"
-import { OpenCode, type OpenCodeEvent } from "../src/promise"
+import { OpenCode, type OpenCodeClient, type OpenCodeEvent } from "../src/promise"
 
 const connected = { id: "evt_connected", created: 1, type: "server.connected", data: {} }
 
@@ -179,3 +179,74 @@ test("a reconnect does not ask the volatile event stream to replay", async () =>
     ctx.dispose()
   }
 })
+
+test("disposing the connection aborts its stream and drops pending batched events", async () => {
+  const fake = server()
+  const events: OpenCodeEvent[] = []
+  const ctx = createRoot((dispose) => ({
+    dispose,
+    connection: createClientConnection(fake.api, {
+      idleTimeout: 10_000,
+      flushInterval: 10_000,
+      onEvent: (event) => events.push(event),
+    }),
+  }))
+  try {
+    await until(() => fake.streams.length === 1)
+    fake.streams[0].write(`data: ${JSON.stringify(connected)}\n\n`)
+    await until(() => ctx.connection.status() === "connected")
+    expect(events).toEqual([])
+
+    ctx.dispose()
+    expect(fake.streams[0].aborted).toBe(true)
+    ctx.connection.internal.resync("disposed")
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(fake.streams).toHaveLength(1)
+    expect(events).toEqual([])
+  } finally {
+    ctx.dispose()
+  }
+})
+
+test.each(["resolve", "reject"] as const)(
+  "disposing during server resolution aborts it and ignores a late %s",
+  async (outcome) => {
+    const fake = server()
+    let signal: AbortSignal | undefined
+    let finish!: () => void
+    const logs: string[] = []
+    const ctx = createRoot((dispose) => ({
+      dispose,
+      connection: createClientConnection(fake.api, {
+        idleTimeout: 10_000,
+        flushInterval: 0,
+        onEvent: () => {},
+        log: { info: (message) => logs.push(message) },
+        reconnect: (current) => {
+          signal = current
+          return new Promise<OpenCodeClient>((resolve, reject) => {
+            finish = () => (outcome === "resolve" ? resolve(fake.api) : reject(new Error("Resolution failed")))
+          })
+        },
+      }),
+    }))
+    try {
+      await until(() => fake.streams.length === 1)
+      fake.streams[0].write(`data: ${JSON.stringify(connected)}\n\n`)
+      await until(() => ctx.connection.status() === "connected")
+      fake.streams[0].error(new Error("disconnect"))
+      await until(() => signal !== undefined)
+      expect(signal?.aborted).toBe(false)
+
+      ctx.dispose()
+      expect(signal?.aborted).toBe(true)
+      finish()
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      expect(fake.streams).toHaveLength(1)
+      expect(ctx.connection.status()).toBe("connecting")
+      expect(logs).not.toContain("server resolution failed")
+    } finally {
+      ctx.dispose()
+    }
+  },
+)

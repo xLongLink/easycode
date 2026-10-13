@@ -1,5 +1,5 @@
 import { describe, expect } from "bun:test"
-import { Clock, Effect, Schedule } from "effect"
+import { Clock, Deferred, Effect, Fiber, Schedule } from "effect"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http"
 import { Credential } from "@opencode/core/credential"
 import { Integration } from "@opencode/core/integration"
@@ -386,6 +386,57 @@ describe("GitLabPlugin OAuth", () => {
         expect(text).toContain(response.contains)
         expect(yield* test.credentials.list(integrationID)).toEqual(saved)
         expect(yield* test.integrations.connection.active(integrationID)).toEqual(previous)
+      }),
+    )
+  }
+
+  for (const cancel of [false, true]) {
+    it.live(`waits for the token exchange and consumes the callback once (cancel: ${cancel})`, () =>
+      Effect.gen(function* () {
+        const test = yield* fixture()
+        yield* test.integrations.connection.key({ integrationID, key: "previous-key" })
+        const previous = yield* test.integrations.connection.active(integrationID)
+        const saved = yield* test.credentials.list(integrationID)
+        const login = yield* test.connect
+        const started = yield* Deferred.make<void>()
+        const token = yield* Deferred.make<Response>()
+        test.replies.push(Deferred.succeed(started, undefined).pipe(Effect.andThen(Deferred.await(token))))
+        const page = yield* Effect.tryPromise(() => fetch(login.callback, { headers: { Connection: "close" } })).pipe(
+          Effect.exit,
+          Effect.forkScoped,
+        )
+        yield* Deferred.await(started)
+        expect(
+          (yield* test.integrations.oauth.status({ integrationID, attemptID: login.attempt.attemptID })).status,
+        ).toBe("pending")
+        expect(yield* test.credentials.list(integrationID)).toEqual(saved)
+        expect(yield* test.integrations.connection.active(integrationID)).toEqual(previous)
+        expect((yield* Effect.promise(() => fetch(login.callback, { headers: { Connection: "close" } }))).status).toBe(
+          409,
+        )
+        expect(test.requests).toHaveLength(1)
+        if (cancel) {
+          yield* test.integrations.oauth.cancel({ integrationID, attemptID: login.attempt.attemptID })
+          yield* Deferred.succeed(token, renewal())
+          expect((yield* Fiber.join(page).pipe(Effect.timeout("3 seconds")))._tag).toBe("Failure")
+          expect(yield* test.credentials.list(integrationID)).toEqual(saved)
+          expect(yield* test.integrations.connection.active(integrationID)).toEqual(previous)
+          // A new attempt must reclaim GitLab's fixed callback port after cancellation.
+          const next = yield* test.connect
+          expect(next.callback.origin).toBe(login.callback.origin)
+          expect(next.url.searchParams.get("state")).not.toBe(login.url.searchParams.get("state"))
+          yield* test.integrations.oauth.cancel({ integrationID, attemptID: next.attempt.attemptID })
+          expect(test.requests).toHaveLength(1)
+          return
+        }
+        yield* Deferred.succeed(token, renewal())
+        const result = yield* Fiber.join(page)
+        const response = yield* result
+        expect(response.status).toBe(200)
+        expect(yield* Effect.promise(() => response.text())).toContain("Authorization successful")
+        expect((yield* test.status(login.attempt.attemptID)).status).toBe("complete")
+        expect(yield* test.credentials.list(integrationID)).toHaveLength(saved.length + 1)
+        expect(test.requests).toHaveLength(1)
       }),
     )
   }

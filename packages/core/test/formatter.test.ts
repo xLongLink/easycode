@@ -306,6 +306,37 @@ describe("Formatter", () => {
     ),
   )
 
+  it.live("retries disabled formatter discovery and caches the enabled command", () =>
+    withFormatter(false, (formatter, directory) =>
+      Effect.gen(function* () {
+        const discovery = { calls: 0 }
+        const available = path.join(directory, "formatter-available")
+        yield* formatter.transform((editor) => {
+          editor.set({
+            name: "retry",
+            extensions: [".retry"],
+            enabled: Effect.gen(function* () {
+              discovery.calls++
+              if (!(yield* Effect.promise(() => Bun.file(available).exists()))) return false
+              return append("'A'")
+            }),
+          })
+        })
+        const file = path.join(directory, "test.retry")
+        yield* Effect.promise(() => fs.writeFile(file, "x"))
+        expect(yield* formatter.file(file)).toBe(false)
+        expect(yield* Effect.promise(() => fs.readFile(file, "utf8"))).toBe("x")
+
+        yield* Effect.promise(() => fs.writeFile(available, ""))
+        expect(yield* formatter.file(file)).toBe(true)
+        yield* Effect.promise(() => fs.unlink(available))
+        expect(yield* formatter.file(file)).toBe(true)
+        expect(discovery.calls).toBe(2)
+        expect(yield* Effect.promise(() => fs.readFile(file, "utf8"))).toBe("xAA")
+      }),
+    ),
+  )
+
   it.live("rebuilds formatter state and clears resolved commands", () =>
     withFormatter(false, (formatter, directory) =>
       Effect.gen(function* () {

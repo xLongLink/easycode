@@ -6,10 +6,114 @@ import net from "node:net"
 import os from "node:os"
 import path from "node:path"
 import { Effect } from "effect"
+import { Global } from "@opencode/util/global"
+import { Pty } from "@opencode/schema/pty"
+import { Session } from "@opencode/schema/session"
+import { AppNodeBuilder } from "../src/effect/app-node-builder"
+import { PersistentPty } from "../src/persistent-pty/index"
 import { makeDaemonTransport } from "../src/persistent-pty/daemon"
+import { tempGlobalLayer } from "./fixture/global"
 import { it } from "./lib/effect"
 
 const pong = { type: "pong", instance_id: "test", pid: process.pid, protocol: 7 }
+
+const operations = [
+  {
+    op: "resize",
+    run: (service: PersistentPty.Interface, id: Pty.ID) => service.resize(id, 100, 30),
+    payload: { attachment_id: null, cols: 100, rows: 30 },
+  },
+  {
+    op: "control",
+    run: (service: PersistentPty.Interface, id: Pty.ID) => service.control(id, "controller", 100, 30),
+    payload: { attachment_id: "controller", cols: 100, rows: 30 },
+  },
+  {
+    op: "input",
+    run: (service: PersistentPty.Interface, id: Pty.ID) =>
+      service.input(id, "controller", 100, 30, new Uint8Array([0, 128, 255])),
+    payload: { attachment_id: "controller", cols: 100, rows: 30, data_base64: "AID/" },
+  },
+]
+
+for (const operation of operations) {
+  for (const outcome of ["success", "missing", "error", "unexpected"] as const) {
+    it.live(`service ${operation.op} ${outcome} preserves acknowledgment-based selection`, () =>
+      Effect.gen(function* () {
+        const runtime = yield* temporaryRuntime()
+        const socketPath = path.join(runtime.directory, "daemon.sock")
+        const requests: Record<string, unknown>[] = []
+        const sessionID = Session.ID.make("ses_test")
+        const first = Pty.ID.make("pty_persistent_1")
+        const second = Pty.ID.make("pty_persistent_2")
+        yield* listen(socketPath, (_socket, request) => {
+          if (request.op === "ping") return pong
+          requests.push(request)
+          if (request.op === "list")
+            return {
+              type: "terminals",
+              terminals: (outcome === "missing" ? [1] : [1, 2]).map((id) => ({ ...terminal(id), group_id: sessionID })),
+            }
+          if (request.op === "read_rows")
+            return {
+              type: "rows",
+              terminal: { ...terminal(Number(request.id)), group_id: sessionID },
+              lines: ["selected"],
+              cursor_x: 0,
+              cursor_y: 0,
+            }
+          if (request.id === 1) return { type: "ok" }
+          if (outcome === "error") return { type: "error", message: "controller rejected" }
+          if (outcome === "unexpected") return { type: "terminals", terminals: [] }
+          return { type: "ok" }
+        })
+        yield* Effect.promise(() => writeRegistration(runtime.directory, socketPath))
+        yield* Effect.gen(function* () {
+          const service = yield* PersistentPty.Service
+          expect(yield* service.read(sessionID)).toBeNull()
+          yield* service.resize(first, 80, 24)
+          expect((yield* service.read(sessionID))?.ptyID).toBe(first)
+          requests.length = 0
+
+          if (outcome === "success") expect(yield* operation.run(service, second)).toBeUndefined()
+          if (outcome !== "success") {
+            const error = yield* Effect.flip(operation.run(service, second))
+            expect(error).toMatchObject(
+              outcome === "missing"
+                ? { _tag: "PersistentPty.NotFoundError", ptyID: second }
+                : {
+                    _tag: "PersistentPty.UnavailableError",
+                    message:
+                      outcome === "error" ? "controller rejected" : "unexpected opencode-pty response: terminals",
+                  },
+            )
+          }
+          expect(requests).toEqual(
+            outcome === "missing"
+              ? [{ op: "list" }]
+              : [{ op: "list" }, { op: operation.op, id: 2, ...operation.payload }],
+          )
+          expect((yield* service.read(sessionID))?.ptyID).toBe(outcome === "success" ? second : first)
+        }).pipe(
+          Effect.provide(
+            AppNodeBuilder.build(
+              PersistentPty.configured({
+                root: runtime.root,
+                handoff: {
+                  directory: runtime.directory,
+                  instanceID: "test",
+                  ticket: "ticket",
+                  expiresAt: Date.now() + 60_000,
+                },
+              }),
+              [Global.node.replace(tempGlobalLayer)],
+            ),
+          ),
+        )
+      }),
+    )
+  }
+}
 
 it.live("rediscovers a same-protocol daemon after its registration rotates", () =>
   Effect.gen(function* () {

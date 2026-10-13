@@ -4,6 +4,7 @@ import { define } from "@opencode/plugin/effect/plugin"
 import { Effect, Schema, Scope } from "effect"
 import { HttpClient } from "effect/http"
 import { WebSearchMcp } from "./mcp.js"
+import { WebSearchIntegration } from "./integration.js"
 
 export const endpoint = "https://mcp.exa.ai/mcp"
 
@@ -26,17 +27,7 @@ export const Plugin = define<HttpClient.HttpClient | Scope.Scope>({
   id: "opencode.websearch.exa",
   effect: Effect.fn("WebSearchExa.Plugin")(function* (ctx) {
     const http = yield* HttpClient.HttpClient
-    yield* ctx.integration.transform((editor) => {
-      editor.update("exa", (integration) => (integration.name = "Exa"))
-      editor.method.update({
-        integrationID: "exa",
-        method: { type: "key" },
-      })
-      editor.method.update({
-        integrationID: "exa",
-        method: { type: "env", names: ["EXA_API_KEY"] },
-      })
-    })
+    yield* WebSearchIntegration.register(ctx.integration, "exa", "Exa", "EXA_API_KEY")
     yield* ctx.websearch.transform((editor) => {
       editor.add({
         id: "exa",

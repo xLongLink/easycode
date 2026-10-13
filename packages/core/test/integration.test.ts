@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { Cause, Clock, Duration, Effect, Exit, Fiber, Layer, Scope, Stream } from "effect"
+import { Cause, Clock, Deferred, Duration, Effect, Exit, Fiber, Layer, Schema, Scope, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { Credential } from "@opencode/core/credential"
 import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
@@ -521,6 +521,157 @@ describe("Integration", () => {
       expect(yield* credentials.list(integrationID)).toEqual([])
     }),
   )
+
+  it.effect("expires commands and retains expired records for one minute", () =>
+    Effect.gen(function* () {
+      const integrations = yield* Integration.Service
+      const credentials = yield* Credential.Service
+      const integrationID = Integration.ID.make("company")
+      const methodID = Integration.MethodID.make("login")
+      yield* integrations.transform((editor) =>
+        editor.method.update({
+          integrationID,
+          method: {
+            id: methodID,
+            type: "command",
+            label: "Log in",
+            command: [
+              process.execPath,
+              "-e",
+              'process.stderr.write("ready"); await Bun.sleep(60000); process.stdout.write("too late")',
+            ],
+          },
+        }),
+      )
+      const attempt = yield* integrations.command.connect({ integrationID, methodID })
+      const input = { integrationID, attemptID: attempt.attemptID }
+      yield* eventually(
+        integrations.command.status(input),
+        (status) => status.status === "pending" && status.message === "ready",
+      )
+      yield* TestClock.adjust(Duration.minutes(10))
+      expect(yield* integrations.command.status(input)).toEqual({ status: "expired", time: attempt.time })
+      yield* integrations.command.cancel(input)
+      yield* TestClock.adjust(Duration.seconds(59))
+      expect(yield* integrations.command.status(input)).toEqual({ status: "expired", time: attempt.time })
+      yield* TestClock.adjust(Duration.seconds(1))
+      expect(yield* integrations.command.status(input).pipe(Effect.flip)).toBeInstanceOf(
+        Integration.AttemptNotFoundError,
+      )
+      expect(yield* credentials.list(integrationID)).toEqual([])
+    }),
+  )
+
+  for (const status of ["complete", "failed"] as const) {
+    it.effect(`retains ${status} command records and their payload until the scrub deadline`, () =>
+      Effect.gen(function* () {
+        const integrations = yield* Integration.Service
+        const integrationID = Integration.ID.make("company")
+        const methodID = Integration.MethodID.make("login")
+        yield* integrations.transform((editor) =>
+          editor.method.update({
+            integrationID,
+            method: {
+              id: methodID,
+              type: "command",
+              label: "Log in",
+              command: [
+                process.execPath,
+                "-e",
+                status === "complete"
+                  ? 'process.stdout.write("secret")'
+                  : 'process.stderr.write("login failed"); process.exit(1)',
+              ],
+            },
+          }),
+        )
+        const attempt = yield* integrations.command.connect({ integrationID, methodID })
+        const input = { integrationID, attemptID: attempt.attemptID }
+        const terminal =
+          status === "failed" ? { status, message: "login failed", time: attempt.time } : { status, time: attempt.time }
+        expect(yield* eventually(integrations.command.status(input), (value) => value.status === status)).toEqual(
+          terminal,
+        )
+        yield* TestClock.adjust(Duration.seconds(59))
+        expect(yield* integrations.command.status(input)).toEqual(terminal)
+        yield* TestClock.adjust(Duration.seconds(1))
+        expect(yield* integrations.command.status(input).pipe(Effect.flip)).toBeInstanceOf(
+          Integration.AttemptNotFoundError,
+        )
+      }),
+    )
+  }
+
+  for (const type of ["oauth", "command"] as const) {
+    it.effect(`does not expire or cancel ${type} attempts while credential persistence is in flight`, () =>
+      Effect.gen(function* () {
+        const integrations = yield* Integration.Service
+        const credentials = yield* Credential.Service
+        const bus = yield* Bus.Service
+        const integrationID = Integration.ID.make("company")
+        const methodID = Integration.MethodID.make("login")
+        const persisting = yield* Deferred.make<void>()
+        const release = yield* Deferred.make<void>()
+        yield* bus.listen((event) => {
+          if (!Schema.is(Credential.Event.Switched)(event) || event.data.integrationID !== integrationID)
+            return Effect.void
+          return Deferred.succeed(persisting, undefined).pipe(Effect.andThen(Deferred.await(release)))
+        })
+        yield* integrations.transform((editor) =>
+          editor.method.update(
+            type === "command"
+              ? {
+                  integrationID,
+                  method: {
+                    id: methodID,
+                    type: "command",
+                    label: "Log in",
+                    command: [process.execPath, "-e", 'process.stdout.write("secret")'],
+                  },
+                }
+              : {
+                  integrationID,
+                  method: { id: methodID, type: "oauth", label: "Log in" },
+                  authorize: () =>
+                    Effect.succeed({
+                      mode: "auto" as const,
+                      url: "https://example.com/authorize",
+                      instructions: "Sign in",
+                      callback: Effect.succeed(
+                        Credential.OAuth.make({
+                          type: "oauth",
+                          methodID,
+                          access: "access",
+                          refresh: "refresh",
+                          expires: 1,
+                        }),
+                      ),
+                    }),
+                },
+          ),
+        )
+        const attempt = yield* integrations[type].connect({ integrationID, methodID })
+        const input = { integrationID, attemptID: attempt.attemptID }
+        // Wait on the real credential event rather than substituting the persistence implementation.
+        yield* eventually(Deferred.isDone(persisting), (done) => done)
+        yield* integrations[type].cancel(input)
+        yield* TestClock.adjust(Duration.minutes(11))
+        expect(yield* integrations[type].status(input)).toEqual({ status: "pending", time: attempt.time })
+        yield* Deferred.succeed(release, undefined)
+        expect(yield* eventually(integrations[type].status(input), (value) => value.status === "complete")).toEqual({
+          status: "complete",
+          time: attempt.time,
+        })
+        expect(yield* credentials.list(integrationID)).toHaveLength(1)
+        yield* TestClock.adjust(Duration.seconds(59))
+        expect(yield* integrations[type].status(input)).toEqual({ status: "complete", time: attempt.time })
+        yield* TestClock.adjust(Duration.seconds(1))
+        expect(yield* integrations[type].status(input).pipe(Effect.flip)).toBeInstanceOf(
+          Integration.AttemptNotFoundError,
+        )
+      }),
+    )
+  }
 
   it.effect("uses provider-defined OAuth attempt expirations", () =>
     Effect.gen(function* () {

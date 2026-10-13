@@ -1,6 +1,6 @@
 import { AISDK } from "@opencode/core/aisdk"
 import { describe, expect } from "bun:test"
-import { Effect } from "effect"
+import { Cause, Effect } from "effect"
 import { Model } from "@opencode/core/model"
 import { Plugin } from "@opencode/core/plugin"
 import { PluginHost } from "@opencode/core/plugin/host"
@@ -12,6 +12,7 @@ import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
 
 const fixtureProvider = new URL("./fixtures/provider-factory.ts", import.meta.url).href
+const noncallableProvider = new URL("./fixtures/provider-noncallable-factory.ts", import.meta.url).href
 const it = testEffect(PluginTestLayer)
 const npm = Npm.Service.of({
   add: (name) => Effect.succeed({ directory: "", name }),
@@ -36,6 +37,38 @@ function model(providerID: string) {
 }
 
 describe("SapAICorePlugin", () => {
+  it.effect("rejects the first create export when it is not callable", () =>
+    Effect.gen(function* () {
+      const aisdk = yield* AISDK.Service
+      yield* addPlugin()
+      const exit = yield* aisdk
+        .runSDK({ model: model("sap-ai-core"), package: noncallableProvider, options: {} })
+        .pipe(Effect.exit)
+      expect(exit._tag).toBe("Failure")
+      if (exit._tag !== "Failure") return
+      expect(Cause.squash(exit.cause)).toEqual(
+        new Error(`Package ${noncallableProvider} provider factory export is not callable`),
+      )
+    }),
+  )
+
+  it.effect("wraps a noncallable selected factory as an AISDK init error", () =>
+    Effect.gen(function* () {
+      const aisdk = yield* AISDK.Service
+      yield* addPlugin()
+      const result = yield* aisdk
+        .language(Model.Info.make({ ...model("sap-ai-core"), package: Provider.aisdk(noncallableProvider) }))
+        .pipe(Effect.result)
+      expect(result._tag).toBe("Failure")
+      if (result._tag !== "Failure") return
+      expect(result.failure).toBeInstanceOf(AISDK.InitError)
+      expect(result.failure.providerID).toBe(Provider.ID.make("sap-ai-core"))
+      expect(result.failure.cause).toEqual(
+        new Error(`Package ${noncallableProvider} provider factory export is not callable`),
+      )
+    }),
+  )
+
   it.effect("copies serviceKey option into AICORE_SERVICE_KEY but keeps SDK options to deployment metadata", () =>
     withEnv(
       { AICORE_SERVICE_KEY: undefined, AICORE_DEPLOYMENT_ID: "deployment", AICORE_RESOURCE_GROUP: "resource-group" },

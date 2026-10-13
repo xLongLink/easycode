@@ -5,6 +5,7 @@ import { Effect, Option, Schema, Scope } from "effect"
 import { HttpClient } from "effect/http"
 import { App } from "../../app.js"
 import { WebSearchMcp } from "./mcp.js"
+import { WebSearchIntegration } from "./integration.js"
 
 export const endpoint = "https://agent.tinyfish.ai/mcp"
 
@@ -33,17 +34,7 @@ export const Plugin = define<HttpClient.HttpClient | Scope.Scope>({
   id: "opencode.websearch.tinyfish",
   effect: Effect.fn("WebSearchTinyFish.Plugin")(function* (ctx) {
     const http = yield* HttpClient.HttpClient
-    yield* ctx.integration.transform((editor) => {
-      editor.update("tinyfish", (integration) => (integration.name = "TinyFish"))
-      editor.method.update({
-        integrationID: "tinyfish",
-        method: { type: "key" },
-      })
-      editor.method.update({
-        integrationID: "tinyfish",
-        method: { type: "env", names: ["TINYFISH_API_KEY"] },
-      })
-    })
+    yield* WebSearchIntegration.register(ctx.integration, "tinyfish", "TinyFish", "TINYFISH_API_KEY")
     yield* ctx.websearch.transform((editor) => {
       editor.add({
         id: "tinyfish",

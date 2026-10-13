@@ -45,6 +45,27 @@ export function same(left: Info, right: Info) {
   return left.id === right.id && left.version === right.version && left.url === right.url && left.pid === right.pid
 }
 
+/** Count consecutive probe timeouts for one owner, independently for each ensure invocation. */
+export function timeoutTracker() {
+  let timeouts: { readonly info: Info; readonly count: number } | undefined
+  return {
+    record(registration: { readonly info?: Info; readonly timedOut: boolean }) {
+      if (!registration.timedOut || registration.info === undefined) {
+        timeouts = undefined
+        return undefined
+      }
+      timeouts = {
+        info: registration.info,
+        count: timeouts !== undefined && same(timeouts.info, registration.info) ? timeouts.count + 1 : 1,
+      }
+      return timeouts.count >= 3 ? registration.info : undefined
+    },
+    reset() {
+      timeouts = undefined
+    },
+  }
+}
+
 /** Ask a registered owner for its health and classify the answer. */
 export async function probeResult(info: Info, timeout = defaultEnsureTiming.requestTimeout) {
   const endpoint = {
