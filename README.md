@@ -65,7 +65,7 @@ Changes from OpenCode, focused on keeping the core runtime and terminal UI.
 **Added**:
 
 - 🔁 Built-in **Loop** agent for iterative repository review and improvements.
-- 🛠️ Simplified GitHub release installation and a `make uncode` local build/install command.
+- 🛠️ Simplified GitHub release installation.
 
 <br />
 
@@ -88,10 +88,8 @@ uncode includes three built-in agents you can switch between with the `Tab` key.
 
 ## Local Development
 
-For local development, build and install from this repository:
-
 ```bash
-make uncode
+bun run dev
 ```
 
 
