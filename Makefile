@@ -17,4 +17,6 @@ uninstall:
 	rm -f -- "$(INSTALL_DIR)/uncode"
 
 uncode:
+	@$(MAKE) uninstall
+	@$(MAKE) install
 	@"$(INSTALL_DIR)/uncode" $(ARGS)
