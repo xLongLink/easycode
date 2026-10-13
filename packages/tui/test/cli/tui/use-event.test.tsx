@@ -4,7 +4,6 @@ import type { OpenCodeClient, OpenCodeEvent } from "@opencode/client"
 import { testRender } from "@opentui/solid"
 import { onMount } from "solid-js"
 import { ClientProvider, useClient } from "../../../src/context/client"
-import { useEvent } from "../../../src/context/event"
 import { createApi, createEventStream, createFetch } from "../../fixture/tui-client"
 import { TestTuiContexts } from "../../fixture/tui-environment"
 import type { LogLevel, LogSink } from "../../../src/context/log"
@@ -72,12 +71,12 @@ function Probe(props: {
   onReady: (ctx: { client: ReturnType<typeof useClient> }) => void
 }) {
   const client = useClient()
-  const event = useEvent()
 
   onMount(() => {
-    event.subscribe((evt, { directory }) => {
-      props.seen.push(evt)
-      props.directories.push(directory)
+    client.event.listen(({ details }) => {
+      if (details.type === "server.connected") return
+      props.seen.push(details)
+      props.directories.push(details.location?.directory)
     })
     props.onReady({ client })
   })
@@ -85,7 +84,33 @@ function Probe(props: {
   return <box />
 }
 
-describe("useEvent", () => {
+describe("client events", () => {
+  test("typed listeners exclude other event types and stop after unsubscribe", async () => {
+    const { app, emit, client, seen, directories } = await mount()
+    const branches: Array<string | undefined> = []
+    const unsubscribe = client.event.on("vcs.branch.updated", (evt) => branches.push(evt.data.branch))
+
+    try {
+      await wait(() => client.connection.status() === "connected")
+      emit(vcs("main"))
+      emit({ id: "evt_toast", created: 0, type: "tui.toast.show", data: { message: "Hello", variant: "info" } })
+      await wait(() => seen.length === 2)
+
+      expect(seen.map((evt) => evt.type)).toEqual(["vcs.branch.updated", "tui.toast.show"])
+      expect(directories).toEqual([undefined, undefined])
+      expect(branches).toEqual(["main"])
+
+      unsubscribe()
+      emit(event(vcs("next"), { directory: "/tmp/other" }))
+      await wait(() => seen.length === 3)
+      expect(branches).toEqual(["main"])
+      expect(directories).toEqual([undefined, undefined, "/tmp/other"])
+    } finally {
+      unsubscribe()
+      app.renderer.destroy()
+    }
+  })
+
   test("logs only durable events", async () => {
     const logs: Array<{ level: LogLevel; message: string; tags: Readonly<Record<string, unknown>> }> = []
     const { app, emit, seen } = await mount(undefined, (level, message, tags) => {

@@ -5,7 +5,7 @@ import path from "path"
 import { Context, Effect, Layer, type Option, type PlatformError, Schema, type Stream } from "effect"
 import { FSUtil } from "@opencode/util/fs-util"
 import { Location } from "./location.js"
-import { AbsolutePath, PositiveInt, RelativePath } from "./schema.js"
+import { AbsolutePath, RelativePath } from "./schema.js"
 import { FileSystemSearch } from "./filesystem/search.js"
 import { Entry, FileSystem, FindInput, Write } from "@opencode/schema/filesystem"
 export { Entry, Match, Submatch } from "@opencode/schema/filesystem"
@@ -68,22 +68,6 @@ export { FindInput, Write }
 
 export const DEFAULT_SEARCH_LIMIT = 100
 export const DEFAULT_SEARCH_TIMEOUT_MS = 30_000
-
-export class GlobInput extends Schema.Class<GlobInput>("FileSystem.GlobInput")({
-  pattern: Schema.String,
-  path: Schema.optionalKey(RelativePath),
-  hidden: Schema.optionalKey(Schema.Boolean),
-  limit: Schema.optionalKey(PositiveInt),
-}) {}
-
-export class GrepInput extends Schema.Class<GrepInput>("FileSystem.GrepInput")({
-  pattern: Schema.String,
-  path: Schema.optionalKey(RelativePath),
-  include: Schema.optionalKey(Schema.String),
-  literal: Schema.optionalKey(Schema.Boolean),
-  caseSensitive: Schema.optionalKey(Schema.Boolean),
-  limit: Schema.optionalKey(PositiveInt),
-}) {}
 
 export const Event = FileSystem.Event
 

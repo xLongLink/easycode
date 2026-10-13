@@ -20,7 +20,6 @@ import { Spinner } from "../spinner"
 import { useClient } from "../../context/client"
 import { useRoute } from "../../context/route"
 import { usePromptRef } from "../../context/prompt"
-import { useEvent } from "../../context/event"
 import { editorSelectionKey, useEditorContext, type EditorSelection } from "../../context/editor"
 import { normalizePromptContent, openEditor } from "../../editor"
 import { useExit } from "../../context/exit"
@@ -332,10 +331,9 @@ export function Prompt(props: PromptProps) {
   const skillStyleId = syntax().getStyleId("extmark.skill")!
   const pasteStyleId = syntax().getStyleId("extmark.paste")!
   let promptPartTypeId = 0
-  const event = useEvent()
 
-  event.on("tui.prompt.append", (evt, { directory }) => {
-    if (directory !== (currentLocation.current?.directory ?? data.location.default().directory)) return
+  client.event.on("tui.prompt.append", (evt) => {
+    if (evt.location?.directory !== (currentLocation.current?.directory ?? data.location.default().directory)) return
     if (!input || input.isDestroyed) return
     input.insertText(evt.data.text)
     setTimeout(() => {

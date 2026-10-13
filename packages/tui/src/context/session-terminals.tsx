@@ -3,7 +3,6 @@ import { createSignal, onCleanup } from "solid-js"
 import { createSimpleContext } from "./helper"
 import { useClient } from "./client"
 import { useData } from "./data"
-import { useEvent } from "./event"
 import { useStorage } from "./storage"
 
 type SessionTerminalsState = {
@@ -15,7 +14,6 @@ export const { use: useSessionTerminals, provider: SessionTerminalsProvider } = 
   init: () => {
     const client = useClient()
     const data = useData()
-    const event = useEvent()
     const [available, setAvailable] = createSignal(false)
     const [focus, setFocus] = createSignal<string>()
     const storage = useStorage()
@@ -48,7 +46,7 @@ export const { use: useSessionTerminals, provider: SessionTerminalsProvider } = 
 
     for (const type of ["persistent-pty.added", "persistent-pty.removed"] as const) {
       onCleanup(
-        event.on(type, (evt) => {
+        client.event.on(type, (evt) => {
           if (!available() || !terminals[evt.data.sessionID]) return
           void refresh(evt.data.sessionID).catch((error) =>
             console.error("Failed to refresh persistent terminal panes", error),
@@ -58,7 +56,7 @@ export const { use: useSessionTerminals, provider: SessionTerminalsProvider } = 
     }
     // The event stream opens with server.connected, so this runs for the first connection and every reconnect.
     onCleanup(
-      event.on("server.connected", () => {
+      client.event.on("server.connected", () => {
         void client.api.server
           .info()
           .then((info) => {

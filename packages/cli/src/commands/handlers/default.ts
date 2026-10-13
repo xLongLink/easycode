@@ -4,7 +4,7 @@ import { run } from "@opencode/tui"
 import { Commands } from "../commands"
 import { Runtime } from "../../framework/runtime"
 import { Config } from "../../config"
-import { Context, Effect, FileSystem, Option, Queue } from "effect"
+import { Context, Effect, FileSystem, Option } from "effect"
 import { ServerConnection } from "../../services/server-connection"
 import { Npm } from "@opencode/util/npm"
 import { OPENCODE_ARTIFACT, OPENCODE_VERSION } from "../../version"
@@ -19,21 +19,14 @@ export default Runtime.handler(Commands, (input) =>
     const requestedDirectory = Option.getOrUndefined(input.directory)
     const requestedServer = Option.getOrUndefined(input.server)
     if (requestedDirectory !== undefined) process.chdir(requestedDirectory)
-    const serviceStarts = yield* Queue.unbounded<{
-      readonly reason: "missing" | "version-mismatch"
-      readonly previousVersion?: string
-    }>()
-    yield* Queue.take(serviceStarts).pipe(
-      Effect.flatMap((event) => Effect.logInfo("background service starting", event)),
-      Effect.forever,
-      Effect.forkScoped,
-    )
+    const context = yield* Effect.context<FileSystem.FileSystem>()
+    const runFork = Effect.runForkWith(context)
     const server = yield* ServerConnection.resolve({
       server: requestedServer,
       standalone: input.standalone,
       mismatch: "replace",
       onStart: (reason, previousVersion) => {
-        Queue.offerUnsafe(serviceStarts, { reason, previousVersion })
+        runFork(Effect.logInfo("background service starting", { reason, previousVersion }))
         process.stderr.write(
           reason === "version-mismatch"
             ? "Restarting background server (version mismatch)...\n"
@@ -54,8 +47,6 @@ export default Runtime.handler(Commands, (input) =>
     const npm = yield* Npm.Service
     const fileSystem = yield* FileSystem.FileSystem
     const runServicePromise = Effect.runPromiseWith(Context.make(FileSystem.FileSystem, fileSystem))
-    const context = yield* Effect.context<FileSystem.FileSystem>()
-    const runFork = Effect.runForkWith(context)
     const runPromise = Effect.runPromiseWith(context)
     const service = server.service
     yield* run({

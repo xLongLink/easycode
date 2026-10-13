@@ -4,7 +4,6 @@ import { useKeyboard, useRenderer } from "@opentui/solid"
 import { createSimpleContext } from "./helper"
 import { useClient } from "./client"
 import { useData } from "./data"
-import { useEvent } from "./event"
 import { useRoute } from "./route"
 import { createSessionRetention } from "./session-retention"
 import { anchorKey, type AnchorTarget } from "../routes/session/anchors"
@@ -23,7 +22,6 @@ export const { use: useSessionView, provider: SessionViewProvider } = createSimp
     const route = useRoute()
     const client = useClient()
     const data = useData()
-    const event = useEvent()
     const renderer = useRenderer()
     const [focused, setFocused] = createSignal<boolean>()
     const scrollAnchors = new Map<string, ScrollAnchor>()
@@ -88,7 +86,7 @@ export const { use: useSessionView, provider: SessionViewProvider } = createSimp
     })
 
     onCleanup(
-      event.on("session.deleted", (evt) => {
+      client.event.on("session.deleted", (evt) => {
         data.session.family(evt.data.sessionID).forEach((id) => {
           scrollAnchors.delete(id)
           setExpandedGroups(id, undefined)

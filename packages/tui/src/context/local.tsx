@@ -2,7 +2,7 @@ import { createStore } from "solid-js/store"
 import { dedupeWith } from "effect/Array"
 import { createSimpleContext } from "./helper"
 import { batch, createMemo, onCleanup } from "solid-js"
-import { useEvent } from "./event"
+import { useClient } from "./client"
 import path from "path"
 import { useTuiPaths } from "./runtime"
 import { useArgs } from "./args"
@@ -35,7 +35,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
     const route = useRoute()
     const paths = useTuiPaths()
     const args = useArgs()
-    const event = useEvent()
+    const client = useClient()
     const permission = usePermission()
     const location = useLocation()
 
@@ -64,9 +64,11 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         current: undefined as string | undefined,
         draftBySession: {} as Record<string, { agent?: string } | undefined>,
       })
-      onCleanup(event.on("session.deleted", (evt) => setAgentStore("draftBySession", evt.data.sessionID, undefined)))
       onCleanup(
-        event.on("session.agent.selected", (evt) => {
+        client.event.on("session.deleted", (evt) => setAgentStore("draftBySession", evt.data.sessionID, undefined)),
+      )
+      onCleanup(
+        client.event.on("session.agent.selected", (evt) => {
           // Keep an entry after acknowledgment: CLI defaults must not override a user's later choice.
           if (agentStore.draftBySession[evt.data.sessionID]?.agent === evt.data.agent)
             setAgentStore("draftBySession", evt.data.sessionID, { agent: undefined })
@@ -338,11 +340,11 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
           setSessionSelection(sessionID, expected.agentID, undefined)
       }
 
-      onCleanup(event.on("session.model.selected", (evt) => reconcileSessionSelection(evt.data.sessionID)))
-      onCleanup(event.on("session.agent.selected", (evt) => reconcileSessionSelection(evt.data.sessionID)))
+      onCleanup(client.event.on("session.model.selected", (evt) => reconcileSessionSelection(evt.data.sessionID)))
+      onCleanup(client.event.on("session.agent.selected", (evt) => reconcileSessionSelection(evt.data.sessionID)))
 
       onCleanup(
-        event.on("session.deleted", (evt) => {
+        client.event.on("session.deleted", (evt) => {
           pendingSelectionCommits.delete(evt.data.sessionID)
           setSelectionState("selectionBySessionAgent", evt.data.sessionID, undefined)
         }),
@@ -565,7 +567,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         })
       }
 
-      event.on("session.deleted", (evt) => {
+      client.event.on("session.deleted", (evt) => {
         prune(evt.data.sessionID)
       })
 
