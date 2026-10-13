@@ -35,7 +35,7 @@ must still use V2 unless the user specifically requests a V1 result.
 ## [CLI](https://opencode.ai/v2/docs/cli)
 
 For questions about the terminal interface, command-line invocation, `run`,
-`mini`, terminal providers, or other CLI behavior, fetch the
+terminal providers, or other CLI behavior, fetch the
 [CLI guide](https://opencode.ai/v2/docs/cli) and the relevant page linked from
 that section.
 
@@ -51,7 +51,7 @@ the TUI by pressing `Ctrl+P` and selecting **Open settings**.
 Fetch the full [CLI settings reference](https://opencode.ai/v2/docs/cli/config)
 before editing `cli.json`. It documents every terminal-only setting, accepted
 values, and examples, including themes, input, sessions, tabs, diffs, alerts,
-Mini, keybindings, terminal plugins, and debugging. Do not put these settings
+keybindings, terminal plugins, and debugging. Do not put these settings
 in `opencode.json(c)`.
 
 ### [Keybinds](https://opencode.ai/v2/docs/cli/keybinds)

@@ -9,7 +9,7 @@ import type {
 import { SessionMessage } from "@opencode/schema/session-message"
 import { EOL } from "node:os"
 import { readFile } from "node:fs/promises"
-import { toolOutputText, type MiniToolPart } from "@opencode/tui/mini/tool"
+import { toolOutputText } from "@opencode/tui/util/run-tool"
 import { UI } from "./ui"
 
 type Model = {
@@ -54,6 +54,32 @@ type ToolState = StartedPart & {
   provider?: unknown
   providerState?: SessionMessageAssistantTool["providerState"]
   metadata: Record<string, JsonValue>
+}
+
+// Legacy tool shape retained for the run JSON/V1 compatibility boundary.
+type ToolPart = {
+  partID: string
+  sessionID: string
+  messageID: string
+  type?: "tool"
+  id: string
+  tool: string
+  state:
+    | {
+        status: "completed"
+        input: Record<string, unknown>
+        output: string
+        title?: string
+        metadata?: Record<string, unknown>
+        time: { start: number; end: number }
+      }
+    | {
+        status: "error"
+        input: Record<string, unknown>
+        error: string
+        metadata?: Record<string, unknown>
+        time: { start: number; end: number }
+      }
 }
 
 type V2Event = EventSubscribeOutput
@@ -398,7 +424,7 @@ export async function runNonInteractivePrompt(input: Input) {
           },
           time: { created: current.timestamp, ran: current.timestamp, completed: time },
         }
-        const part: MiniToolPart = {
+        const part: ToolPart = {
           partID: current.id,
           sessionID: input.sessionID,
           messageID: event.data.assistantMessageID,
@@ -447,7 +473,7 @@ export async function runNonInteractivePrompt(input: Input) {
           },
           time: { created: current.timestamp, ran: current.timestamp, completed: time },
         }
-        const part: MiniToolPart = {
+        const part: ToolPart = {
           partID: current.id,
           sessionID: input.sessionID,
           messageID: event.data.assistantMessageID,
@@ -609,7 +635,7 @@ export async function runNonInteractivePrompt(input: Input) {
 
         const key = toolKey(message.id, item.id)
         if (renderedTools.has(key) || item.state.status === "streaming" || item.state.status === "running") continue
-        const part: MiniToolPart = {
+        const part: ToolPart = {
           partID: projectedPartID(message.id, `tool-${item.id}`),
           sessionID: input.sessionID,
           messageID: message.id,

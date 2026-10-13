@@ -20,10 +20,6 @@
               "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
               "description": "Exit the application"
             },
-            "app.clear": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Clear the screen in mini"
-            },
             "app.debug": {
               "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
               "description": "Toggle debug panel"
@@ -1232,79 +1228,6 @@
         { "type": "null" }
       ],
       "description": "Tab strip settings"
-    },
-    "mini": {
-      "anyOf": [
-        {
-          "type": "object",
-          "properties": {
-            "thinking": {
-              "anyOf": [{ "type": "string", "enum": ["show", "hide"] }, { "type": "null" }],
-              "description": "Show or hide model reasoning"
-            },
-            "tools": {
-              "anyOf": [{ "type": "string", "enum": ["show", "hide"] }, { "type": "null" }],
-              "description": "Show or hide tool calls and the assistant text that precedes them"
-            },
-            "shell_output": {
-              "anyOf": [{ "type": "string", "enum": ["show", "hide"] }, { "type": "null" }],
-              "description": "Show or hide raw shell tool output"
-            },
-            "turn_summary": {
-              "anyOf": [{ "type": "string", "enum": ["show", "hide"] }, { "type": "null" }],
-              "description": "Show or hide the agent, model, and duration summary in scrollback"
-            },
-            "footer": {
-              "anyOf": [{ "type": "string", "enum": ["show", "hide"] }, { "type": "null" }],
-              "description": "Show or hide persistent activity, model, usage, and context details in the footer"
-            },
-            "splash": {
-              "anyOf": [{ "type": "string", "enum": ["show", "hide"] }, { "type": "null" }],
-              "description": "Show or hide the entry and exit splash banners"
-            },
-            "work_spinner": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": [
-                    "block-soft-slide",
-                    "block-soft-sweep",
-                    "block-low-comet",
-                    "block-low-duet",
-                    "block-shuttle",
-                    "block-bridge",
-                    "block-squeeze",
-                    "small-toggle",
-                    "square-toggle",
-                    "grow-shrink",
-                    "quadrant-orbit",
-                    "crosshatch",
-                    "density-wave",
-                    "seed"
-                  ]
-                },
-                { "type": "null" }
-              ],
-              "description": "Work spinner animation in the Mini footer (default: block-soft-slide)"
-            },
-            "mono": {
-              "anyOf": [{ "type": "boolean" }, { "type": "null" }],
-              "description": "Use monochrome ASCII output"
-            },
-            "replay": {
-              "anyOf": [{ "type": "boolean" }, { "type": "null" }],
-              "description": "Restore session history on resume and terminal resize"
-            },
-            "replay_limit": {
-              "anyOf": [{ "type": "integer", "exclusiveMinimum": 0 }, { "type": "null" }],
-              "description": "Maximum number of newest messages restored during replay"
-            }
-          },
-          "additionalProperties": false
-        },
-        { "type": "null" }
-      ],
-      "description": "Mini transcript presentation settings"
     },
     "debug": {
       "anyOf": [

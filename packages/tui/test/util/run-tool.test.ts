@@ -1,15 +1,23 @@
 import { describe, expect, test } from "bun:test"
-import { normalizeTool, toolInlineInfo, toolOutputText, toolPath, toolScroll } from "../../src/mini/tool"
+import { normalizeTool, readDisplayText, toolInlineInfo, toolOutputText, toolPath } from "../../src/util/run-tool"
 import { canonicalToolPart } from "./fixture/tool-part"
 
-describe("Mini tool presentation", () => {
+describe("Run tool presentation", () => {
+  test("unwraps read pages and directory entries without changing plain output", () => {
+    expect(readDisplayText('{"type":"text-page","content":"file content"}')).toBe("file content")
+    expect(readDisplayText('{"entries":["a.ts",{"path":"b.ts"}]}')).toBe("a.ts\nb.ts")
+    expect(readDisplayText("plain output")).toBeUndefined()
+    expect(readDisplayText("{invalid")).toBeUndefined()
+    expect(toolOutputText("read", [{ type: "text", text: "plain output" }])).toBe("plain output")
+  })
+
   test("uses V2 shell output without the model-facing status", () => {
     expect(
       toolOutputText("shell", [
-        { type: "text", text: "mini-output\n" },
+        { type: "text", text: "command-output\n" },
         { type: "text", text: "Command exited with code 0." },
       ]),
-    ).toBe("mini-output\n")
+    ).toBe("command-output\n")
 
     expect(
       toolOutputText("shell", [
@@ -88,19 +96,6 @@ describe("Mini tool presentation", () => {
 
     expect(toolInlineInfo(skill({ name: "effect" })).title).toBe('Skill "effect"')
     expect(toolInlineInfo(skill({})).title).toBe('Skill "tigerstyle"')
-    expect(
-      toolScroll("start", {
-        directory: "/work/project",
-        raw: "",
-        name: "skill",
-        input: { id: "tigerstyle" },
-        meta: { name: "effect" },
-        status: "completed",
-        error: "",
-        output: "",
-        time: {},
-      }),
-    ).toBe('→ Skill "effect"')
   })
 
   test("renders compact search metadata", () => {
