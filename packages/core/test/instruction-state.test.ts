@@ -115,10 +115,6 @@ describe("InstructionState", () => {
         sessionID,
         initial: true,
         previous: {},
-        current: {
-          "test/first": Instructions.hash("first"),
-          "test/second": Instructions.hash("second"),
-        },
         delta: {
           "test/first": Instructions.hash("first"),
           "test/second": Instructions.hash("second"),
@@ -180,7 +176,6 @@ describe("InstructionState", () => {
           "test/current": Instructions.hash("initial"),
           "test/retired": Instructions.hash("retired"),
         },
-        current: { "test/current": Instructions.hash("changed") },
         delta: {
           "test/current": Instructions.hash("changed"),
           "test/retired": "removed",
@@ -242,7 +237,6 @@ describe("InstructionState", () => {
         sessionID,
         initial: false,
         previous: { "test/context": Instructions.hash("unchanged") },
-        current: { "test/context": Instructions.hash("unchanged") },
         delta: {},
         blobs: {},
       })

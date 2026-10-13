@@ -695,6 +695,14 @@ export function Session(props: {
     dialog.clear()
   }
 
+  const clearRevert = async () => {
+    const error = await client.api.session.revert.clear({ sessionID: route.sessionID }).then(
+      () => undefined,
+      (error) => error,
+    )
+    if (error) toast.show({ message: errorMessage(error), variant: "error", duration: 5000 })
+  }
+
   const alignMessage = (messageID: string, top: number) => {
     scroll.stickyScroll = false
     setNavigationMessage(messageID)
@@ -1023,11 +1031,7 @@ export function Session(props: {
       slash: { name: "redo" },
       run: () => {
         void (async () => {
-          const error = await client.api.session.revert.clear({ sessionID: route.sessionID }).then(
-            () => undefined,
-            (error) => error,
-          )
-          if (error) toast.show({ message: errorMessage(error), variant: "error", duration: 5000 })
+          await clearRevert()
           dialog.clear()
         })()
       },
@@ -1442,6 +1446,7 @@ export function Session(props: {
                   <RevertMessage
                     count={messagesFromRevert().filter((message) => message.type === "user").length}
                     files={session()!.revert!.files ?? []}
+                    clearRevert={clearRevert}
                   />
                 </Show>
                 <Show when={navigationSlack()}>
@@ -2123,6 +2128,7 @@ function CompactionQueued() {
 
 function RevertMessage(props: {
   count: number
+  clearRevert: () => Promise<void>
   files: ReadonlyArray<{
     readonly file: string
     readonly status: "added" | "modified" | "deleted"
@@ -2132,9 +2138,6 @@ function RevertMessage(props: {
 }) {
   const ctx = use()
   const theme = useTheme()
-  const route = useRouteData("session")
-  const client = useClient()
-  const toast = useToast()
   const renderer = useRenderer()
   const [hover, setHover] = createSignal(false)
   const redoKey = Keymap.useShortcut("session.redo")
@@ -2144,13 +2147,7 @@ function RevertMessage(props: {
       onMouseOut={() => setHover(false)}
       onMouseUp={() => {
         if (renderer.getSelection()?.getSelectedText()) return
-        void (async () => {
-          const error = await client.api.session.revert.clear({ sessionID: route.sessionID }).then(
-            () => undefined,
-            (error) => error,
-          )
-          if (error) toast.show({ message: errorMessage(error), variant: "error", duration: 5000 })
-        })()
+        void props.clearRevert()
       }}
       flexShrink={0}
       marginTop={1}

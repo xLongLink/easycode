@@ -145,6 +145,55 @@ describe("DatabaseMigration", () => {
     )
   })
 
+  test.each(["bootstrap", "baseline"])("%s omits account tables and preserves credential/session storage", async (mode) => {
+    await run(
+      Effect.gen(function* () {
+        const db = yield* makeDb
+        yield* db.run(sql`PRAGMA foreign_keys = ON`)
+        yield* (mode === "bootstrap" ? DatabaseMigration.apply(db) : DatabaseMigration.applyOnly(db, migrations))
+        expect(
+          yield* db.all(sql`
+            SELECT name FROM sqlite_master
+            WHERE type = 'table' AND name IN ('account', 'account_state', 'control_account')
+          `),
+        ).toEqual([])
+
+        yield* db.run(sql`
+          INSERT INTO credential (id, integration_id, label, value, time_created, time_updated)
+          VALUES ('credential', 'openai', 'Work', '{"type":"key","key":"secret"}', 1, 1)
+        `)
+        yield* db.run(sql`
+          INSERT INTO project (id, worktree, sandboxes, time_created, time_updated)
+          VALUES ('project', '/project', '[]', 1, 1)
+        `)
+        yield* db.run(sql`
+          INSERT INTO session_v2 (id, project_id, slug, directory, title, version, time_created, time_updated)
+          VALUES ('session', 'project', 'session', '/project', 'Original', 'test', 1, 1)
+        `)
+        yield* db.run(sql`
+          INSERT INTO session_message (id, session_id, type, seq, data, time_created, time_updated)
+          VALUES ('message', 'session', 'user', 1, '{}', 1, 1)
+        `)
+        yield* db.run(sql`UPDATE credential SET label = 'Personal' WHERE id = 'credential'`)
+        yield* db.run(sql`UPDATE session_v2 SET title = 'Updated' WHERE id = 'session'`)
+        yield* DatabaseMigration.apply(db)
+
+        expect(yield* db.get(sql`SELECT label, value FROM credential WHERE id = 'credential'`)).toEqual({
+          label: "Personal",
+          value: '{"type":"key","key":"secret"}',
+        })
+        expect(yield* db.get(sql`SELECT title FROM session_v2 WHERE id = 'session'`)).toEqual({ title: "Updated" })
+        expect(yield* db.get(sql`SELECT session_id FROM session_message WHERE id = 'message'`)).toEqual({
+          session_id: "session",
+        })
+        yield* db.run(sql`DELETE FROM session_v2 WHERE id = 'session'`)
+        expect(yield* db.all(sql`SELECT id FROM session_message`)).toEqual([])
+        expect(yield* db.get(sql`SELECT id FROM credential WHERE id = 'credential'`)).toEqual({ id: "credential" })
+        expect(yield* db.all(sql`PRAGMA foreign_key_check`)).toEqual([])
+      }),
+    )
+  })
+
   test("rejects a non-empty database without a session table", async () => {
     await expect(
       run(

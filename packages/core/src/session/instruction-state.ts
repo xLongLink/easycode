@@ -15,7 +15,6 @@ export interface Observation extends Instructions.Admission {
   readonly sessionID: SessionSchema.ID
   readonly initial: boolean
   readonly previous: Instructions.Values
-  readonly current: Instructions.Values
 }
 
 export const observe = Effect.fn("InstructionState.observe")(function* (
@@ -26,7 +25,7 @@ export const observe = Effect.fn("InstructionState.observe")(function* (
   const [observed, stored] = yield* Effect.all([Instructions.read(instructions), find(db, sessionID)], {
     concurrency: "unbounded",
   })
-  const result = yield* observeAgainst(observed, stored?.current_values)
+  const result = yield* Instructions.diff(observed, stored?.current_values)
   return {
     sessionID,
     initial: !stored,
@@ -179,12 +178,12 @@ export const preview = Effect.fn("InstructionState.preview")(function* (
   observed: Instructions.ReadResult,
 ) {
   const state = yield* find(db, sessionID)
-  const result = yield* observeAgainst(observed, state?.current_values)
+  const result = yield* Instructions.diff(observed, state?.current_values)
   const observedBlobs = new Map<Instructions.Hash, Schema.Json>(
     Object.entries(result.blobs).map(([hash, value]) => [Instructions.Hash.make(hash), value]),
   )
   if (!state) {
-    const values = dereference(result.current, observedBlobs)
+    const values = dereference(Instructions.applyHashDelta({}, result.delta), observedBlobs)
     return { initial: Instructions.renderInitial(instructions, values), update: "" }
   }
   const stored = yield* loadBlobs(db, [...Object.values(state.initial_values), ...Object.values(state.current_values)])
@@ -195,14 +194,6 @@ export const preview = Effect.fn("InstructionState.preview")(function* (
       dereference(state.current_values, stored),
       dereferenceDelta(result.delta, observedBlobs),
     ),
-  }
-})
-
-const observeAgainst = Effect.fnUntraced(function* (observed: Instructions.ReadResult, previous?: Instructions.Values) {
-  const admission = yield* Instructions.diff(observed, previous)
-  return {
-    current: Instructions.applyHashDelta(previous ?? {}, admission.delta),
-    ...admission,
   }
 })
 
