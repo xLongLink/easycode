@@ -11,6 +11,7 @@ import { collectNodeAssets, copyNodeAssets, hashNodeAssets, seaAssetMap } from "
 import { mainConfig } from "../vite.node.config"
 import { nodeExecArgv, nodeTarget, type NodeTarget } from "../src/node/target"
 import { verifyArtifact } from "./verify-artifact"
+import { liveAssets } from "../../live/script/assets.js"
 
 const NODE_VERSION = "26.4.0"
 const dir = path.resolve(import.meta.dirname, "..")
@@ -23,6 +24,7 @@ if (outdir === path.join(dir, "dist-node")) {
   throw new Error("--outdir must not be dist-node because it contains temporary files")
 }
 const bundleOnly = process.argv.includes("--bundle-only")
+const voiceAssets = await liveAssets()
 const single = process.argv.includes("--single")
 const skipInstall = process.argv.includes("--skip-install")
 const requested = process.argv.find((arg) => arg.startsWith("--target="))?.slice("--target=".length)
@@ -77,6 +79,7 @@ for (const target of targets) {
     version: Script.version,
     assetHash,
     target,
+    voiceAssets,
   }
   await copyNodeAssets(assets)
   await build(mainConfig(input))

@@ -1,6 +1,7 @@
 export * as PluginInternal from "./internal.js"
 
 import { LLMClient } from "@opencode/ai"
+import Live from "@opencode/live"
 import type { Plugin } from "@opencode/plugin/effect/plugin"
 import { LayerNode } from "@opencode/util/effect/layer-node"
 import { httpClient } from "@opencode/util/effect/app-node-platform"
@@ -103,6 +104,7 @@ import { VcsGitPlugin } from "./vcs/git.js"
 import { VerbosityPlugin } from "./verbosity.js"
 import { WarmingPlugin } from "./warming.js"
 import { WellKnownPlugin } from "../wellknown/plugin.js"
+import { PluginPromise } from "./promise.js"
 
 const services = [
   Agent.Service,
@@ -246,6 +248,7 @@ const pre = [
   WebSearchTool.Plugin,
   WriteTool.Plugin,
   WarmingPlugin.Plugin,
+  PluginPromise.fromPromise(Live),
 ] as const satisfies readonly InternalPlugin[]
 
 const post = [

@@ -99,6 +99,7 @@
     "@opencode-ai/pty": "0.2.0",
     "@opencode/ai": "workspace:*",
     "@opencode/codemode": "workspace:*",
+    "@opencode/live": "workspace:*",
     "@opencode/plugin": "workspace:*",
     "@opencode/schema": "workspace:*",
     "@opencode/util": "workspace:*",

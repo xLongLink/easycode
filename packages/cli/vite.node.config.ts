@@ -229,6 +229,7 @@ export type NodeBuildInput = {
   readonly version: string
   readonly assetHash: string
   readonly target: NodeTarget
+  readonly voiceAssets?: { readonly host: string; readonly prompts: Readonly<Record<string, string>> }
 }
 
 export function mainConfig(input: NodeBuildInput): UserConfig {
@@ -253,6 +254,7 @@ export function mainConfig(input: NodeBuildInput): UserConfig {
       OPENCODE_CLI_NAME: JSON.stringify("opencode2-node"),
       OPENCODE_ARTIFACT: JSON.stringify("cli-node"),
       OPENCODE_LIBC: input.target.platform === "linux" ? JSON.stringify("glibc") : "undefined",
+      OPENCODE_LIVE_ASSETS: input.voiceAssets ? JSON.stringify(input.voiceAssets) : "undefined",
       FFF_LIBC: input.target.platform === "linux" ? JSON.stringify("gnu") : "undefined",
       "process.env.WS_NO_BUFFER_UTIL": JSON.stringify("1"),
     },
