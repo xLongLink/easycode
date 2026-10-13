@@ -75,6 +75,8 @@ jobs:
         if: always()
         timeout-minutes: 10
         working-directory: packages/cli
+        env:
+          OPENCODE_VERSION: "0.0.0"
         run: |
           bun run script/build.ts --single --skip-install
           bun run script/service-smoke.ts
@@ -89,6 +91,8 @@ jobs:
         if: always()
         timeout-minutes: 15
         working-directory: packages/cli
+        env:
+          OPENCODE_VERSION: "0.0.0"
         run: |
           bun run script/build-node.ts --single --skip-install --outdir=dist/node
           bun run script/service-smoke.ts --node

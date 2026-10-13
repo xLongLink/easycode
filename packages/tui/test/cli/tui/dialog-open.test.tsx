@@ -1,7 +1,7 @@
 /** @jsxImportSource @opentui/solid */
 import { expect, test } from "bun:test"
 import { once } from "node:events"
-import { CliRenderEvents, TextAttributes } from "@opentui/core"
+import { CliRenderEvents, InputRenderable, TextAttributes } from "@opentui/core"
 import path from "path"
 import { testRender } from "@opentui/solid"
 import { createSignal, onMount } from "solid-js"
@@ -79,6 +79,7 @@ test("finds and opens an exact session ID outside the recent list", async () => 
 
   try {
     await fixture.app.waitForFrame((frame) => frame.includes("Search sessions and projects"))
+    await fixture.app.waitFor(() => fixture.app.renderer.currentFocusedEditor instanceof InputRenderable)
     await fixture.app.mockInput.typeText(sessionID)
     await fixture.app.waitForFrame((frame) => frame.includes("TUI plugin slot API v2"))
 
@@ -732,6 +733,7 @@ test("shows an initial loading shell instead of reporting an empty list", async 
       (frame) => frame.includes("Search sessions and projects") && frame.includes("Refreshing"),
     )
     expect(fixture.app.captureCharFrame()).not.toContain("No items available")
+    await fixture.app.waitFor(() => fixture.app.renderer.currentFocusedEditor instanceof InputRenderable)
     await fixture.app.mockInput.typeText("missing")
     await fixture.app.waitForFrame((frame) => frame.includes("Searching sessions and projects"))
     expect(fixture.app.captureCharFrame()).not.toContain("No matches")
@@ -932,9 +934,7 @@ test("surfaces sessions awaiting permissions or questions at the top with attent
         value.includes("? Parent awaiting question") &&
         value.includes("Recent session 1"),
     )
-    expect(frame.indexOf("? Parent awaiting question")).toBeLessThan(
-      frame.indexOf("! Old session awaiting permission"),
-    )
+    expect(frame.indexOf("? Parent awaiting question")).toBeLessThan(frame.indexOf("! Old session awaiting permission"))
     expect(frame.indexOf("! Old session awaiting permission")).toBeLessThan(frame.indexOf("Recent session 1"))
 
     fixture.app.mockInput.pressEnter()
