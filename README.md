@@ -11,7 +11,7 @@ An open source AI coding agent with a core runtime and terminal UI, based on Ope
 
 <br />
 
-### Installation
+## Installation
 
 Supports Linux and macOS (x64 and ARM64). For windows see [instructions](https://ubuntu.com/download/desktop).
 
@@ -38,14 +38,7 @@ curl -fsSL https://github.com/xLongLink/uncode/releases/latest/download/install 
 
 <br />
 
-### OpenCode compatibility
-
-OpenCode configuration filenames (`opencode.json`, `opencode.jsonc`, and `.opencode/`),
-`OPENCODE_*` environment variables, and `@opencode/*` package names remain unchanged.
-The executable is `uncode`; global data, configuration, cache, and state use `uncode`
-directories. Existing Easycode data is not automatically migrated or removed.
-
-### Agents
+## Agents
 
 uncode includes three built-in agents you can switch between with the `Tab` key.
 
@@ -59,17 +52,27 @@ uncode includes three built-in agents you can switch between with the `Tab` key.
   - Implements selected changes, verifies them, and summarizes the results
   - Repeats with a fresh list of options; has the same permissions as Build
 
-Also included is a **general** subagent for complex searches and multistep tasks.
-This is used internally and can be invoked using `@general` in messages.
 
 <br />
 
-#### Local Development
+## Local Development
 
 For local development, build and install from this repository:
 
 ```bash
-make install
 make uncode
-make uninstall
 ```
+
+
+<br />
+
+
+---
+
+<div align="center">
+LongLink 2026
+
+[See another cool project](https://github.com/XLongLink/longlink)
+</div>
+
+---

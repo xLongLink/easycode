@@ -16,8 +16,8 @@ import { testEffect } from "../../core/test/lib/effect"
 
 const it = testEffect(NodeFileSystem.layer)
 
-test("managed service uses one stable port", () => {
-  expect(ServiceConfig.defaultPort()).toBe(0xec0d)
+test("managed service uses one port separate from older installations", () => {
+  expect(ServiceConfig.defaultPort()).toBe(0xec0f)
   expect(ServiceConfig.filename()).toBe("service.json")
 })
 

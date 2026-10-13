@@ -30,7 +30,8 @@ export function filename() {
 }
 
 export function defaultPort() {
-  return 0xec0d
+  // Keep uncode's separate service registration from competing with older installations for their port.
+  return 0xec0f
 }
 
 function configKey(key: string): Key {
