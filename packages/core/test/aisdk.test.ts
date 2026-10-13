@@ -1180,6 +1180,24 @@ it.effect("classifies the SSE chunk timeout as a read transport error", () =>
   }),
 )
 
+it.effect("preserves the read timeout inside an AI SDK response error", () =>
+  Effect.gen(function* () {
+    const cause = new APICallError({
+      message: "Failed to process successful response",
+      url: "https://api.example.com/chat",
+      requestBodyValues: {},
+      statusCode: 200,
+      cause: new Error("SSE read timed out"),
+      isRetryable: false,
+    })
+    const error = yield* streamFailure(cause, true)
+    expect(error.message).toBe("SSE read timed out")
+    expect(error.reason).toMatchObject({ _tag: "Transport", transport: "http", operation: "read" })
+    expect(error.reason.cause).toBe(cause)
+    expect(SessionRunnerRetry.isRetryable(error)).toBeTrue()
+  }),
+)
+
 it.effect("keeps unrecognized error codes on the unknown provider path", () =>
   Effect.gen(function* () {
     const error = yield* streamFailure(Object.assign(new Error("kaput"), { code: "E_SOMETHING_ELSE" }), true)

@@ -939,7 +939,6 @@ function messageValue(input: unknown) {
 
 function llmError(error: unknown, operation: "request" | "read") {
   if (error instanceof AIError) return error
-  if (APICallError.isInstance(error)) return apiCallError(error)
   const network = networkFailure(error)
   if (network)
     return new AIError({
@@ -951,6 +950,7 @@ function llmError(error: unknown, operation: "request" | "read") {
         code: network.code,
       }),
     })
+  if (APICallError.isInstance(error)) return apiCallError(error)
   return RequestExecutor.httpFailure({
     message: unknownErrorMessage(error),
     data: errorValue(error) ?? error,

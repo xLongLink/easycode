@@ -33,6 +33,9 @@ jobs:
       - name: Setup Bun
         uses: ./.github/actions/setup-bun
 
+      - name: Install ripgrep for offline search tests
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
       - name: Test Effect simplification rules
         run: bun run test:effect-simplification-rules
 

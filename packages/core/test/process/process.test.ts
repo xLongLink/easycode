@@ -342,7 +342,7 @@ describe("AppProcess", () => {
             .runStream(
               cmd(
                 "-e",
-                "console.log('stdout-line'); console.error('stderr-line'); console.error('diagnostic-tail'); process.exit(2)",
+                "process.stdout.write('stdout-line\\n'); process.stderr.write('stderr-line\\ndiagnostic-tail\\n'); process.exit(2)",
               ),
               { includeStderr: true, maxErrorBytes: 20, okExitCodes: [0] },
             )

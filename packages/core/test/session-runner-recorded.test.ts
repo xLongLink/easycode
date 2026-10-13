@@ -171,11 +171,17 @@ const it = testEffect(testLayer(client))
 const sessionID = Session.ID.make("ses_runner_recorded")
 
 describe("SessionRunnerLLM recorded", () => {
-  it.effect("executes one recorded prompt through the recorded HTTP transport", () =>
+  it.live("executes one recorded prompt through the recorded HTTP transport", () =>
     Effect.gen(function* () {
       const agents = yield* Agent.Service
       const models = yield* Model.Service
       const hooks = yield* PluginHooks.Service
+      // A single-exchange cassette cannot satisfy retries; expose the first replay failure immediately.
+      yield* hooks.register("session", "retry", (event) =>
+        Effect.sync(() => {
+          event.decision = { retry: false }
+        }),
+      )
       yield* agents.transform((editor) =>
         editor.update(Agent.ID.make("build"), (agent) => {
           agent.mode = "primary"

@@ -234,7 +234,7 @@ describe("Integration", () => {
             command: [
               process.execPath,
               "-e",
-              'console.error("https://example.com/login"); await Bun.sleep(50); console.log("secret")',
+              'process.stderr.write("https://example.com/login\\n"); await Bun.sleep(50); process.stdout.write("secret\\n")',
             ],
           },
         }),
