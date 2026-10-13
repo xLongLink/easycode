@@ -218,16 +218,13 @@ describe("Agent", () => {
     }),
   )
 
-  it.effect("registers Loop with the repository instructions and Build permissions", () =>
+  it.effect("registers Loop with its built-in workflow and Build permissions", () =>
     Effect.gen(function* () {
       const agent = yield* Agent.Service
       yield* AgentPlugin.Plugin.effect(host({ agent: agentHost(agent) }))
 
       const loop = yield* agent.get(Agent.ID.make("loop"))
       const build = yield* agent.resolve()
-      const definition = yield* Effect.promise(() =>
-        Bun.file(new URL("../../../.opencode/agents/loop.md", import.meta.url)).text(),
-      )
 
       expect(loop).toMatchObject({
         name: "Loop",
@@ -235,8 +232,12 @@ describe("Agent", () => {
           "Iteratively identifies, implements, and verifies LongLink improvements after the user selects them.",
         mode: "primary",
         hidden: false,
-        system: definition.split("\n---\n")[1].trim(),
       })
+      expect(loop?.system).toContain("# Loop")
+      expect(loop?.system).toContain("Wait for the user to select one or more item numbers.")
+      expect(loop?.system).toContain("Implement the selected items.")
+      expect(loop?.system).toContain("Verify with the most relevant test, lint, type check, or build.")
+      expect(loop?.system).toContain("Repeat by producing a fresh numbered list.")
       expect(loop?.permissions).toEqual(build?.permissions)
       expect(Permission.evaluate("question", "*", loop?.permissions ?? []).effect).toBe("allow")
       expect(build?.id).toBe(Agent.defaultID)
