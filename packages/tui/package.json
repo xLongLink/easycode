@@ -49,7 +49,6 @@
   "dependencies": {
     "@opencode/client": "workspace:*",
     "@opencode/core": "workspace:*",
-    "@opencode/live": "workspace:*",
     "@opencode/needle": "workspace:*",
     "@opencode/plugin": "workspace:*",
     "@opencode/schema": "workspace:*",

@@ -56,6 +56,8 @@ bun dev serve --port 4096
 
 ### Verification
 
+Install ripgrep (`rg`) and ensure it is on `PATH` before running core tests. Search tests use the real executable and block network downloads; on Debian/Ubuntu, run `sudo apt-get install ripgrep`.
+
 Run typechecks, and tests where defined, from the affected package rather than the repository root:
 
 ```bash
