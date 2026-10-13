@@ -20,7 +20,7 @@ test("createStorage degrades gracefully when fs.watch throws (e.g. ENOSPC)", asy
   try {
     let result: ReturnType<typeof createStorage> | undefined
     expect(() => {
-      result = createStorage(dir, "next")
+      result = createStorage(dir)
     }).not.toThrow()
 
     // storage should still be usable even though the live-reload watcher failed to attach

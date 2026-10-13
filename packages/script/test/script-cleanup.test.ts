@@ -64,19 +64,19 @@ test.each([
   30000,
 )
 
-test("release metadata exposes only the channel and version", async () => {
+test("release metadata exposes only the version and ignores channel overrides", async () => {
   const proc = Bun.spawn(
     [process.execPath, "-e", 'import { Script } from "./src/index.ts"; console.log(JSON.stringify(Script))'],
     {
       cwd: path.join(root, "packages/script"),
-      env: { ...process.env, OPENCODE_CHANNEL: "latest", OPENCODE_VERSION: "1.2.3" },
+      env: { ...process.env, OPENCODE_CHANNEL: "preview", OPENCODE_VERSION: "1.2.3" },
       stdout: "pipe",
       stderr: "pipe",
     },
   )
   const [stdout, stderr, code] = await Promise.all([proc.stdout.text(), proc.stderr.text(), proc.exited])
   expect(code, stdout + stderr).toBe(0)
-  expect(JSON.parse(stdout.trim().split("\n").at(-1)!)).toEqual({ channel: "latest", version: "1.2.3" })
+  expect(JSON.parse(stdout.trim().split("\n").at(-1)!)).toEqual({ version: "1.2.3" })
 })
 
 test.each([false, true])("upgrade preserves all manifest version policies (snapshot=%s)", (snapshot) => {

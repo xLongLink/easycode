@@ -20,7 +20,7 @@ export default Runtime.handler(
     const curlBinary = yield* fs.realPath(curlPath).pipe(Effect.orElseSucceed(() => curlPath))
     const method = path.basename(executable) === "uncode" || executable === curlBinary ? "curl" : undefined
     // Data, config, and state hold sessions, credentials, settings, and prompt history; uninstall only removes the cache.
-    // All channels share the cache. Stop background services before deleting it.
+    // Stop background services before deleting the shared cache.
     // Read registrations directly: ServiceConfig.options() can migrate files even during a dry run.
     const services = (yield* fs.exists(global.state))
       ? (yield* fs.readDirectory(global.state)).filter((name) => /^service(?:-.*)?\.json$/.test(name))
@@ -28,7 +28,7 @@ export default Runtime.handler(
     const shell = method === "curl" ? yield* shellConfigs(global.home) : []
 
     log.info(`Installation method: ${method ?? "unknown"}`)
-    log.message("The following global files will be removed (shared by uncode versions and channels):")
+    log.message("The following global files will be removed (shared by uncode versions):")
     if (yield* fs.exists(global.cache)) log.info(`  Cache: ${global.cache}`)
     services.forEach((name) =>
       log.info(`  Stop background service and persistent terminals: ${path.join(global.state, name)}`),

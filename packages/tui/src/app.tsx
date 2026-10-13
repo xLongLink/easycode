@@ -35,7 +35,6 @@ import {
   TuiPathsProvider,
   TuiStartupProvider,
   TuiTerminalEnvironmentProvider,
-  useTuiApp,
   useTuiStartup,
   useTuiTerminalEnvironment,
   type TuiApp,
@@ -420,10 +419,9 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
 })
 
 function App() {
-  const app = useTuiApp()
   const startup = useTuiStartup()
   const config = useConfig()
-  const devtools = createMemo(() => config.data.debug?.devtools ?? app.channel === "local")
+  const devtools = createMemo(() => config.data.debug?.devtools ?? false)
   const route = useRoute()
   const dimensions = useTerminalDimensions()
   const renderer = useRenderer()

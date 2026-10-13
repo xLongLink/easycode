@@ -434,7 +434,7 @@ test("session title generated while an untitled session is loading remains visib
 
 test("vertical session tabs switch to horizontal below readable content width", async () => {
   await using state = await tmpdir()
-  await Bun.write(path.join(state.path, "test", "tui", "layout.json"), JSON.stringify({ verticalTabsWidth: 42 }))
+  await Bun.write(path.join(state.path, "latest", "tui", "layout.json"), JSON.stringify({ verticalTabsWidth: 42 }))
   const session = {
     id: "ses_resize",
     title: "Resize fixture",
@@ -472,7 +472,7 @@ test("vertical session tabs switch to horizontal below readable content width", 
 
 test("narrow vertical session tabs collapse to a compact rail with the terminal", async () => {
   await using state = await tmpdir()
-  await Bun.write(path.join(state.path, "test", "tui", "layout.json"), JSON.stringify({ verticalTabsWidth: 5 }))
+  await Bun.write(path.join(state.path, "latest", "tui", "layout.json"), JSON.stringify({ verticalTabsWidth: 5 }))
   const session = {
     id: "ses_resize",
     title: "Resize fixture",

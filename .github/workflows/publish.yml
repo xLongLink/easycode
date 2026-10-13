@@ -36,7 +36,7 @@ jobs:
             const version = process.env.RELEASE_VERSION.replace(/^v/, "")
             if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error("Expected a stable version such as 0.0.0")
             if (version !== (await Bun.file("package.json").json()).version) throw new Error("Release version must match package.json")
-            await Bun.write(process.env.GITHUB_ENV, `OPENCODE_VERSION=${version}\nOPENCODE_CHANNEL=latest\n`)
+            await Bun.write(process.env.GITHUB_ENV, `OPENCODE_VERSION=${version}\n`)
           '
       - name: Check
         run: bun run check

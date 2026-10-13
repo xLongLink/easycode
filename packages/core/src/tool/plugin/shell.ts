@@ -123,7 +123,7 @@ export const Plugin = {
       const timeout = invocation.timeout
       const portable =
         Config.latest(yield* config.entries(), "experimental")?.portable_shell_scanner ??
-        (shellParserWasm.bash === "" || ctx.app.channel === "local" || ctx.app.channel === "dev")
+        shellParserWasm.bash === ""
       const parsed = yield* ShellParse.scan(invocation.command, invocation.shell, target.absolute, { portable })
       const directories = yield* Effect.forEach(parsed.directories, (directory) =>
         access.resolve({

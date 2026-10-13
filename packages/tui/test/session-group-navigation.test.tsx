@@ -29,9 +29,9 @@ test.each([
       time: { created: 0, updated: 0 },
     }
     const other = { ...session, id: "ses_other", title: "Other session" }
-    await mkdir(`${state.path}/test/tui`, { recursive: true })
+    await mkdir(`${state.path}/latest/tui`, { recursive: true })
     await Bun.write(
-      `${state.path}/test/tui/tabs.json`,
+      `${state.path}/latest/tui/tabs.json`,
       JSON.stringify({
         global: { tabs: [{ sessionID: session.id }, { sessionID: other.id }], unread: {} },
         cwd: {},

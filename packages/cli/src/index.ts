@@ -7,7 +7,7 @@ import { getErrorReported } from "effect/Runtime"
 import { Commands } from "./commands/commands"
 import { Runtime } from "./framework/runtime"
 import { Observability } from "@opencode/util/observability"
-import { OPENCODE_ARTIFACT, OPENCODE_CHANNEL, OPENCODE_LOCAL, OPENCODE_VERSION } from "./version"
+import { OPENCODE_ARTIFACT, OPENCODE_VERSION } from "./version"
 import { LayerNode } from "@opencode/util/effect/layer-node"
 import { Global } from "@opencode/util/global"
 import { AppProcess } from "@opencode/util/process"
@@ -103,8 +103,6 @@ Effect.gen(function* () {
   )
   yield* Effect.logInfo("cli starting", {
     version: OPENCODE_VERSION,
-    channel: OPENCODE_CHANNEL,
-    local: OPENCODE_LOCAL,
     args: process.argv.slice(2),
   })
   return yield* Runtime.run(Commands, Handlers, { version: OPENCODE_VERSION })
@@ -132,7 +130,7 @@ Effect.gen(function* () {
       headers: process.env.OTEL_EXPORTER_OTLP_HEADERS,
       client: process.env.OPENCODE_CLIENT ?? OPENCODE_ARTIFACT,
       version: OPENCODE_VERSION,
-      channel: OPENCODE_CHANNEL,
+      channel: "latest",
     }),
   ),
   Effect.provide(NodeServices.layer),

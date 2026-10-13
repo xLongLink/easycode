@@ -1293,21 +1293,19 @@ describe("ShellTool", () => {
     }),
   )
 
-  it.live("enables portable shell scanner by default on local and dev channels with config override", () =>
+  it.live("uses the native shell scanner by default with a portable config override", () =>
     Effect.gen(function* () {
       if (isWindows) return
-      for (const [channel, configured, expectedPortable] of [
-        ["local", undefined, true],
-        ["dev", undefined, true],
-        ["dev", false, false],
-        ["latest", undefined, false],
-        ["latest", true, true],
+      for (const [configured, expectedPortable] of [
+        [undefined, false],
+        [false, false],
+        [true, true],
       ] as const) {
-        const channelSupervisor = makeLocationNode({
-          name: `test/shell-plugins-${channel}`,
+        const scannerSupervisor = makeLocationNode({
+          name: "test/shell-plugins-scanner",
           layer: Layer.effectDiscard(
             registerToolPlugin(ShellTool.Plugin, {
-              app: { name: "opencode", version: "test", channel },
+              app: { name: "opencode", version: "test", channel: "latest" },
             }),
           ),
           deps: [
@@ -1340,7 +1338,7 @@ describe("ShellTool", () => {
                   yield* selection.transform((editor) => editor.configure("sh"))
                   return yield* executeTool(
                     registry,
-                    call({ command: 'printf hello > marker\necho "' }, `call-channel-${channel}-${String(configured)}`),
+                    call({ command: 'printf hello > marker\necho "' }, `call-scanner-${String(configured)}`),
                   )
                 }),
               )
@@ -1356,7 +1354,7 @@ describe("ShellTool", () => {
               expect(assertions.map((item) => item.action)).toEqual(["shell"])
             }).pipe(
               Effect.provide(
-                AppNodeBuilder.build(nodes, [...replacements, PluginSupervisor.node.replace(channelSupervisor)]),
+                AppNodeBuilder.build(nodes, [...replacements, PluginSupervisor.node.replace(scannerSupervisor)]),
               ),
             ),
           (tmp) => Effect.promise(() => tmp[Symbol.asyncDispose]().then(() => undefined)),

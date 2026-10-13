@@ -4,7 +4,7 @@ import path from "path"
 import { mkdirSync, readFileSync, watch } from "fs"
 import { Flock } from "@opencode/util/flock"
 import { writeJsonAtomic } from "../util/persistence"
-import { useTuiApp, useTuiPaths } from "./runtime"
+import { useTuiPaths } from "./runtime"
 
 type Options<Value extends object> = {
   readonly initial: Value
@@ -44,12 +44,12 @@ function segment(value: string) {
   return value
 }
 
-export function createStorage(root: string, channel: string) {
+export function createStorage(root: string) {
   const entries = new Map<string, { readonly value: Entry<object>; readonly reload: () => void }>()
   const memories = new Map<string, MemoryEntry<object>>()
   const pending = new Set<Promise<void>>()
-  const directory = path.join(root, segment(channel), "tui")
-  const locks = path.join(root, segment(channel), "locks")
+  const directory = path.join(root, "latest", "tui")
+  const locks = path.join(root, "latest", "locks")
   mkdirSync(directory, { recursive: true })
 
   const storage: Storage = {
@@ -143,7 +143,7 @@ export function createStorage(root: string, channel: string) {
 const Context = createContext<Storage>()
 
 export function StorageProvider(props: ParentProps) {
-  const result = createStorage(useTuiPaths().state, useTuiApp().channel)
+  const result = createStorage(useTuiPaths().state)
   onCleanup(result.close)
   return <Context.Provider value={result.storage}>{props.children}</Context.Provider>
 }

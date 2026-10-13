@@ -75,7 +75,6 @@ for (const target of targets) {
   const assetHash = await hashNodeAssets(assets)
   const input = {
     version: Script.version,
-    channel: Script.channel,
     assetHash,
     target,
   }

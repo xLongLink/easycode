@@ -135,7 +135,7 @@ export default { path: file, version: ${JSON.stringify(opencodePty.version)}, sh
     format: "esm",
     minify: true,
     bytecode: true,
-    sourcemap: Script.channel === "dev" || Script.channel === "local" ? "inline" : "none",
+    sourcemap: "none",
     splitting: true,
     compile: {
       autoloadBunfig: false,
@@ -147,7 +147,7 @@ export default { path: file, version: ${JSON.stringify(opencodePty.version)}, sh
       outfile: path.join(outdir, name, "bin", binary),
       execArgv: [
         "--smol",
-        `--user-agent=uncode/${Script.channel}/${Script.version}/cli`,
+        `--user-agent=uncode/latest/${Script.version}/cli`,
         "--use-system-ca",
         "--no-warnings",
         "--",
@@ -156,7 +156,6 @@ export default { path: file, version: ${JSON.stringify(opencodePty.version)}, sh
     define: {
       OPENCODE_VERSION: `'${Script.version}'`,
       OPENCODE_CLI_NAME: "'uncode'",
-      OPENCODE_CHANNEL: `'${Script.channel}'`,
       OPENCODE_ARTIFACT: `'cli'`,
       OPENCODE_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "undefined",
       // FFF_LIBC selects the fff native lib variant: "musl" or "gnu".

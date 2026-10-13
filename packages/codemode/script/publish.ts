@@ -1,6 +1,5 @@
 #!/usr/bin/env bun
 
-import { Script } from "@opencode/script"
 import { $ } from "bun"
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
@@ -68,7 +67,7 @@ try {
   } finally {
     await rm(consumer, { recursive: true, force: true })
   }
-  if (!dryRun) await $`npm publish ${tarball} --tag ${Script.channel} --access public`
+  if (!dryRun) await $`npm publish ${tarball} --tag latest --access public`
 } finally {
   await Bun.write("package.json", originalText)
   await rm(tarball, { force: true })

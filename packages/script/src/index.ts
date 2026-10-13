@@ -18,25 +18,12 @@ if (!semver.satisfies(process.versions.bun, expectedBunVersionRange)) {
 }
 
 const env = {
-  OPENCODE_CHANNEL: process.env["OPENCODE_CHANNEL"],
   OPENCODE_BUMP: process.env["OPENCODE_BUMP"],
   OPENCODE_VERSION: process.env["OPENCODE_VERSION"],
 }
-const CHANNEL = await (async () => {
-  if (env.OPENCODE_CHANNEL) return env.OPENCODE_CHANNEL
-  if (env.OPENCODE_BUMP) return "latest"
-  if (env.OPENCODE_VERSION && !env.OPENCODE_VERSION.startsWith("0.0.0-")) return "latest"
-  const branch = await $`git branch --show-current`.text().then((x) => x.trim())
-  if (!branch) return "detached"
-  const channel = branch.replace(/[^a-zA-Z0-9._-]/g, "-")
-  if (/^[a-zA-Z0-9]/.test(channel)) return channel
-  return `branch-${channel}`
-})()
-const IS_PREVIEW = CHANNEL !== "latest"
 
 const VERSION = await (async () => {
   if (env.OPENCODE_VERSION) return env.OPENCODE_VERSION
-  if (IS_PREVIEW) return `0.0.0-${CHANNEL}-${previewBuildNumber()}`
   const version = (
     await $`gh release view --repo ${process.env.GH_REPO ?? "xLongLink/uncode"} --json tagName --jq .tagName`.text()
   )
@@ -49,18 +36,7 @@ const VERSION = await (async () => {
   return `${major}.${minor}.${patch + 1}`
 })()
 
-function previewBuildNumber() {
-  const runNumber = process.env["GITHUB_RUN_NUMBER"]
-  if (!runNumber) return new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "")
-  const runAttempt = process.env["GITHUB_RUN_ATTEMPT"]
-  if (runAttempt && runAttempt !== "1") return `${runNumber}.${runAttempt}`
-  return runNumber
-}
-
 export const Script = {
-  get channel() {
-    return CHANNEL
-  },
   get version() {
     return VERSION
   },

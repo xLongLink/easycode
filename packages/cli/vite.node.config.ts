@@ -227,7 +227,6 @@ if (process.platform === "linux") process.env.OPENTUI_LIBC = "glibc"`
 
 export type NodeBuildInput = {
   readonly version: string
-  readonly channel: string
   readonly assetHash: string
   readonly target: NodeTarget
 }
@@ -252,7 +251,6 @@ export function mainConfig(input: NodeBuildInput): UserConfig {
     define: {
       OPENCODE_VERSION: JSON.stringify(input.version),
       OPENCODE_CLI_NAME: JSON.stringify("opencode2-node"),
-      OPENCODE_CHANNEL: JSON.stringify(input.channel),
       OPENCODE_ARTIFACT: JSON.stringify("cli-node"),
       OPENCODE_LIBC: input.target.platform === "linux" ? JSON.stringify("glibc") : "undefined",
       FFF_LIBC: input.target.platform === "linux" ? JSON.stringify("gnu") : "undefined",
@@ -274,7 +272,6 @@ export function mainConfig(input: NodeBuildInput): UserConfig {
 
 export default mainConfig({
   version: process.env.OPENCODE_VERSION ?? "local",
-  channel: process.env.OPENCODE_CHANNEL ?? "local",
   assetHash: "local",
   target: nodeTarget(process.platform, process.arch),
 })

@@ -477,7 +477,7 @@ test("base and scope choices survive reopening but not a new TUI instance", asyn
     await viewer.app.waitForFrame((frame) => frame.includes("Committed · vs release") && frame.includes("const first"))
     expect(viewer.writes).toHaveLength(0)
     expect(viewer.mutationRequests).toHaveLength(0)
-    expect(await readdir(path.join(viewer.state, "test", "tui"))).toEqual([])
+    expect(await readdir(path.join(viewer.state, "latest", "tui"))).toEqual([])
   } finally {
     viewer.app.renderer.destroy()
   }

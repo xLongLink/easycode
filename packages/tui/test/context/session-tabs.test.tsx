@@ -48,7 +48,7 @@ async function renderSessionTabs(
   const temporary = options?.state ? undefined : await tmpdir()
   const state = options?.state ?? temporary!.path
   if (options?.persisted) {
-    const file = path.join(state, "test", "tui", "tabs.json")
+    const file = path.join(state, "latest", "tui", "tabs.json")
     mkdirSync(path.dirname(file), { recursive: true })
     await Bun.write(
       file,
@@ -357,7 +357,7 @@ test("stores session tabs for the current working directory by default", async (
   const setup = await renderSessionTabs("first")
 
   try {
-    const file = path.join(setup.state, "test", "tui", "tabs.json")
+    const file = path.join(setup.state, "latest", "tui", "tabs.json")
     await wait(async () => {
       if (!(await Bun.file(file).exists())) return false
       const stored = await Bun.file(file).json()
@@ -484,7 +484,7 @@ test("acknowledges viewed sessions even when tabs are disabled", async () => {
 test("empties legacy persisted unread records for rollback compatibility", async () => {
   const setup = await renderSessionTabs("first", { persisted: ["first"] })
   try {
-    const file = path.join(setup.state, "test", "tui", "tabs.json")
+    const file = path.join(setup.state, "latest", "tui", "tabs.json")
     // Normalize rewrites the active scope; legacy values must not survive, but older clients require the field.
     await wait(async () => {
       const stored = await Bun.file(file).json()
@@ -673,7 +673,7 @@ test("concurrent TUIs do not alternate shared tab titles from divergent session 
   try {
     titled = await renderSessionTabs("shared", { state, title: "Generated title" })
     untitled = await renderSessionTabs("shared", { state })
-    const file = path.join(state, "test", "tui", "tabs.json")
+    const file = path.join(state, "latest", "tui", "tabs.json")
     await titled.data.session.sync("shared")
     await wait(async () => {
       if (!(await Bun.file(file).exists())) return false
@@ -730,7 +730,7 @@ test("closing a tab is not undone by another TUI viewing the same session", asyn
     )
     await second.flush()
 
-    const stored = await Bun.file(path.join(temporary.path, "test", "tui", "tabs.json")).json()
+    const stored = await Bun.file(path.join(temporary.path, "latest", "tui", "tabs.json")).json()
     expect(stored.cwd[directory].tabs).toEqual([])
 
     second.route.navigate({ type: "home" })

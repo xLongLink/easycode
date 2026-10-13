@@ -1,6 +1,5 @@
 import { Global } from "@opencode/util/global"
-import { OPENCODE_CHANNEL, OPENCODE_VERSION } from "../version"
-import { Hash } from "@opencode/util/hash"
+import { OPENCODE_VERSION } from "../version"
 import { Service } from "@opencode/client/effect/service"
 import { Effect, FileSystem, Option, Schema } from "effect"
 import { randomBytes } from "crypto"
@@ -9,7 +8,7 @@ import { selfCommand } from "../util/process"
 
 // The CLI's service configuration file, plus the Service.EnsureOptions binding that
 // points the client package's service operations at this CLI: which
-// registration file (by channel), which version, and how to spawn opencode.
+// registration file, which version, and how to spawn opencode.
 
 export const Info = Schema.Struct({
   disabled: Schema.optional(Schema.Boolean),
@@ -25,58 +24,14 @@ const keys = ["disabled", "hostname", "port", "password", "cors", "env"] as cons
 type Key = (typeof keys)[number]
 
 const decodeInfo = Schema.decodeUnknownEffect(Schema.fromJsonString(Info))
-const decodeRegistration = Schema.decodeUnknownEffect(Schema.fromJsonString(Service.Info))
 
-export function filename(channel = OPENCODE_CHANNEL) {
-  if (channel === "latest" || channel === "dev" || channel === "beta" || channel === "next") return "service.json"
-  return `service-${channel.replace(/[^a-zA-Z0-9._-]/g, "-")}.json`
+export function filename() {
+  return "service.json"
 }
 
-export function defaultPort(channel = OPENCODE_CHANNEL) {
-  if (channel === "latest" || channel === "dev" || channel === "beta" || channel === "next") return 0xec0d
-  if (channel === "local") return 0xec0e
-  return 10_000 + (Number.parseInt(Hash.fast(channel).slice(0, 8), 16) % 50_000)
+export function defaultPort() {
+  return 0xec0d
 }
-
-export function legacyFilename(channel = OPENCODE_CHANNEL) {
-  if (channel === "latest" || channel === "local") return
-  return `service-${Hash.fast(channel)}.json`
-}
-
-export function versionBelongsToChannel(
-  version: string | undefined,
-  channel = OPENCODE_CHANNEL,
-  installedVersion = OPENCODE_VERSION,
-) {
-  if (version === undefined) return false
-  if (version === installedVersion) return true
-  const prefix = `0.0.0-${channel}-`
-  if (!version.startsWith(prefix)) return false
-  return /^\d+(?:\.\d+)?$/.test(version.slice(prefix.length))
-}
-
-export const migrateRegistration = Effect.fnUntraced(function* (
-  legacy: string,
-  file: string,
-  channel = OPENCODE_CHANNEL,
-  installedVersion = OPENCODE_VERSION,
-) {
-  const fs = yield* FileSystem.FileSystem
-  const text = yield* fs.readFileString(legacy).pipe(Effect.option)
-  if (Option.isNone(text)) return
-  const registration = yield* decodeRegistration(text.value).pipe(Effect.option)
-  if (Option.isNone(registration)) return
-  if (!versionBelongsToChannel(registration.value.version, channel, installedVersion)) return
-  yield* fs.writeFileString(file, text.value, { flag: "wx", mode: 0o600 }).pipe(Effect.ignore)
-})
-
-export const migrateConfig = Effect.fnUntraced(function* (legacy: string, file: string) {
-  const fs = yield* FileSystem.FileSystem
-  const text = yield* fs.readFileString(legacy).pipe(Effect.option)
-  if (Option.isNone(text)) return
-  if (Option.isNone(yield* decodeInfo(text.value).pipe(Effect.option))) return
-  yield* fs.writeFileString(file, text.value, { flag: "wx", mode: 0o600 }).pipe(Effect.ignore)
-})
 
 function configKey(key: string): Key {
   if (
@@ -95,23 +50,16 @@ const paths = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem
   const global = yield* Global.Service
   const name = filename()
-  const legacy = legacyFilename()
   const file = path.join(global.state, name)
   return {
     fs,
     file,
-    legacyConfigFile: legacy ? path.join(global.config, legacy) : undefined,
-    legacyRegistrationFiles: [
-      ...(legacy ? [path.join(global.state, legacy)] : []),
-      ...(name !== "service.json" && OPENCODE_CHANNEL !== "local" ? [path.join(global.state, "service.json")] : []),
-    ],
     configFile: path.join(global.config, name),
   }
 })
 
 export const options = Effect.fnUntraced(function* (input: { readonly checkVersion?: boolean } = {}) {
-  const { file, legacyRegistrationFiles } = yield* paths
-  yield* Effect.forEach(legacyRegistrationFiles, (legacy) => migrateRegistration(legacy, file))
+  const { file } = yield* paths
   return {
     file,
     version: input.checkVersion ? OPENCODE_VERSION : undefined,
@@ -125,8 +73,7 @@ export const options = Effect.fnUntraced(function* (input: { readonly checkVersi
 })
 
 export const read = Effect.fn("cli.service-config.read")(function* () {
-  const { fs, configFile, legacyConfigFile } = yield* paths
-  if (legacyConfigFile) yield* migrateConfig(legacyConfigFile, configFile)
+  const { fs, configFile } = yield* paths
   const text = yield* fs.readFileString(configFile).pipe(Effect.option)
   if (Option.isNone(text)) return {} as Info
   return yield* decodeInfo(text.value).pipe(Effect.orElseSucceed(() => ({} as Info)))
