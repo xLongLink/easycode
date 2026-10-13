@@ -5,7 +5,7 @@ import { EOL } from "node:os"
 import { Commands } from "../../commands"
 import { Runtime } from "../../../framework/runtime"
 import { ServerConnection } from "../../../services/server-connection"
-import { errorMessage } from "../../../util/error"
+import { reportPlainError } from "../../../util/error"
 
 const handler = Effect.fn("cli.session.delete")(function* (
   input: Runtime.Input<typeof Commands.commands.session.commands.delete>,
@@ -23,12 +23,5 @@ const handler = Effect.fn("cli.session.delete")(function* (
 })
 
 export default Runtime.handler(Commands.commands.session.commands.delete, (input) =>
-  handler(input).pipe(
-    Effect.catch((error) =>
-      Effect.sync(() => {
-        process.stderr.write(errorMessage(error) + EOL)
-        process.exitCode = 1
-      }),
-    ),
-  ),
+  handler(input).pipe(reportPlainError),
 )

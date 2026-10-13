@@ -7,7 +7,7 @@ import { EOL } from "node:os"
 import { Commands } from "../commands"
 import { Runtime } from "../../framework/runtime"
 import { ServerConnection } from "../../services/server-connection"
-import { errorMessage } from "../../util/error"
+import { reportPlainError } from "../../util/error"
 
 const handler = Effect.fn("cli.stats")(function* (input: Runtime.Input<typeof Commands.commands.stats>) {
   const days = Option.getOrUndefined(input.days)
@@ -58,16 +58,7 @@ const handler = Effect.fn("cli.stats")(function* (input: Runtime.Input<typeof Co
   process.stdout.write(output + EOL)
 })
 
-export default Runtime.handler(Commands.commands.stats, (input) =>
-  handler(input).pipe(
-    Effect.catch((error) =>
-      Effect.sync(() => {
-        process.stderr.write(errorMessage(error) + EOL)
-        process.exitCode = 1
-      }),
-    ),
-  ),
-)
+export default Runtime.handler(Commands.commands.stats, (input) => handler(input).pipe(reportPlainError))
 
 export function request<A>(url: string, run: (signal: AbortSignal) => Promise<A>) {
   return Effect.tryPromise({
@@ -115,13 +106,7 @@ export function renderStats(stats: SessionStatsInfo, options: RenderOptions) {
   const lines = details
     ? [style(`${options.label} · ${options.scope}`, "2", options.color)]
     : empty
-      ? [
-          heading,
-          "",
-          style("no activity in this range", "2", options.color),
-          "",
-          style("uncode", "2", options.color),
-        ]
+      ? [heading, "", style("no activity in this range", "2", options.color), "", style("uncode", "2", options.color)]
       : [
           heading,
           "",

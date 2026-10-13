@@ -137,7 +137,7 @@ describe("ToolOutput", () => {
   )
 
   it.live("uses file modification time when IDs wrap", () =>
-    withStore((output, fs, root) =>
+    withStore((_output, fs, root) =>
       Effect.gen(function* () {
         const directory = path.join(root, ToolOutput.DIRECTORY)
         const old = path.join(directory, ToolOutput.fileName(2 ** 36 - 1))
@@ -146,7 +146,7 @@ describe("ToolOutput", () => {
         yield* fs.writeFileString(old, "old")
         yield* fs.writeFileString(recent, "recent")
         yield* fs.utimes(old, new Date(), new Date(Date.now() - 8 * 24 * 60 * 60 * 1_000))
-        yield* output.cleanup()
+        yield* ToolOutput.cleanup(fs, directory)
         expect(yield* fs.exists(old)).toBe(false)
         expect(yield* fs.exists(recent)).toBe(true)
       }),

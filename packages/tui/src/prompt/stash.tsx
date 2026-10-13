@@ -47,6 +47,17 @@ export const { use: usePromptStash, provider: PromptStashProvider } = createSimp
 
     const [store, setStore] = createStore({ entries: [] as StashEntry[] })
 
+    const take = (index: number) => {
+      if (index < 0 || index >= store.entries.length) return
+      const entry = store.entries[index]
+      setStore(produce((draft) => void draft.entries.splice(index, 1)))
+      writeText(
+        stashPath,
+        store.entries.length > 0 ? store.entries.map((line) => JSON.stringify(line)).join("\n") + "\n" : "",
+      ).catch(() => {})
+      return entry
+    }
+
     return {
       list() {
         return store.entries
@@ -71,22 +82,10 @@ export const { use: usePromptStash, provider: PromptStashProvider } = createSimp
         appendText(stashPath, JSON.stringify(stash) + "\n").catch(() => {})
       },
       pop() {
-        if (store.entries.length === 0) return undefined
-        const entry = store.entries[store.entries.length - 1]
-        setStore(produce((draft) => void draft.entries.pop()))
-        writeText(
-          stashPath,
-          store.entries.length > 0 ? store.entries.map((line) => JSON.stringify(line)).join("\n") + "\n" : "",
-        ).catch(() => {})
-        return entry
+        return take(store.entries.length - 1)
       },
       remove(index: number) {
-        if (index < 0 || index >= store.entries.length) return
-        setStore(produce((draft) => void draft.entries.splice(index, 1)))
-        writeText(
-          stashPath,
-          store.entries.length > 0 ? store.entries.map((line) => JSON.stringify(line)).join("\n") + "\n" : "",
-        ).catch(() => {})
+        take(index)
       },
     }
   },

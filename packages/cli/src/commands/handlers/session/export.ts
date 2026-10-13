@@ -6,7 +6,7 @@ import { EOL } from "node:os"
 import { Commands } from "../../commands"
 import { Runtime } from "../../../framework/runtime"
 import { ServerConnection } from "../../../services/server-connection"
-import { errorMessage } from "../../../util/error"
+import { reportPlainError } from "../../../util/error"
 
 export default Runtime.handler(
   Commands.commands.session.commands.export,
@@ -75,13 +75,6 @@ export default Runtime.handler(
         catch: (cause) => cause,
       })
       process.stdout.write(JSON.stringify(data, null, 2) + EOL)
-    }).pipe(
-      Effect.catch((error) =>
-        Effect.sync(() => {
-          process.stderr.write(errorMessage(error) + EOL)
-          process.exitCode = 1
-        }),
-      ),
-    ),
+    }).pipe(reportPlainError),
   ),
 )

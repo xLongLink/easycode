@@ -5,7 +5,7 @@ import { EOL } from "node:os"
 import { Commands } from "../../commands"
 import { Runtime } from "../../../framework/runtime"
 import { ServerConnection } from "../../../services/server-connection"
-import { errorMessage } from "../../../util/error"
+import { reportPlainError } from "../../../util/error"
 
 const handler = Effect.fn("cli.session.list")(function* (
   input: Runtime.Input<typeof Commands.commands.session.commands.list>,
@@ -66,15 +66,11 @@ const handler = Effect.fn("cli.session.list")(function* (
     const processService = yield* AppProcess.Service
     const pager = yield* processService
       .spawn(
-        ChildProcess.make(
-          "less",
-          ["-R", "-S"],
-          {
-            stdin: Stream.make(new TextEncoder().encode(output)),
-            stdout: "inherit",
-            stderr: "inherit",
-          },
-        ),
+        ChildProcess.make("less", ["-R", "-S"], {
+          stdin: Stream.make(new TextEncoder().encode(output)),
+          stdout: "inherit",
+          stderr: "inherit",
+        }),
       )
       .pipe(Effect.option)
     if (Option.isNone(pager)) {
@@ -86,14 +82,7 @@ const handler = Effect.fn("cli.session.list")(function* (
 })
 
 export default Runtime.handler(Commands.commands.session.commands.list, (input) =>
-  handler(input).pipe(
-    Effect.catch((error) =>
-      Effect.sync(() => {
-        process.stderr.write(errorMessage(error) + EOL)
-        process.exitCode = 1
-      }),
-    ),
-  ),
+  handler(input).pipe(reportPlainError),
 )
 
 function formatList(sessions: ReadonlyArray<SessionInfo>) {
