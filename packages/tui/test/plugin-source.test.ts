@@ -281,6 +281,41 @@ test("literal dynamic imports and JSON join the source graph", async () => {
   expect((await sources.read(entry.href)).module).toMatchObject({ default: 2 })
 })
 
+test("directory watches combine file filters, promote to all names, and stop on disposal", async () => {
+  await using dir = await tmpdir()
+  let changes = 0
+  const watcher = createSourceWatcher(() => {
+    changes++
+  })
+  using _watcher = { [Symbol.dispose]: watcher.dispose }
+  for (const name of ["first.ts", "second.ts", "other.ts"]) await Bun.write(path.join(dir.path, name), "before")
+  await watcher.add(path.join(dir.path, "first.ts"))
+  await watcher.add(path.join(dir.path, "second.ts"))
+  const change = async (name: string) => {
+    const count = changes
+    await Bun.write(path.join(dir.path, name), "after")
+    const deadline = Date.now() + 3000
+    while (changes === count && Date.now() < deadline) await Bun.sleep(10)
+    expect(changes).toBeGreaterThan(count)
+    await Bun.sleep(50)
+  }
+  await change("first.ts")
+  await change("second.ts")
+  const count = changes
+  await Bun.write(path.join(dir.path, "other.ts"), "ignored")
+  await Bun.sleep(100)
+  expect(changes).toBe(count)
+
+  await watcher.add(dir.path)
+  await watcher.add(path.join(dir.path, "first.ts"))
+  await change("other.ts")
+  watcher.dispose()
+  const disposed = changes
+  await Bun.write(path.join(dir.path, "first.ts"), "disposed")
+  await Bun.sleep(100)
+  expect(changes).toBe(disposed)
+})
+
 test("real watchers observe atomic saves to nested, outside-root, and symlinked helpers", async () => {
   let changes = 0
   const watcher = createSourceWatcher(() => {

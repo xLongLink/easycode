@@ -14,8 +14,7 @@ import { lstat, realpath, stat } from "fs/promises"
 // polled until they can be armed without relying on a racy chain of ancestor
 // watches.
 export function createSourceWatcher(onChange: () => void) {
-  const watchers = new Map<string, ReturnType<typeof watch>>()
-  const watched = new Map<string, Set<string> | null>()
+  const watchers = new Map<string, { watcher: ReturnType<typeof watch>; names: Set<string> | null }>()
   const missing = new Set<string>()
   const arming = new Map<string, Promise<void>>()
   let disposed = false
@@ -23,9 +22,8 @@ export function createSourceWatcher(onChange: () => void) {
     if (!disposed) onChange()
   }
   const forget = (dir: string) => {
-    watchers.get(dir)?.close()
+    watchers.get(dir)?.watcher.close()
     watchers.delete(dir)
-    watched.delete(dir)
   }
   const arm = (target: string, retry: boolean) => {
     const active = arming.get(target)
@@ -37,10 +35,10 @@ export function createSourceWatcher(onChange: () => void) {
         const dir = info.isDirectory() ? target : path.dirname(target)
         // Directories accept every filename (null); files accept their basename.
         const name = info.isDirectory() ? null : path.basename(target)
-        const existing = watched.get(dir)
+        const existing = watchers.get(dir)
         if (existing !== undefined) {
-          if (name === null) watched.set(dir, null)
-          else existing?.add(name)
+          if (name === null) existing.names = null
+          else existing.names?.add(name)
           if (appeared) notify()
           return
         }
@@ -54,18 +52,17 @@ export function createSourceWatcher(onChange: () => void) {
             return
           }
           // A null filename (platform-dependent) always schedules.
-          const accept = watched.get(dir)
+          const accept = watchers.get(dir)?.names
           if (filename && accept && !accept.has(filename.toString())) return
           notify()
         })
-        watched.set(dir, name === null ? null : new Set([name]))
         // Reconcile after watcher errors so every source is re-added and any
         // temporarily unavailable target moves into the polling set.
         watcher.on("error", () => {
           forget(dir)
           notify()
         })
-        watchers.set(dir, watcher)
+        watchers.set(dir, { watcher, names: name === null ? null : new Set([name]) })
         if (appeared) notify()
       })
       .catch((error: unknown) => {
@@ -88,9 +85,8 @@ export function createSourceWatcher(onChange: () => void) {
   const dispose = () => {
     disposed = true
     clearInterval(poll)
-    for (const watcher of watchers.values()) watcher.close()
+    for (const entry of watchers.values()) entry.watcher.close()
     watchers.clear()
-    watched.clear()
     missing.clear()
   }
   const poll = setInterval(() => missing.forEach((target) => arm(target, true)), 500)

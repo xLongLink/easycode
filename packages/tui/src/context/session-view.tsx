@@ -43,7 +43,6 @@ export const { use: useSessionView, provider: SessionViewProvider } = createSimp
       session: data.session,
       current: () =>
         route.data.type === "session" && route.data.sessionID !== "dummy" ? route.data.sessionID : undefined,
-      keep: () => [],
       limit: 3,
     })
 
