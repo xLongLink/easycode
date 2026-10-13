@@ -9,7 +9,7 @@ import { useRoute } from "../context/route"
 import { useData } from "../context/data"
 import { useClient } from "../context/client"
 import { useLocation } from "../context/location"
-import { useSessionTabs } from "../context/session-tabs"
+import { useSessionView } from "../context/session-view"
 import { useTheme } from "../context/theme"
 import { Keymap } from "../context/keymap"
 import { Locale } from "../util/locale"
@@ -41,7 +41,7 @@ export function DialogOpen(props: { sessions: SessionInfo[]; onLoad: (sessions: 
   const data = useData()
   const client = useClient()
   const location = useLocation()
-  const sessionTabs = useSessionTabs()
+  const sessionView = useSessionView()
   const toast = useToast()
   const theme = useTheme().surface("dialog")
   const paths = useTuiPaths()
@@ -150,13 +150,10 @@ export function DialogOpen(props: { sessions: SessionInfo[]; onLoad: (sessions: 
         .catch(() => undefined),
   )
 
-  const openTabs = createMemo(
-    () => new Set(sessionTabs.enabled() ? sessionTabs.tabs().map((tab) => tab.sessionID) : []),
-  )
   const currentSessionID = createMemo(() =>
     route.data.type === "session" ? data.session.root(route.data.sessionID) : undefined,
   )
-  const attention = (sessionID: string) => sessionTabs.status(sessionID).attention
+  const attention = sessionView.attention
   const sessions = createMemo(() => {
     const seen = new Set<string>()
     const match = matched()
@@ -195,14 +192,7 @@ export function DialogOpen(props: { sessions: SessionInfo[]; onLoad: (sessions: 
   })
 
   const options = createMemo(() => {
-    const tabs = openTabs()
-    const currentID = currentSessionID()
-    // With an empty query the menu shows what is not already one keystroke away: open tabs are
-    // visible in the strip, so recents exclude them unless a background session is awaiting input.
-    // Typing widens the pool to every session so matching a loaded tab by name still switches to it.
-    const candidates = sessions().filter(
-      (session) => !tabs.has(session.id) || (attention(session.id) && session.id !== currentID),
-    )
+    const candidates = sessions()
     const attentionCount = candidates.filter((session) => attention(session.id)).length
     const recent = filter().trim() ? sessions() : candidates.slice(0, Math.max(RECENT_LIMIT, attentionCount))
     const sessionOptions = recent.map((session) => {
@@ -225,12 +215,7 @@ export function DialogOpen(props: { sessions: SessionInfo[]; onLoad: (sessions: 
         category: "Sessions",
         footer: `${label ? `${Locale.truncate(label, 30)} · ` : ""}${timeAgo(session.time.updated)}`,
         onSelect: () => location.set(session.location),
-        gutter: sessionStatusGutter(
-          theme,
-          state,
-          running,
-          tabs.has(session.id) ? () => <text fg={theme.hue.accent[200]}>▪</text> : undefined,
-        ),
+        gutter: sessionStatusGutter(theme, state, running),
       }
     })
 

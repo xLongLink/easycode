@@ -6,7 +6,6 @@ import { Global } from "@opencode/util/global"
 import type { SessionMessageInfo } from "@opencode/client"
 import { createEventStream, createFetch, directory, json } from "./fixture/tui-client"
 import { tmpdir } from "./fixture/fixture"
-import { mkdir } from "node:fs/promises"
 
 test.each([
   [48, 30],
@@ -29,13 +28,9 @@ test.each([
       time: { created: 0, updated: 0 },
     }
     const other = { ...session, id: "ses_other", title: "Other session" }
-    await mkdir(`${state.path}/latest/tui`, { recursive: true })
     await Bun.write(
-      `${state.path}/latest/tui/tabs.json`,
-      JSON.stringify({
-        global: { tabs: [{ sessionID: session.id }, { sessionID: other.id }], unread: {} },
-        cwd: {},
-      }),
+      `${state.path}/session.json`,
+      JSON.stringify({ pinned: [session.id, other.id] }),
     )
     const messages: SessionMessageInfo[] = [
       { type: "user", id: "msg_user", text: "User prompt", time: { created: 0 } },
@@ -95,8 +90,12 @@ test.each([
         config: {
           get: async () => ({
             animations: false,
-            tabs: { enabled: true, scope: "global" },
-            keybinds: { "session.messages_last_user": "ctrl+shift+u", "session.message.next": "ctrl+shift+n" },
+            keybinds: {
+              "session.messages_last_user": "ctrl+shift+u",
+              "session.message.next": "ctrl+shift+n",
+              "session.quick_switch.1": "ctrl+1",
+              "session.quick_switch.2": "ctrl+2",
+            },
           }),
           update: async () => ({}),
         },

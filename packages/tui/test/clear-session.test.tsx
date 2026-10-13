@@ -20,14 +20,19 @@ function render(state: string) {
   return createAppFixture({
     state,
     args: { sessionID: session.id },
-    config: { animations: false, tabs: { mode: "on" } },
+    config: { animations: false },
     fetch: (url) => {
       if (url.pathname === "/api/fs/list") return json({ location, data: [] })
       if (url.pathname === "/api/location") return json(location)
       if (url.pathname === "/api/session") return json({ data: [session], cursor: {} })
       if (url.pathname === `/api/session/${session.id}`) return json({ data: session })
       if (/^\/api\/session\/[^/]+\/(message|inbox|permission)$/.test(url.pathname))
-        return json({ data: [], cursor: {} })
+        return json({
+          data: url.pathname.endsWith("/message")
+            ? [{ type: "user", id: "msg_clear", text: "Content to clear", time: { created: 0 } }]
+            : [],
+          cursor: {},
+        })
       if (url.pathname === "/api/agent")
         return json({ location, data: [{ id: "build", mode: "primary", hidden: false, permissions: [] }] })
       if (url.pathname === "/api/provider") return json({ location, data: [{ id: "provider", name: "Provider" }] })
@@ -40,28 +45,28 @@ function render(state: string) {
   })
 }
 
-test("/clear replaces the active session tab", async () => {
+test("/clear opens a fresh prompt", async () => {
   await using state = await tmpdir()
   await using setup = await render(state.path)
 
-  await setup.waitForFrame((frame) => frame.includes("Session to clear"))
+  await setup.waitForFrame((frame) => frame.includes("Content to clear"))
   await setup.mockInput.typeText("/clear")
   setup.mockInput.pressEnter()
-  const frame = await setup.waitForFrame((frame) => !frame.includes("Session to clear"))
+  const frame = await setup.waitForFrame((frame) => !frame.includes("Content to clear"))
 
-  expect(frame).not.toContain("Session to clear")
+  expect(frame).not.toContain("Content to clear")
 })
 
-test("/new keeps the active session tab", async () => {
+test("/new opens a fresh prompt without deleting the previous session", async () => {
   await using state = await tmpdir()
   await using setup = await render(state.path)
 
-  await setup.waitForFrame((frame) => frame.includes("Session to clear"))
+  await setup.waitForFrame((frame) => frame.includes("Content to clear"))
   await setup.mockInput.typeText("/new")
   setup.mockInput.pressEnter()
-  const frame = await setup.waitForFrame(
-    (frame) => frame.includes("New session") && frame.includes("Session to clear"),
-  )
-
-  expect(frame).toContain("Session to clear")
+  const frame = await setup.waitForFrame((frame) => !frame.includes("Content to clear"))
+  expect(frame).not.toContain("Content to clear")
+  await setup.mockInput.typeText("/sessions")
+  setup.mockInput.pressEnter()
+  await setup.waitForFrame((frame) => frame.includes("Session to clear"))
 })

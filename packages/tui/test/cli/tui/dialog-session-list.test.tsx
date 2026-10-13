@@ -13,7 +13,7 @@ import { LocationProvider } from "../../../src/context/location"
 import { PermissionProvider } from "../../../src/context/permission"
 import { RouteProvider, useRoute } from "../../../src/context/route"
 import { TuiAppProvider } from "../../../src/context/runtime"
-import { SessionTabsProvider } from "../../../src/context/session-tabs"
+import { SessionViewProvider } from "../../../src/context/session-view"
 import { StorageProvider, useStorage } from "../../../src/context/storage"
 import { ThemeProvider } from "../../../src/context/theme"
 import { DialogProvider, useDialog } from "../../../src/ui/dialog"
@@ -92,7 +92,7 @@ test("scopes sessions to the active session location", async () => {
                         <PermissionProvider>
                           <DataProvider directory={process.cwd()}>
                             <LocationProvider>
-                              <SessionTabsProvider>
+                              <SessionViewProvider>
                                 <ThemeProvider>
                                   <LocalProvider>
                                     <DialogProvider>
@@ -100,7 +100,7 @@ test("scopes sessions to the active session location", async () => {
                                     </DialogProvider>
                                   </LocalProvider>
                                 </ThemeProvider>
-                              </SessionTabsProvider>
+                              </SessionViewProvider>
                             </LocationProvider>
                           </DataProvider>
                         </PermissionProvider>

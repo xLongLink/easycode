@@ -51,7 +51,7 @@ import { DevToolsBar } from "./component/devtools-bar"
 import { Reconnecting } from "./component/reconnecting"
 import { MigrationOverlay } from "./component/migration-overlay"
 import { DataProvider, useData } from "./context/data"
-import { SessionTabsProvider, useSessionTabs } from "./context/session-tabs"
+import { SessionViewProvider } from "./context/session-view"
 import { LocationProvider, useLocation } from "./context/location"
 import { LocalProvider, useLocal } from "./context/local"
 import { PermissionProvider } from "./context/permission"
@@ -65,10 +65,6 @@ import { DialogHelp } from "./ui/dialog-help"
 import { DialogAgent } from "./component/dialog-agent"
 import { DialogSessionList } from "./component/dialog-session-list"
 import { DialogOpen, DialogOpenKey, moveOpenSession } from "./component/dialog-open"
-import { SessionTabs } from "./component/session-tabs"
-import { clampSessionTabsWidth, sessionTabsFitVertically, SESSION_SIDEBAR_WIDTH } from "./ui/layout"
-import { createPaneResize } from "./ui/pane-resize"
-import { PaneResizeHandle } from "./ui/pane-resize-handle"
 import { clickedLink } from "./ui/link"
 import { ThemeProvider, useTheme } from "./context/theme"
 import { Home } from "./routes/home"
@@ -93,7 +89,7 @@ import { DialogVariant } from "./component/dialog-variant"
 import { destroyRenderer } from "./util/renderer"
 import { cliErrorMessage, errorFormat } from "./util/error"
 import { AttentionProvider } from "./context/attention"
-import { StorageProvider, useStorage } from "./context/storage"
+import { StorageProvider } from "./context/storage"
 import { SessionTerminalsProvider } from "./context/session-terminals"
 import { PanelProvider, usePanel } from "./context/panel"
 import { SessionFrame } from "./component/session-frame"
@@ -102,25 +98,6 @@ import { createTuiClipboard } from "./clipboard"
 registerOpencodeSpinner()
 
 const appGlobalBindingCommands = ["session.list", "session.new", "open.menu"] as const
-
-const sessionTabBindingCommands = [
-  "session.tab.next",
-  "session.tab.previous",
-  "session.tab.next_unread",
-  "session.tab.previous_unread",
-  "session.tab.close",
-  "session.tab.reopen",
-  "session.tab.select.1",
-  "session.tab.select.2",
-  "session.tab.select.3",
-  "session.tab.select.4",
-  "session.tab.select.5",
-  "session.tab.select.6",
-  "session.tab.select.7",
-  "session.tab.select.8",
-  "session.tab.select.9",
-  "session.tab.select.10",
-] as const
 
 const pinnedSessionBindingCommands = [
   "session.quick_switch.1",
@@ -350,7 +327,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
                                               <PermissionProvider>
                                                 <DataProvider directory={directory}>
                                                   <LocationProvider>
-                                                    <SessionTabsProvider>
+                                                     <SessionViewProvider>
                                                       <SessionTerminalsProvider>
                                                         <ThemeProvider>
                                                           <LocalProvider>
@@ -379,7 +356,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
                                                           </LocalProvider>
                                                         </ThemeProvider>
                                                       </SessionTerminalsProvider>
-                                                    </SessionTabsProvider>
+                                                     </SessionViewProvider>
                                                   </LocationProvider>
                                                 </DataProvider>
                                               </PermissionProvider>
@@ -427,7 +404,6 @@ function App() {
   const renderer = useRenderer()
   const dialog = useDialog()
   const local = useLocal()
-  const sessionTabs = useSessionTabs()
   const panels = usePanel()
   const keymap = Keymap.use()
   const event = useEvent()
@@ -451,21 +427,6 @@ function App() {
     void client.api.session
       .environment({ sessionID: session.id, variables: terminalEnvironment.variables })
       .catch(toast.error)
-  })
-  const [layout, updateLayout] = useStorage().store<{ verticalTabsWidth?: number }>("layout", {
-    initial: { verticalTabsWidth: SESSION_SIDEBAR_WIDTH },
-  })
-  const tabsResize = createPaneResize({
-    value: () => layout.verticalTabsWidth ?? SESSION_SIDEBAR_WIDTH,
-    defaultValue: () => SESSION_SIDEBAR_WIDTH,
-    clamp: (width) => clampSessionTabsWidth(width, dimensions().width),
-    fromMouse: (event) => event.x + 1,
-    contains: (event, width) => event.x >= width - 1 && event.x <= width,
-    onCommit: (width) => {
-      void updateLayout((draft) => {
-        draft.verticalTabsWidth = width
-      }).catch((error) => console.error("Failed to persist TUI layout", error))
-    },
   })
   const [openSessions, setOpenSessions] = createSignal<SessionInfo[]>([])
   // Toast once when an MCP server enters a failed or needs-auth state so the user knows to act,
@@ -526,18 +487,7 @@ function App() {
   }
   const terminalTitleEnabled = () => config.data.terminal?.title ?? true
   const pasteSummaryEnabled = () => config.data.prompt?.paste !== "full"
-  const tabsVertical = () =>
-    config.data.tabs.layout === "vertical" && sessionTabsFitVertically(dimensions().width, tabsResize.size())
-  const tabsAvailable = () => sessionTabs.enabled() && sessionTabs.tabs().length > 0 && route.data.type !== "plugin"
-  const fullscreenPanel = () =>
-    route.data.type === "session" &&
-    panels.current()?.sessionID === route.data.sessionID &&
-    panels.presentation() === "fullscreen"
-  const tabsVisible = () => tabsAvailable() && !fullscreenPanel()
-  const verticalTabsVisible = () => tabsVisible() && tabsVertical()
-
-  // Measure the prospective split layout, even while full-screen hides the tabs.
-  createEffect(() => panels.setWidth(dimensions().width - (tabsAvailable() && tabsVertical() ? tabsResize.size() : 0)))
+  createEffect(() => panels.setWidth(dimensions().width))
   createEffect(() => {
     const current = panels.current()
     if (!current || (route.data.type === "session" && route.data.sessionID === current.sessionID)) return
@@ -700,7 +650,6 @@ function App() {
             route.data.type === "session"
               ? (data.session.get(route.data.sessionID)?.location ?? location.ref)
               : undefined
-          sessionTabs.close()
           route.navigate({
             type: "home",
             location: newSessionLocation(
@@ -733,62 +682,7 @@ function App() {
         title: `Switch to session in quick slot ${i + 1}`,
         category: "Session",
         palette: undefined,
-        enabled: () => !sessionTabs.enabled(),
         run: () => local.session.quickSwitch(i + 1),
-      })),
-      {
-        name: "session.tab.next",
-        title: "Next tab",
-        category: "Session",
-        palette: undefined,
-        enabled: sessionTabs.enabled,
-        run: () => sessionTabs.cycle(1),
-      },
-      {
-        name: "session.tab.previous",
-        title: "Previous tab",
-        category: "Session",
-        palette: undefined,
-        enabled: sessionTabs.enabled,
-        run: () => sessionTabs.cycle(-1),
-      },
-      {
-        name: "session.tab.next_unread",
-        title: "Next unread tab",
-        category: "Session",
-        palette: undefined,
-        enabled: sessionTabs.enabled,
-        run: () => sessionTabs.cycleUnread(1),
-      },
-      {
-        name: "session.tab.previous_unread",
-        title: "Previous unread tab",
-        category: "Session",
-        palette: undefined,
-        enabled: sessionTabs.enabled,
-        run: () => sessionTabs.cycleUnread(-1),
-      },
-      {
-        name: "session.tab.close",
-        title: "Close tab",
-        category: "Session",
-        enabled: sessionTabs.enabled,
-        run: () => sessionTabs.close(),
-      },
-      {
-        name: "session.tab.reopen",
-        title: "Reopen closed tab",
-        category: "Session",
-        enabled: sessionTabs.enabled,
-        run: () => sessionTabs.reopen(),
-      },
-      ...Array.from({ length: 10 }, (_, i) => ({
-        name: `session.tab.select.${i + 1}`,
-        title: `Switch to tab ${i + 1}`,
-        category: "Session",
-        palette: undefined,
-        enabled: sessionTabs.enabled,
-        run: () => sessionTabs.selectIndex(i),
       })),
       {
         name: "model.list",
@@ -1135,13 +1029,6 @@ function App() {
 
   Keymap.createLayer(() => ({
     mode: "global",
-    enabled: sessionTabs.enabled,
-    bindings: sessionTabBindingCommands,
-  }))
-
-  Keymap.createLayer(() => ({
-    mode: "global",
-    enabled: () => !sessionTabs.enabled(),
     bindings: pinnedSessionBindingCommands,
   }))
 
@@ -1246,19 +1133,10 @@ function App() {
         minHeight={0}
         flexDirection="row"
         position="relative"
-        onMouseDrag={tabsResize.onMouseDrag}
-        onMouseDragEnd={tabsResize.onMouseDragEnd}
-        onMouseUp={tabsResize.onMouseUp}
       >
-        <Show when={verticalTabsVisible()}>
-          <SessionTabs orientation="vertical" width={tabsResize.size()} />
-        </Show>
         <box flexGrow={1} minWidth={0} flexDirection="column">
           <Show when={plugins.ready()}>
             <box flexGrow={1} minHeight={0} flexDirection="column">
-              <Show when={tabsVisible() && !tabsVertical()}>
-                <SessionTabs />
-              </Show>
               <Switch>
                 <Match when={route.data.type === "home"}>
                   <Home />
@@ -1266,10 +1144,7 @@ function App() {
                 <Match when={route.data.type === "session"}>
                   <Show when={route.data.type === "session" ? route.data.sessionID : undefined} keyed>
                     {(sessionID) => (
-                      <SessionFrame
-                        sessionID={sessionID}
-                        verticalTabsWidth={verticalTabsVisible() ? tabsResize.size() : 0}
-                      />
+                      <SessionFrame sessionID={sessionID} />
                     )}
                   </Show>
                 </Match>
@@ -1285,9 +1160,6 @@ function App() {
             <Slot path="app" />
           </Show>
         </box>
-        <Show when={verticalTabsVisible()}>
-          <PaneResizeHandle resize={tabsResize} left={tabsResize.size() - 1} />
-        </Show>
       </box>
       <Show when={devtools() && !(route.data.type === "plugin" && route.data.id === "opencode.stats")}>
         <DevToolsBar />

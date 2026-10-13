@@ -113,7 +113,7 @@ import { findMessageBoundary, messageNavigationSlack } from "./message-navigatio
 import { stringWidth } from "../../util/string-width"
 import { useArgs } from "../../context/args"
 import { withTimestampedFallback } from "@opencode/util/session-title-fallback"
-import { useSessionTabs, type ScrollAnchor } from "../../context/session-tabs"
+import { useSessionView, type ScrollAnchor } from "../../context/session-view"
 import { createSingleFlight } from "../../util/single-flight"
 import { createDelayedPresence } from "../../util/delayed-presence"
 import { SessionLocationMissing } from "./location-missing"
@@ -142,7 +142,6 @@ const TRANSCRIPT_BACKFILL_CHUNK = 60
 
 export function Session(props: {
   scrollRef?: (scroll: ScrollBoxRenderable | undefined) => void
-  verticalTabsWidth: number
   promptMuted?: boolean
   sidebarVisible: boolean
   onToggleSidebar: () => void
@@ -240,17 +239,17 @@ export function Session(props: {
   const verbosity = createMemo(() => config.session?.verbosity ?? defaultVerbosity)
   // High opens exploration and instruction summaries by default; everything else starts collapsed.
   const groupExpanded = (groupID: string, kind: GroupKind) =>
-    sessionTabs.groupExpanded(sessionID, groupID) ??
+    sessionView.groupExpanded(sessionID, groupID) ??
     (verbosity() === "high" && (kind === "exploration" || kind === "instructions"))
   const groupedKind = (kind: GroupKind) =>
     kind === "reasoning" ? thinkingMode() === "hide" : kind === "exploration" ? groupExploration() : true
 
   Keymap.createLayer(() => ({
     priority: 10,
-    enabled: () => props.sidebarVisible && dimensions().width - props.verticalTabsWidth <= 120 && !disabled(),
+    enabled: () => props.sidebarVisible && dimensions().width <= 120 && !disabled(),
     commands: [{ bind: "escape,ctrl+c", title: "Close sidebar", group: "Session", run: props.onToggleSidebar }],
   }))
-  const contentWidth = createMemo(() => (props.width ?? dimensions().width - props.verticalTabsWidth) - 4)
+  const contentWidth = createMemo(() => (props.width ?? dimensions().width) - 4)
   const models = createMemo(() => data.location.model.list(location()) ?? [])
 
   const scrollAcceleration = createMemo(() => getScrollAcceleration(config))
@@ -288,7 +287,7 @@ export function Session(props: {
   const [navigationSlack, setNavigationSlack] = createSignal(0)
   const [firstJump, setFirstJump] = createSignal<() => void>()
   const [synced, setSynced] = createSignal(false)
-  const sessionTabs = useSessionTabs()
+  const sessionView = useSessionView()
   const [awayFromBottom, setAwayFromBottom] = createSignal(false)
   const [latestHovered, setLatestHovered] = createSignal(false)
   let ensureAllRowsPending: (() => void)[] | undefined
@@ -307,7 +306,7 @@ export function Session(props: {
 
   createEffect(
     on(
-      () => [dimensions().width, dimensions().height, props.verticalTabsWidth] as const,
+      () => [dimensions().width, dimensions().height] as const,
       (_, previous) => {
         if (!previous) return
         clearMessageNavigation()
@@ -342,7 +341,7 @@ export function Session(props: {
           variant: "error",
           duration: 5000,
         })
-        sessionTabs.enabled() ? sessionTabs.close(sessionID) : navigate({ type: "home" })
+        navigate({ type: "home" })
         return
       }
       editor.reconnect(info.location.directory)
@@ -354,7 +353,7 @@ export function Session(props: {
         variant: "error",
         duration: 5000,
       })
-      sessionTabs.enabled() ? sessionTabs.close(sessionID) : navigate({ type: "home" })
+      navigate({ type: "home" })
     })
   })
 
@@ -409,7 +408,7 @@ export function Session(props: {
   }
 
   // Tail-first transcript mounting: only the newest rows mount when the session opens. Older rows
-  // mount on demand near the top, keeping inactive tabs cheap to tear down. While the reader stays
+  // mount on demand near the top, keeping inactive sessions cheap to tear down. While the reader stays
   // at the bottom the hidden span follows appends; leaving the bottom pins it to preserve the viewport.
   const [hiddenRows, setHiddenRows] = createSignal<number>()
   const [visibleRowsEnd, setVisibleRowsEnd] = createSignal<number>()
@@ -540,7 +539,7 @@ export function Session(props: {
     // last scroll-event anchor once those children have gone away.
     if (unmounting && !mounted.length) return
     if (!isAwayFromBottom()) {
-      sessionTabs.setScrollAnchor(sessionID, undefined)
+      sessionView.setScrollAnchor(sessionID, undefined)
       return
     }
     let first: ScrollAnchor | undefined
@@ -559,11 +558,10 @@ export function Session(props: {
       if (item.screenY <= inset && (!anchor || item.screenY > anchor.screenY)) anchor = item
     }
     anchor ??= first
-    if (anchor) sessionTabs.setScrollAnchor(sessionID, anchor)
-    else sessionTabs.setScrollAnchor(sessionID, undefined)
+    sessionView.setScrollAnchor(sessionID, anchor)
   }
   function restoreScrollPosition() {
-    const anchor = sessionTabs.scrollAnchor(sessionID)
+    const anchor = sessionView.scrollAnchor(sessionID)
     const index = anchor ? rows.findIndex((row) => containsAnchor(row, anchor.target)) : -1
     if (!anchor || index === -1) {
       scroll.scrollTo(scroll.scrollHeight)
@@ -578,7 +576,7 @@ export function Session(props: {
       afterLayout(() => {
         const boundary = anchors.get(anchor.target)
         if (!boundary) {
-          sessionTabs.setScrollAnchor(sessionID, undefined)
+          sessionView.setScrollAnchor(sessionID, undefined)
           scroll.stickyScroll = true
           scroll.scrollTo(scroll.scrollHeight)
           setAwayFromBottom(false)
@@ -760,7 +758,7 @@ export function Session(props: {
     if (awayTimer) clearTimeout(awayTimer)
     awayTimer = undefined
     setAwayFromBottom(false)
-    sessionTabs.setScrollAnchor(route.sessionID, undefined)
+    sessionView.setScrollAnchor(route.sessionID, undefined)
     setHiddenRows(undefined)
     setVisibleRowsEnd(undefined)
     setTimeout(() => {
@@ -1366,7 +1364,7 @@ export function Session(props: {
               if (held === hold) held = undefined
             })
           }
-          sessionTabs.setGroupExpanded(sessionID, id, expanded)
+          sessionView.setGroupExpanded(sessionID, id, expanded)
           afterLayout(saveScrollAnchor)
         },
         get width() {

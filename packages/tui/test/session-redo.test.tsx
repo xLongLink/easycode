@@ -25,7 +25,6 @@ test.each([
   await using setup = await createAppFixture({
     config: {
       animations: false,
-      tabs: { mode: "off" },
       session: { sidebar: "hide" },
       keybinds: { "session.redo": "f6" },
     },

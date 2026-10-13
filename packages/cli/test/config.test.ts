@@ -78,14 +78,14 @@ test("merges inline CLI config content over the global config", async () => {
   await Bun.write(
     file,
     JSON.stringify({
-      tabs: { mode: "on", scope: "global" },
+      session: { sidebar: "auto", verbosity: "high" },
       keybinds: { "app.exit": "ctrl+q" },
       plugins: ["global"],
       animations: true,
     }),
   )
   process.env.OPENCODE_CLI_CONFIG_CONTENT = JSON.stringify({
-    tabs: { enabled: false },
+    session: { sidebar: "hide" },
     keybinds: { "help.show": false },
     plugins: ["inline"],
     animations: false,
@@ -105,7 +105,7 @@ test("merges inline CLI config content over the global config", async () => {
       }),
     )
 
-    expect(result.loaded.tabs).toEqual({ mode: "off", scope: "global" })
+    expect(result.loaded.session).toEqual({ sidebar: "hide", verbosity: "high" })
     expect(result.loaded.keybinds).toEqual({ "app.exit": "ctrl+q", "help.show": false })
     expect(result.loaded.plugins).toEqual(["inline"])
     expect(result.updated).toMatchObject({ animations: false, mouse: false })
@@ -116,7 +116,7 @@ test("merges inline CLI config content over the global config", async () => {
   }
 })
 
-test("reads the legacy tabs toggle without rewriting it", async () => {
+test("ignores removed tabs settings without rewriting the config file", async () => {
   await using directory = await tmpdir()
   const file = path.join(directory.path, "cli.json")
   await Bun.write(file, JSON.stringify({ tabs: { enabled: false } }))
@@ -125,14 +125,14 @@ test("reads the legacy tabs toggle without rewriting it", async () => {
     directory.path,
     Effect.gen(function* () {
       const service = yield* Config.Service
-      expect((yield* service.get()).tabs).toEqual({ mode: "off" })
+      expect(yield* service.get()).toEqual({})
       return yield* service.update((draft) => {
         draft.animations = false
       })
     }),
   )
 
-  expect(config.tabs).toEqual({ mode: "off" })
+  expect(config).toEqual({ animations: false })
   expect(await Bun.file(file).json()).toEqual({ tabs: { enabled: false }, animations: false })
 })
 

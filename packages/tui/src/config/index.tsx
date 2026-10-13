@@ -152,25 +152,6 @@ export const Info = Schema.Struct({
       }),
     }),
   ).annotate({ description: "Session transcript presentation settings" }),
-  tabs: Schema.optional(
-    Schema.Struct({
-      mode: Schema.optional(Schema.Literals(["auto", "on", "off"])).annotate({
-        description: "Use session tabs always, never, or when the terminal environment supports them",
-      }),
-      enabled: Schema.optional(Schema.Boolean).annotate({
-        description: "Legacy tab toggle; use mode instead",
-      }),
-      scope: Schema.optional(Schema.Literals(["global", "cwd"])).annotate({
-        description: "Share tabs globally or keep a separate set for each working directory",
-      }),
-      layout: Schema.optional(Schema.Literals(["horizontal", "vertical"])).annotate({
-        description: "Show tabs in a horizontal strip or vertical sidebar",
-      }),
-      indicators: Schema.optional(Schema.Literals(["status", "numbers"])).annotate({
-        description: "Show status icons or always show tab numbers",
-      }),
-    }),
-  ).annotate({ description: "Tab strip settings" }),
   debug: Schema.optional(
     Schema.Struct({
       devtools: Schema.optional(Schema.Boolean).annotate({ description: "Show the DevTools debug bar" }),
@@ -189,7 +170,7 @@ export const Info = Schema.Struct({
 })
 export type Info = Schema.Schema.Type<typeof Info>
 
-export type Resolved = Omit<Info, "attention" | "cursor" | "keybinds" | "leader" | "mouse" | "session" | "tabs"> & {
+export type Resolved = Omit<Info, "attention" | "cursor" | "keybinds" | "leader" | "mouse" | "session"> & {
   attention: {
     notifications: boolean
     sound: boolean
@@ -209,21 +190,12 @@ export type Resolved = Omit<Info, "attention" | "cursor" | "keybinds" | "leader"
     permissions: "prompt" | "autoaccept"
     tps: boolean
   }
-  tabs: {
-    mode: "auto" | "on" | "off"
-    enabled: boolean
-    scope: "global" | "cwd"
-    layout: "horizontal" | "vertical"
-    indicators: "status" | "numbers"
-  }
 }
 
 export function resolve(
   input: Info,
-  options: { terminalSuspend: boolean; environment?: Readonly<Record<string, string | undefined>> },
+  options: { terminalSuspend: boolean },
 ): Resolved {
-  const tabsMode =
-    input.tabs?.mode ?? (input.tabs?.enabled === undefined ? "auto" : input.tabs.enabled ? "on" : "off")
   const keybinds: TuiKeybind.KeybindOverrides = { ...input.keybinds }
   if (!options.terminalSuspend) {
     keybinds["terminal.suspend"] = "none"
@@ -261,14 +233,6 @@ export function resolve(
       permissions: input.session?.permissions ?? "prompt",
       tps: input.session?.tps ?? true,
     },
-    tabs: {
-      ...input.tabs,
-      mode: tabsMode,
-      enabled: tabsMode === "on" || (tabsMode === "auto" && (options.environment ?? process.env).HERDR_ENV !== "1"),
-      scope: input.tabs?.scope ?? "cwd",
-      layout: input.tabs?.layout ?? "horizontal",
-      indicators: input.tabs?.indicators ?? "status",
-    },
   }
 }
 
@@ -281,7 +245,7 @@ const ConfigContext = createContext<{
 export function ConfigProvider(props: {
   config: Resolved
   service?: Interface
-  options?: { terminalSuspend: boolean; environment?: Readonly<Record<string, string | undefined>> }
+  options?: { terminalSuspend: boolean }
   children: JSX.Element
 }) {
   const [config, setConfig] = createStore(props.config)

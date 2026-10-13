@@ -17,16 +17,9 @@ test("validates the explicit diff source defaults", () => {
   expect(() => decodeInfo({ diffs: { source: "auto" } })).toThrow()
 })
 
-test("validates the session tabs setting", () => {
+test("validates prompt and session settings", () => {
   const decode = Schema.decodeUnknownSync(Info)
 
-  expect(decode({ tabs: { mode: "on", layout: "vertical", indicators: "numbers" } })).toEqual({
-    tabs: { mode: "on", layout: "vertical", indicators: "numbers" },
-  })
-  expect(() => decode({ tabs: { indicators: "unknown" } })).toThrow()
-  expect(() => decode({ tabs: { layout: true } })).toThrow()
-  expect(() => decode({ tabs: { mode: true } })).toThrow()
-  expect(decode({ tabs: { enabled: false } })).toEqual({ tabs: { enabled: false } })
   expect(decode({ prompt: { image_preview: true } })).toEqual({ prompt: { image_preview: true } })
   expect(decode({ session: { image_preview: true } })).toEqual({ session: { image_preview: true } })
   expect(decode({ session: { tps: false } })).toEqual({ session: { tps: false } })
@@ -43,7 +36,7 @@ test("resolves nested config and keybind defaults", () => {
       diffs: { view: "split" },
       debug: { devtools: true },
     },
-    { terminalSuspend: true, environment: {} },
+    { terminalSuspend: true },
   )
 
   expect(config.leader.timeout).toBe(500)
@@ -51,44 +44,14 @@ test("resolves nested config and keybind defaults", () => {
   expect(config.scroll).toEqual({ speed: 2, acceleration: true })
   expect(config.diffs).toEqual({ view: "split" })
   expect(config.debug).toEqual({ devtools: true })
-  expect(config.tabs).toEqual({
-    mode: "auto",
-    enabled: true,
-    scope: "cwd",
-    layout: "horizontal",
-    indicators: "status",
-  })
   expect(config.session.new_location).toBe("launch")
   expect(config.session.tps).toBe(true)
 })
 
-test("resolves automatic tabs from the terminal environment", () => {
-  expect(resolve({}, { terminalSuspend: true, environment: {} }).tabs.enabled).toBe(true)
-  expect(resolve({}, { terminalSuspend: true, environment: { HERDR_ENV: "1" } }).tabs.enabled).toBe(false)
-  expect(
-    resolve({ tabs: { mode: "on" } }, { terminalSuspend: true, environment: { HERDR_ENV: "1" } }).tabs.enabled,
-  ).toBe(true)
-  expect(resolve({ tabs: { mode: "off" } }, { terminalSuspend: true, environment: {} }).tabs.enabled).toBe(false)
-  expect(resolve({ tabs: { enabled: false } }, { terminalSuspend: true, environment: {} }).tabs).toMatchObject({
-    mode: "off",
-    enabled: false,
-  })
-  expect(
-    resolve({ tabs: { mode: "on", enabled: false } }, { terminalSuspend: true, environment: {} }).tabs,
-  ).toMatchObject({ mode: "on", enabled: true })
-})
-
-test("shows resolved tab defaults in settings", () => {
-  expect(settings.find((setting) => setting.path.join(".") === "tabs.mode")).toMatchObject({
-    default: "auto",
-    values: ["off", "on", "auto"],
-  })
-  expect(settings.find((setting) => setting.path.join(".") === "tabs.scope")?.default).toBe("cwd")
-  expect(settings.find((setting) => setting.path.join(".") === "tabs.layout")?.default).toBe("horizontal")
-  expect(settings.find((setting) => setting.path.join(".") === "tabs.indicators")).toMatchObject({
-    default: "status",
-    values: ["status", "numbers"],
-  })
+test("does not expose removed session tabs settings or shortcuts", () => {
+  expect(settings.some((setting) => setting.path[0] === "tabs")).toBe(false)
+  expect(Object.keys(TuiKeybind.Definitions).some((key) => key.startsWith("session.tab."))).toBe(false)
+  expect(decodeInfo({ tabs: { mode: "on" } })).toEqual({})
 })
 
 test("shows the new session location default in settings", () => {
@@ -144,12 +107,7 @@ test("preserves current navigation defaults", () => {
   const config = resolve({}, { terminalSuspend: true })
 
   expect(config.keybinds.get("open.menu")).toMatchObject([{ key: "ctrl+o" }])
-  expect(config.keybinds.get("session.tab.next")).toMatchObject([{ key: "ctrl+tab,alt+down" }])
-  expect(config.keybinds.get("session.tab.previous")).toMatchObject([{ key: "ctrl+shift+tab,alt+up" }])
-  expect(config.keybinds.get("session.tab.next_unread")).toMatchObject([{ key: "alt+shift+down" }])
-  expect(config.keybinds.get("session.tab.previous_unread")).toMatchObject([{ key: "alt+shift+up" }])
-  expect(config.keybinds.get("session.tab.reopen")).toMatchObject([{ key: "ctrl+shift+t" }])
-  expect(config.keybinds.get("session.tab.select.10")).toMatchObject([{ key: "<leader>0,ctrl+0" }])
+  expect(config.keybinds.get("session.quick_switch.1")).toMatchObject([{ key: "<leader>1" }])
   expect(config.keybinds.get("session.message.next")).toEqual([])
   expect(config.keybinds.get("session.message.previous")).toEqual([])
   expect(config.keybinds.get("session.message.user.next")).toEqual([])

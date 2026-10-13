@@ -10,7 +10,7 @@ import type { GroupKind } from "./grouping/session"
 export type PendingAction = "steer" | "queue" | "cancel"
 
 export const context = createContext<{
-  /** Content width: terminal width minus vertical tabs, sidebar, and padding. */
+  /** Content width: terminal width minus sidebar and padding. */
   width: number
   /**
    * Shared reactive terminal size. Transcript-row components must read this

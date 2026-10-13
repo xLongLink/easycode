@@ -240,38 +240,6 @@
               "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
               "description": "Open recent sessions and projects"
             },
-            "session.tab.next": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch to next open session tab"
-            },
-            "session.tab.previous": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch to previous open session tab"
-            },
-            "session.tab.history.back": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Go back in session tab history"
-            },
-            "session.tab.history.forward": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Go forward in session tab history"
-            },
-            "session.tab.next_unread": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch to next unread session tab"
-            },
-            "session.tab.previous_unread": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch to previous unread session tab"
-            },
-            "session.tab.close": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Close current session tab"
-            },
-            "session.tab.reopen": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Reopen last closed session tab"
-            },
             "session.timeline": {
               "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
               "description": "Show session timeline"
@@ -391,46 +359,6 @@
             "session.quick_switch.9": {
               "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
               "description": "Switch to session in quick slot 9"
-            },
-            "session.tab.select.1": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch to session tab 1"
-            },
-            "session.tab.select.2": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch to session tab 2"
-            },
-            "session.tab.select.3": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch to session tab 3"
-            },
-            "session.tab.select.4": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch to session tab 4"
-            },
-            "session.tab.select.5": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch to session tab 5"
-            },
-            "session.tab.select.6": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch to session tab 6"
-            },
-            "session.tab.select.7": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch to session tab 7"
-            },
-            "session.tab.select.8": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch to session tab 8"
-            },
-            "session.tab.select.9": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch to session tab 9"
-            },
-            "session.tab.select.10": {
-              "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
-              "description": "Switch to session tab 10"
             },
             "stash.delete": {
               "anyOf": [{ "$ref": "#/$defs/TuiKeybind.BindingValue" }, { "type": "null" }],
@@ -1196,38 +1124,6 @@
         { "type": "null" }
       ],
       "description": "Session transcript presentation settings"
-    },
-    "tabs": {
-      "anyOf": [
-        {
-          "type": "object",
-          "properties": {
-            "mode": {
-              "anyOf": [{ "type": "string", "enum": ["auto", "on", "off"] }, { "type": "null" }],
-              "description": "Use session tabs always, never, or when the terminal environment supports them"
-            },
-            "enabled": {
-              "anyOf": [{ "type": "boolean" }, { "type": "null" }],
-              "description": "Legacy tab toggle; use mode instead"
-            },
-            "scope": {
-              "anyOf": [{ "type": "string", "enum": ["global", "cwd"] }, { "type": "null" }],
-              "description": "Share tabs globally or keep a separate set for each working directory"
-            },
-            "layout": {
-              "anyOf": [{ "type": "string", "enum": ["horizontal", "vertical"] }, { "type": "null" }],
-              "description": "Show tabs in a horizontal strip or vertical sidebar"
-            },
-            "indicators": {
-              "anyOf": [{ "type": "string", "enum": ["status", "numbers"] }, { "type": "null" }],
-              "description": "Show status icons or always show tab numbers"
-            }
-          },
-          "additionalProperties": false
-        },
-        { "type": "null" }
-      ],
-      "description": "Tab strip settings"
     },
     "debug": {
       "anyOf": [
