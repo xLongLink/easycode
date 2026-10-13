@@ -113,8 +113,8 @@ describe("DatabaseMigration", () => {
         expect(yield* db.get(sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'session_v2'`)).toEqual({
           name: "session_v2",
         })
-        expect(yield* db.get(sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'session_pending'`)).toEqual({
-          name: "session_pending",
+        expect(yield* db.get(sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'session_inbox'`)).toEqual({
+          name: "session_inbox",
         })
         expect(
           (yield* db.all<{ name: string }>(sql`PRAGMA table_info(instruction_state)`)).map((column) => column.name),
@@ -189,6 +189,80 @@ describe("DatabaseMigration", () => {
         yield* db.run(sql`DELETE FROM session_v2 WHERE id = 'session'`)
         expect(yield* db.all(sql`SELECT id FROM session_message`)).toEqual([])
         expect(yield* db.get(sql`SELECT id FROM credential WHERE id = 'credential'`)).toEqual({ id: "credential" })
+        expect(yield* db.all(sql`PRAGMA foreign_key_check`)).toEqual([])
+      }),
+    )
+  })
+
+  test.each(["bootstrap", "baseline"])("%s keeps authoritative worktree, credential, and inbox storage", async (mode) => {
+    await run(
+      Effect.gen(function* () {
+        const db = yield* makeDb
+        yield* db.run(sql`PRAGMA foreign_keys = ON`)
+        yield* (mode === "bootstrap" ? DatabaseMigration.apply(db) : DatabaseMigration.applyOnly(db, migrations))
+        expect(
+          yield* db.all(sql`
+            SELECT name FROM sqlite_master
+            WHERE tbl_name IN ('project_directory', 'session_pending')
+          `),
+        ).toEqual([])
+        expect((yield* db.all<{ name: string }>(sql`PRAGMA table_info(credential)`)).map((column) => column.name)).toEqual([
+          "id",
+          "integration_id",
+          "label",
+          "value",
+          "active",
+          "time_created",
+          "time_updated",
+        ])
+
+        yield* db.run(sql`
+          INSERT INTO project (id, worktree, sandboxes, time_created, time_updated)
+          VALUES ('project', '/project', '[]', 1, 1)
+        `)
+        yield* db.run(sql`
+          INSERT INTO worktree (project_id, directory, strategy, time_created)
+          VALUES ('project', '/project/branch', 'git', 1)
+        `)
+        yield* db.run(sql`
+          INSERT INTO credential (id, integration_id, label, value, active, time_created, time_updated)
+          VALUES ('credential', 'openai', 'Work', '{"type":"external","methodID":"browser"}', 1, 1, 1)
+        `)
+        yield* db.run(sql`
+          INSERT INTO session_v2 (id, project_id, slug, directory, version, time_created, time_updated)
+          VALUES ('session', 'project', 'session', '/project', 'test', 1, 1)
+        `)
+        yield* db.run(sql`
+          INSERT INTO session_inbox (id, session_id, type, payload, delivery, enqueued_seq, time_created)
+          VALUES ('queued', 'session', 'user', '{"text":"queued"}', 'queue', 1, 1),
+                 ('steered', 'session', 'user', '{"text":"steered"}', 'steer', 2, 2)
+        `)
+        expect(
+          (yield* Effect.exit(db.run(sql`
+            INSERT INTO session_inbox (id, session_id, type, payload, delivery, enqueued_seq, time_created)
+            VALUES ('duplicate', 'session', 'user', '{}', 'queue', 1, 3)
+          `)))._tag,
+        ).toBe("Failure")
+        yield* DatabaseMigration.apply(db)
+
+        expect(yield* db.get(sql`SELECT worktree FROM project WHERE id = 'project'`)).toEqual({ worktree: "/project" })
+        expect(yield* db.get(sql`SELECT directory, strategy FROM worktree WHERE project_id = 'project'`)).toEqual({
+          directory: "/project/branch",
+          strategy: "git",
+        })
+        expect(yield* db.get(sql`SELECT value, active FROM credential WHERE id = 'credential'`)).toEqual({
+          value: '{"type":"external","methodID":"browser"}',
+          active: 1,
+        })
+        expect(yield* db.all(sql`SELECT id, payload, delivery FROM session_inbox ORDER BY enqueued_seq`)).toEqual([
+          { id: "queued", payload: '{"text":"queued"}', delivery: "queue" },
+          { id: "steered", payload: '{"text":"steered"}', delivery: "steer" },
+        ])
+        yield* db.run(sql`DELETE FROM session_v2 WHERE id = 'session'`)
+        expect(yield* db.all(sql`SELECT id FROM session_inbox`)).toEqual([])
+        yield* db.run(sql`DELETE FROM project WHERE id = 'project'`)
+        expect(yield* db.all(sql`SELECT directory FROM worktree`)).toEqual([])
+        expect(yield* db.get(sql`SELECT active FROM credential WHERE id = 'credential'`)).toEqual({ active: 1 })
         expect(yield* db.all(sql`PRAGMA foreign_key_check`)).toEqual([])
       }),
     )

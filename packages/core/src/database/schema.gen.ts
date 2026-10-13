@@ -10,8 +10,6 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
           \`integration_id\` text,
           \`label\` text NOT NULL,
           \`value\` text NOT NULL,
-          \`connector_id\` text,
-          \`method_id\` text,
           \`active\` integer,
           \`time_created\` integer NOT NULL,
           \`time_updated\` integer NOT NULL
@@ -52,17 +50,6 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
           \`time_created\` integer NOT NULL,
           \`time_updated\` integer NOT NULL,
           CONSTRAINT \`fk_permission_project_id_project_id_fk\` FOREIGN KEY (\`project_id\`) REFERENCES \`project\`(\`id\`) ON DELETE CASCADE
-        );
-      `)
-      yield* tx.run(`
-        CREATE TABLE \`project_directory\` (
-          \`project_id\` text NOT NULL,
-          \`directory\` text NOT NULL,
-          \`type\` text,
-          \`strategy\` text,
-          \`time_created\` integer NOT NULL,
-          CONSTRAINT \`project_directory_pk\` PRIMARY KEY(\`project_id\`, \`directory\`),
-          CONSTRAINT \`fk_project_directory_project_id_project_id_fk\` FOREIGN KEY (\`project_id\`) REFERENCES \`project\`(\`id\`) ON DELETE CASCADE
         );
       `)
       yield* tx.run(`
@@ -131,18 +118,6 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
           \`time_updated\` integer NOT NULL,
           \`data\` text NOT NULL,
           CONSTRAINT \`fk_session_message_session_id_session_v2_id_fk\` FOREIGN KEY (\`session_id\`) REFERENCES \`session_v2\`(\`id\`) ON DELETE CASCADE
-        );
-      `)
-      yield* tx.run(`
-        CREATE TABLE \`session_pending\` (
-          \`id\` text PRIMARY KEY,
-          \`session_id\` text NOT NULL,
-          \`type\` text NOT NULL,
-          \`data\` text NOT NULL,
-          \`delivery\` text,
-          \`admitted_seq\` integer NOT NULL,
-          \`time_created\` integer NOT NULL,
-          CONSTRAINT \`fk_session_pending_session_id_session_v2_id_fk\` FOREIGN KEY (\`session_id\`) REFERENCES \`session_v2\`(\`id\`) ON DELETE CASCADE
         );
       `)
       yield* tx.run(`
@@ -226,15 +201,6 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
         `CREATE INDEX \`session_message_session_time_created_id_idx\` ON \`session_message\` (\`session_id\`,\`time_created\`,\`id\`);`,
       )
       yield* tx.run(`CREATE INDEX \`session_message_time_created_idx\` ON \`session_message\` (\`time_created\`);`)
-      yield* tx.run(
-        `CREATE INDEX \`session_pending_session_delivery_seq_idx\` ON \`session_pending\` (\`session_id\`,\`delivery\`,\`admitted_seq\`);`,
-      )
-      yield* tx.run(
-        `CREATE UNIQUE INDEX \`session_pending_session_compaction_idx\` ON \`session_pending\` (\`session_id\`) WHERE "session_pending"."type" = 'compaction';`,
-      )
-      yield* tx.run(
-        `CREATE UNIQUE INDEX \`session_pending_session_admitted_seq_idx\` ON \`session_pending\` (\`session_id\`,\`admitted_seq\`);`,
-      )
       yield* tx.run(`CREATE INDEX \`session_v2_project_idx\` ON \`session_v2\` (\`project_id\`);`)
       yield* tx.run(`CREATE INDEX \`session_v2_workspace_idx\` ON \`session_v2\` (\`workspace_id\`);`)
       yield* tx.run(`CREATE INDEX \`session_v2_parent_idx\` ON \`session_v2\` (\`parent_id\`);`)

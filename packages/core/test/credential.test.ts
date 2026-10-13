@@ -24,12 +24,19 @@ describe("Credential", () => {
       const created = yield* credentials.create({
         integrationID,
         label: "Work",
-        value: Credential.Key.make({ type: "key", key: "secret" }),
+        value: Credential.OAuth.make({
+          type: "oauth",
+          methodID: Integration.MethodID.make("browser"),
+          access: "access",
+          refresh: "refresh",
+          expires: 1,
+        }),
       })
 
       expect(yield* credentials.list(integrationID)).toEqual([created])
       yield* credentials.update(created.id, { label: "Personal" })
       expect((yield* credentials.list(integrationID))[0]?.label).toBe("Personal")
+      expect((yield* credentials.get(created.id))?.value).toEqual(created.value)
 
       const additional = yield* credentials.create({
         integrationID,

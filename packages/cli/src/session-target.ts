@@ -42,7 +42,14 @@ export async function resolveSessionTarget(input: {
   signal?: AbortSignal
 }): Promise<SessionTarget> {
   const selection = await selectSession(input)
-  const selected = selection.session
+  const selected =
+    selection.session && input.fork
+      ? await input.client.session
+          .fork({ sessionID: selection.session.id }, ...requestOptions(input.signal))
+          .catch((error) => {
+            throw new SessionTargetMutationError(error)
+          })
+      : selection.session
   const location =
     selection.location ??
     (await resolveLocation(
@@ -107,28 +114,13 @@ async function selectSession(input: {
     if (input.fork) throw new Error("Session not found")
     return { session: undefined }
   }
-  if (explicit)
-    return {
-      session: input.fork
-        ? await input.client.session
-            .fork({ sessionID: explicit.id }, ...requestOptions(input.signal))
-            .catch((error) => {
-              throw new SessionTargetMutationError(error)
-            })
-        : explicit,
-    }
+  if (explicit) return { session: explicit }
   if (!input.continue) return { session: undefined }
 
   const location = await resolveLocation(input.client, input.location, input.signal)
   const selected = await latestSession(input.client, location, undefined, input.signal)
   if (!selected) return { session: undefined, location }
-  return {
-    session: input.fork
-      ? await input.client.session.fork({ sessionID: selected.id }, ...requestOptions(input.signal)).catch((error) => {
-          throw new SessionTargetMutationError(error)
-        })
-      : selected,
-  }
+  return { session: selected }
 }
 
 export function findSession(client: OpenCodeClient, sessionID: string, signal?: AbortSignal) {

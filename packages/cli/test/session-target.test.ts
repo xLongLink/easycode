@@ -47,21 +47,99 @@ describe("session target resolver", () => {
     spyOn(client.session, "get").mockRejectedValue({ _tag: "SessionNotFoundError" })
     spyOn(client.location, "get").mockResolvedValue(location("/project"))
     const create = spyOn(client.session, "create").mockResolvedValue(session("ses_chosen", "/project"))
+    const list = spyOn(client.session, "list")
 
-    const target = await resolveSessionTarget({ client, session: "ses_chosen", prepare })
+    const target = await resolveSessionTarget({ client, session: "ses_chosen", continue: true, prepare })
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ id: "ses_chosen" }))
     expect(target).toMatchObject({ session: { id: "ses_chosen" }, resume: false })
+    expect(list).not.toHaveBeenCalled()
   })
 
   test("does not create a missing explicit Session to fork", async () => {
     const client = OpenCode.make({ baseUrl: "https://opencode.test" })
     spyOn(client.session, "get").mockRejectedValue({ _tag: "SessionNotFoundError" })
     const create = spyOn(client.session, "create")
+    const list = spyOn(client.session, "list")
 
-    await expect(resolveSessionTarget({ client, session: "ses_chosen", fork: true, prepare })).rejects.toThrow(
-      "Session not found",
-    )
+    await expect(
+      resolveSessionTarget({ client, session: "ses_chosen", continue: true, fork: true, prepare }),
+    ).rejects.toThrow("Session not found")
     expect(create).not.toHaveBeenCalled()
+    expect(list).not.toHaveBeenCalled()
+  })
+
+  test.each(
+    ["explicit", "continue"].flatMap((selection) =>
+      ["success", "failure", "cancelled"].map((outcome) => ({ selection, outcome })),
+    ),
+  )("forks a $selection Session ($outcome)", async ({ selection, outcome }) => {
+    const selected = session("ses_source", "/project", { providerID: "openai", id: "gpt-5" })
+    const forked = { ...selected, id: "ses_forked", agent: "review" }
+    const requests: string[] = []
+    const started = Promise.withResolvers<void>()
+    const response = Promise.withResolvers<Response>()
+    using server = Bun.serve({
+      port: 0,
+      fetch(request) {
+        const path = new URL(request.url).pathname
+        requests.push(`${request.method} ${path}`)
+        if (path === "/api/location") return Response.json(location("/project"))
+        if (path === `/api/session/${selected.id}`) return Response.json({ data: selected })
+        if (path === "/api/session") return Response.json({ data: [selected], cursor: {} })
+        if (path === `/api/session/${selected.id}/fork`) {
+          started.resolve()
+          return response.promise
+        }
+        return new Response("Not found", { status: 404 })
+      },
+    })
+    const controller = new AbortController()
+    const task = resolveSessionTarget({
+      client: OpenCode.make({ baseUrl: server.url.toString() }),
+      session: selection === "explicit" ? selected.id : undefined,
+      continue: selection === "continue",
+      location: { directory: "/project" },
+      fork: true,
+      signal: controller.signal,
+      prepare,
+    })
+    try {
+      await started.promise
+      if (outcome === "cancelled") controller.abort()
+      if (outcome !== "cancelled")
+        response.resolve(
+          outcome === "failure"
+            ? Response.json(
+                { _tag: "SessionNotFoundError", sessionID: selected.id, message: "Session not found" },
+                { status: 404 },
+              )
+            : Response.json({ data: forked }),
+        )
+
+      if (outcome === "success") {
+        expect(await task).toMatchObject({
+          session: forked,
+          location: { directory: "/project" },
+          model: selected.model,
+          agent: "review",
+          resume: true,
+        })
+      }
+      if (outcome !== "success")
+        expect(await task.catch((error: unknown) => error)).toMatchObject({
+          name: "SessionTargetMutationError",
+          cause: outcome === "failure" ? { name: "SessionNotFoundError" } : { reason: "Transport" },
+        })
+
+      expect(requests).toEqual([
+        ...(selection === "explicit" ? [`GET /api/session/${selected.id}`] : ["GET /api/location", "GET /api/session"]),
+        `POST /api/session/${selected.id}/fork`,
+        ...(outcome === "success" ? ["GET /api/location"] : []),
+      ])
+    } finally {
+      controller.abort()
+      response.resolve(Response.json({ data: forked }))
+    }
   })
 
   test("paginates to continue the exact directory", async () => {

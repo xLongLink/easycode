@@ -1,8 +1,8 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "800a111c-e101-44ec-9a83-0b915be284ae",
-  "prevIds": ["ead3a3c0-4c87-49e8-bc30-45fd7684b4fd"],
+  "id": "1919ffbf-a573-479e-bbb1-04da606b6538",
+  "prevIds": ["800a111c-e101-44ec-9a83-0b915be284ae"],
   "ddl": [
     {
       "name": "credential",
@@ -22,10 +22,6 @@
     },
     {
       "name": "permission",
-      "entityType": "tables"
-    },
-    {
-      "name": "project_directory",
       "entityType": "tables"
     },
     {
@@ -50,10 +46,6 @@
     },
     {
       "name": "session_message",
-      "entityType": "tables"
-    },
-    {
-      "name": "session_pending",
       "entityType": "tables"
     },
     {
@@ -105,26 +97,6 @@
       "default": null,
       "generated": null,
       "name": "value",
-      "entityType": "columns",
-      "table": "credential"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "connector_id",
-      "entityType": "columns",
-      "table": "credential"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "method_id",
       "entityType": "columns",
       "table": "credential"
     },
@@ -347,56 +319,6 @@
       "name": "time_updated",
       "entityType": "columns",
       "table": "permission"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "project_id",
-      "entityType": "columns",
-      "table": "project_directory"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "directory",
-      "entityType": "columns",
-      "table": "project_directory"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "type",
-      "entityType": "columns",
-      "table": "project_directory"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "strategy",
-      "entityType": "columns",
-      "table": "project_directory"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "time_created",
-      "entityType": "columns",
-      "table": "project_directory"
     },
     {
       "type": "text",
@@ -787,76 +709,6 @@
       "name": "data",
       "entityType": "columns",
       "table": "session_message"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "id",
-      "entityType": "columns",
-      "table": "session_pending"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "session_id",
-      "entityType": "columns",
-      "table": "session_pending"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "type",
-      "entityType": "columns",
-      "table": "session_pending"
-    },
-    {
-      "type": "text",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "data",
-      "entityType": "columns",
-      "table": "session_pending"
-    },
-    {
-      "type": "text",
-      "notNull": false,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "delivery",
-      "entityType": "columns",
-      "table": "session_pending"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "admitted_seq",
-      "entityType": "columns",
-      "table": "session_pending"
-    },
-    {
-      "type": "integer",
-      "notNull": true,
-      "autoincrement": false,
-      "default": null,
-      "generated": null,
-      "name": "time_created",
-      "entityType": "columns",
-      "table": "session_pending"
     },
     {
       "type": "text",
@@ -1331,17 +1183,6 @@
       "table": "permission"
     },
     {
-      "columns": ["project_id"],
-      "tableTo": "project",
-      "columnsTo": ["id"],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "nameExplicit": false,
-      "name": "fk_project_directory_project_id_project_id_fk",
-      "entityType": "fks",
-      "table": "project_directory"
-    },
-    {
       "columns": ["session_id"],
       "tableTo": "session_v2",
       "columnsTo": ["id"],
@@ -1386,17 +1227,6 @@
       "table": "session_message"
     },
     {
-      "columns": ["session_id"],
-      "tableTo": "session_v2",
-      "columnsTo": ["id"],
-      "onUpdate": "NO ACTION",
-      "onDelete": "CASCADE",
-      "nameExplicit": false,
-      "name": "fk_session_pending_session_id_session_v2_id_fk",
-      "entityType": "fks",
-      "table": "session_pending"
-    },
-    {
       "columns": ["project_id"],
       "tableTo": "project",
       "columnsTo": ["id"],
@@ -1417,13 +1247,6 @@
       "name": "fk_worktree_project_id_project_id_fk",
       "entityType": "fks",
       "table": "worktree"
-    },
-    {
-      "columns": ["project_id", "directory"],
-      "nameExplicit": false,
-      "name": "project_directory_pk",
-      "entityType": "pks",
-      "table": "project_directory"
     },
     {
       "columns": ["session_id", "key"],
@@ -1507,13 +1330,6 @@
       "nameExplicit": false,
       "name": "session_message_pk",
       "table": "session_message",
-      "entityType": "pks"
-    },
-    {
-      "columns": ["id"],
-      "nameExplicit": false,
-      "name": "session_pending_pk",
-      "table": "session_pending",
       "entityType": "pks"
     },
     {
@@ -1707,60 +1523,6 @@
       "name": "session_message_time_created_idx",
       "entityType": "indexes",
       "table": "session_message"
-    },
-    {
-      "columns": [
-        {
-          "value": "session_id",
-          "isExpression": false
-        },
-        {
-          "value": "delivery",
-          "isExpression": false
-        },
-        {
-          "value": "admitted_seq",
-          "isExpression": false
-        }
-      ],
-      "isUnique": false,
-      "where": null,
-      "origin": "manual",
-      "name": "session_pending_session_delivery_seq_idx",
-      "entityType": "indexes",
-      "table": "session_pending"
-    },
-    {
-      "columns": [
-        {
-          "value": "session_id",
-          "isExpression": false
-        }
-      ],
-      "isUnique": true,
-      "where": "\"session_pending\".\"type\" = 'compaction'",
-      "origin": "manual",
-      "name": "session_pending_session_compaction_idx",
-      "entityType": "indexes",
-      "table": "session_pending"
-    },
-    {
-      "columns": [
-        {
-          "value": "session_id",
-          "isExpression": false
-        },
-        {
-          "value": "admitted_seq",
-          "isExpression": false
-        }
-      ],
-      "isUnique": true,
-      "where": null,
-      "origin": "manual",
-      "name": "session_pending_session_admitted_seq_idx",
-      "entityType": "indexes",
-      "table": "session_pending"
     },
     {
       "columns": [

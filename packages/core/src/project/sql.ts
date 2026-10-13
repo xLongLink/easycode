@@ -1,6 +1,6 @@
 import type { EffectDrizzleSqlite } from "../database/drizzle.js"
 import { isNotNull, isNull, ne, or } from "drizzle-orm"
-import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core"
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core"
 import { absoluteArrayColumn, absoluteColumn } from "../database/path.js"
 import { Timestamps } from "../database/schema.sql.js"
 import type { AbsolutePath } from "../schema.js"
@@ -27,24 +27,6 @@ export const ProjectTable = sqliteTable("project", {
   sandboxes: absoluteArrayColumn().notNull(),
   commands: text({ mode: "json" }).$type<{ start?: string }>(),
 })
-
-/** @deprecated Use WorktreeTable from worktree/sql instead. */
-export const ProjectDirectoryTable = sqliteTable(
-  "project_directory",
-  {
-    project_id: text()
-      .$type<ProjectSchema.ID>()
-      .notNull()
-      .references(() => ProjectTable.id, { onDelete: "cascade" }),
-    directory: absoluteColumn().notNull(),
-    type: text().$type<"main" | "root" | "git_worktree">(),
-    strategy: text(),
-    time_created: integer()
-      .notNull()
-      .$default(() => Date.now()),
-  },
-  (table) => [primaryKey({ columns: [table.project_id, table.directory] })],
-)
 
 export function upsertProject(
   db: DatabaseClient | Transaction,
