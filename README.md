@@ -65,7 +65,6 @@ Changes from OpenCode, focused on keeping the core runtime and terminal UI.
 **Added**:
 
 - 🔁 Built-in **Loop** agent for iterative repository review and improvements.
-- 🎙️ Built-in **GPT-Live** voice support with a Node audio helper.
 - 🛠️ Simplified GitHub release installation and a `make uncode` local build/install command.
 
 <br />

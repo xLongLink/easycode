@@ -1,5 +1,4 @@
 import HomeFooter from "../feature-plugins/home/footer"
-import Live from "@opencode/live/tui"
 import PromptBtw from "../feature-plugins/prompt/btw"
 import PromptFooter from "../feature-plugins/prompt/footer"
 import SidebarContext from "../feature-plugins/sidebar/context"
@@ -21,5 +20,4 @@ export const builtins = [
   Plugins,
   Stats,
   DiffViewer,
-  Live,
 ]
