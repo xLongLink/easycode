@@ -12,7 +12,6 @@ import { SessionContext } from "../context.js"
 import { SessionEvent } from "../event.js"
 import { SessionInbox } from "../inbox.js"
 import { SessionHistory } from "../history.js"
-import { SessionProviderContext } from "../provider-context.js"
 import { SessionModelRequest } from "../model-request.js"
 import { SessionModelTransport } from "../model-transport.js"
 import { SessionMessage } from "../message.js"
@@ -42,6 +41,7 @@ const layer = Layer.effect(
     const lifecycle = yield* LocationLifecycle.Service
     const store = yield* SessionStore.Service
     const context = yield* SessionContext.Service
+    const request = yield* SessionModelRequest.Service
     const modelTransport = yield* SessionModelTransport.Service
     const db = (yield* Database.Service).db
     const compaction = yield* SessionCompaction.Service
@@ -112,26 +112,11 @@ const layer = Layer.effect(
               if (pending?.type === "compaction") {
                 const compacted = yield* restore(
                   Effect.gen(function* () {
-                    const selected = yield* context.select(sessionID)
-                    const model = yield* context.resolveModel(selected.session)
                     // Preview updates without admitting them after the already-delivered compaction marker.
-                    const history = yield* SessionHistory.preview(
-                      db,
-                      sessionID,
-                      selected.instructions,
-                      SessionProviderContext.provenance(model) ?? "local",
-                    )
                     return yield* compaction.compact({
                       reason: "manual",
                       inputID: pending.id,
-                      context: {
-                        session: selected.session,
-                        agent: selected.agent,
-                        tools: selected.tools,
-                        model,
-                        initial: history.initial,
-                        messages: history.messages,
-                      },
+                      context: yield* context.preview(sessionID),
                     })
                   }).pipe(
                     Effect.catch((error) =>
@@ -228,7 +213,7 @@ const layer = Layer.effect(
           initial: loaded.initial,
           messages: loaded.messages,
         })
-        const prepared = yield* context.request.primary({
+        const prepared = yield* request.primary({
           session: loaded.session,
           agent: loaded.agent.id,
           model: loaded.model,
@@ -363,6 +348,7 @@ export const node = makeLocationNode({
     LocationLifecycle.node,
     llmClient,
     SessionContext.node,
+    SessionModelRequest.node,
     SessionModelTransport.node,
     SessionStore.node,
     SessionCompaction.node,

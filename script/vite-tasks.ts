@@ -6,14 +6,7 @@ export function workspaceTasks(pkg: { name: string; scripts: Record<string, stri
     run: {
       tasks: Object.fromEntries(
         Object.entries(pkg.scripts)
-          .filter(
-            ([name]) =>
-              ["typecheck", "build"].includes(name) ||
-              (name === "test" &&
-                ["ai", "codemode", "core", "httpapi-codegen", "server", "cli", "tui"].some(
-                  (name) => pkg.name === `@opencode/${name}`,
-                )),
-          )
+          .filter(([name]) => ["typecheck", "build", "test"].includes(name))
           .map(([name]) => [
             name === "typecheck" ? "check:types" : `workspace:${name}`,
             {

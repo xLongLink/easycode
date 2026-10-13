@@ -12,6 +12,7 @@ import { llmClient } from "../effect/app-node-platform.js"
 import { SessionContext } from "./context.js"
 import { SessionEvent } from "./event.js"
 import { SessionHistory } from "./history.js"
+import { SessionModelRequest } from "./model-request.js"
 import type { SessionRunnerModel } from "./runner/model.js"
 import { SessionSchema } from "./schema.js"
 import { SessionUsage } from "./usage.js"
@@ -42,6 +43,7 @@ export const layer = Layer.effect(
     const bus = yield* Bus.Service
     const llm = yield* LLMClient.Service
     const context = yield* SessionContext.Service
+    const request = yield* SessionModelRequest.Service
     const store = yield* SessionStore.Service
     const db = (yield* Database.Service).db
 
@@ -63,7 +65,7 @@ export const layer = Layer.effect(
             })
           : Effect.void,
       )
-      const prepared = yield* context.request.title({
+      const prepared = yield* request.title({
         session: input.session,
         agent: input.agent.id,
         model: input.model,
@@ -153,5 +155,5 @@ export const layer = Layer.effect(
 export const node = makeLocationNode({
   service: Service,
   layer,
-  deps: [Bus.node, llmClient, SessionContext.node, SessionStore.node, Database.node],
+  deps: [Bus.node, llmClient, SessionContext.node, SessionModelRequest.node, SessionStore.node, Database.node],
 })

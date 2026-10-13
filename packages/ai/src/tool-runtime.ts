@@ -26,17 +26,19 @@ export const dispatch = (tools: Tools, call: ToolCallPart): Effect.Effect<Dispat
   if (!tool)
     return Effect.succeed(
       result(call, {
-        type: "error",
-        value: `No tool named "${name}" is currently available. Please use a tool from the available tool list.`,
+        result: {
+          type: "error",
+          value: `No tool named "${name}" is currently available. Please use a tool from the available tool list.`,
+        },
       }),
     )
   if (!tool.execute)
-    return Effect.succeed(result(call, { type: "error", value: `Tool has no execute handler: ${name}` }))
+    return Effect.succeed(result(call, { result: { type: "error", value: `Tool has no execute handler: ${name}` } }))
 
   return decodeAndExecute(tool, call).pipe(
     Effect.map((value) => result(call, value)),
     Effect.catchTag("Tool.Error", (failure) =>
-      Effect.succeed(result(call, { type: "error", value: failure.message }, failure.error)),
+      Effect.succeed(result(call, { result: { type: "error", value: failure.message } }, failure.error)),
     ),
   )
 }
@@ -71,8 +73,7 @@ const decodeAndExecute = (tool: AnyTool, call: ToolCallPart): Effect.Effect<Tool
     ),
   )
 
-const result = (call: ToolCallPart, value: ToolResultValueType | ToolSettlement, error?: unknown): DispatchResult => {
-  const settlement = ToolResultValue.is(value) ? { result: value } : value
+const result = (call: ToolCallPart, settlement: ToolSettlement, error?: unknown): DispatchResult => {
   return {
     result: settlement.result,
     output: settlement.output,

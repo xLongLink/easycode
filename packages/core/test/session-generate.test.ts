@@ -34,6 +34,7 @@ import { SessionContext } from "@opencode/core/session/context"
 import { SessionGenerate } from "@opencode/core/session/generate"
 import { InstructionState } from "@opencode/core/session/instruction-state"
 import { SessionMessage } from "@opencode/core/session/message"
+import { SessionModelRequest } from "@opencode/core/session/model-request"
 import { SessionProjector } from "@opencode/core/session/projector"
 import { SessionRunnerModel } from "@opencode/core/session/runner/model"
 import { SessionSchema } from "@opencode/core/session/schema"
@@ -144,6 +145,7 @@ const it = testEffect(
       Agent.node,
       InstructionBuiltIns.node,
       SessionContext.node,
+      SessionModelRequest.node,
       PluginHooks.node,
       llmClient,
     ]),
@@ -211,6 +213,7 @@ const setup = Effect.gen(function* () {
   const projects = yield* Project.Service
   const instructionBuiltIns = yield* InstructionBuiltIns.Service
   const context = yield* SessionContext.Service
+  const request = yield* SessionModelRequest.Service
   const store = yield* SessionStore.Service
   yield* agents.transform((editor) =>
     editor.update(Agent.ID.make("build"), (agent) => {
@@ -243,6 +246,7 @@ const setup = Effect.gen(function* () {
         Effect.provide(
           Layer.mergeAll(
             Layer.succeed(SessionContext.Service, context),
+            Layer.succeed(SessionModelRequest.Service, request),
             Layer.mock(Plugin.Service, { awaitActivation: Effect.void }),
           ) as Layer.Layer<Instance.Services>,
         ),

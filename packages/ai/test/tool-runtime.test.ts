@@ -76,6 +76,36 @@ const schema_only_weather = Tool.make({
   success: Schema.Struct({ temperature: Schema.Number, condition: Schema.String }),
 })
 
+it.effect("settles schema-only calls as errors without attempting input decoding", () =>
+  Effect.gen(function* () {
+    const call = ToolCallPart.make({
+      id: "call_schema_only",
+      name: "get_weather",
+      input: { city: 42 },
+      providerMetadata: { google: { thoughtSignature: "provider_sig" } },
+    })
+    const dispatched = yield* ToolRuntime.dispatch({ get_weather: schema_only_weather }, call)
+    const result = { type: "error" as const, value: "Tool has no execute handler: get_weather" }
+
+    expect(dispatched.result).toEqual(result)
+    expect(dispatched.output).toBeUndefined()
+    expect(dispatched.events).toEqual([
+      LLMEvent.toolError({
+        id: call.id,
+        name: call.name,
+        message: result.value,
+        providerMetadata: call.providerMetadata,
+      }),
+      LLMEvent.toolResult({
+        id: call.id,
+        name: call.name,
+        result,
+        providerMetadata: call.providerMetadata,
+      }),
+    ])
+  }),
+)
+
 describe("LLMClient tools", () => {
   it.effect("uses the selected model route when adding runtime tools", () =>
     Effect.gen(function* () {

@@ -56,8 +56,7 @@ describe("workspace tasks", () => {
     })
   })
 
-  test("preserves the CI test selection", () => {
-    expect(workspaceTasks({ name: "@opencode/client", scripts: { test: "bun test" } }).run?.tasks).toEqual({})
+  test("codegen tests do not build dependencies", () => {
     expect(
       workspaceTasks({ name: "@opencode/httpapi-codegen", scripts: { test: "bun test" } }).run?.tasks,
     ).toMatchObject({
@@ -65,15 +64,36 @@ describe("workspace tasks", () => {
     })
   })
 
-  test.each(["ai", "codemode", "core", "server", "cli", "tui"])("%s tests build dependencies", (name) => {
+  test.each([
+    "ai",
+    "codemode",
+    "core",
+    "server",
+    "cli",
+    "tui",
+    "latex",
+    "simulation",
+    "client",
+    "util",
+    "protocol",
+    "new-package",
+  ])("selects %s tests when the script is declared and builds dependencies", (name) => {
     expect(workspaceTasks({ name: `@opencode/${name}`, scripts: { test: "bun test" } }).run?.tasks).toMatchObject({
-      "workspace:test": { dependsOn: [{ task: "workspace:build", from: ["dependencies", "devDependencies"] }] },
+      "workspace:test": {
+        command: "bun run test",
+        dependsOn: [{ task: "workspace:build", from: ["dependencies", "devDependencies"] }],
+      },
     })
   })
 
-  test.each(["latex", "simulation", "client"])("does not select %s tests", (name) => {
-    expect(workspaceTasks({ name: `@opencode/${name}`, scripts: { test: "bun test" } }).run?.tasks).toEqual({})
-  })
+  test.each(["ai", "httpapi-codegen", "client", "util", "protocol", "new-package"])(
+    "does not select %s tests when no test script is declared",
+    (name) => {
+      expect(
+        workspaceTasks({ name: `@opencode/${name}`, scripts: { dev: "bun run src/index.ts" } }).run?.tasks,
+      ).toEqual({})
+    },
+  )
 })
 
 test("keeps custom lint plugins and formatting outside the canonical check", () => {

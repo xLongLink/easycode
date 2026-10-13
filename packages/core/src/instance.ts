@@ -40,6 +40,7 @@ import { SessionRunnerModel } from "./session/runner/model.js"
 import { SessionCompaction } from "./session/compaction.js"
 import { SessionTitle } from "./session/title.js"
 import { SessionContext } from "./session/context.js"
+import { SessionModelRequest } from "./session/model-request.js"
 import { Skill } from "./skill.js"
 import { SkillInstructions } from "./skill/instructions.js"
 import { Snapshot } from "./snapshot.js"
@@ -104,6 +105,7 @@ const nodes = [
   SessionCompaction.node,
   SessionTitle.node,
   SessionContext.node,
+  SessionModelRequest.node,
   Snapshot.node,
   SessionRunnerLLM.node,
   Vcs.node,

@@ -21,7 +21,6 @@ import { SessionHistory } from "./history.js"
 import { SessionProviderContext } from "./provider-context.js"
 import { InstructionEntry } from "./instruction-entry.js"
 import { SessionMessage } from "./message.js"
-import { SessionModelRequest } from "./model-request.js"
 import { SessionRunnerModel } from "./runner/model.js"
 import { SessionSchema } from "./schema.js"
 import { SessionStore } from "./store.js"
@@ -53,6 +52,13 @@ export interface Interface {
   readonly select: (sessionID: SessionSchema.ID) => Effect.Effect<Selection, AgentNotFoundError>
   /** Resolves the model and active history for that selection. */
   readonly load: (selection: Selection) => Effect.Effect<Loaded, SessionRunnerModel.Error>
+  /** Previews settled history and instruction updates without durable mutation. */
+  readonly preview: (
+    sessionID: SessionSchema.ID,
+  ) => Effect.Effect<
+    Loaded & { readonly instructionUpdate: string | undefined },
+    AgentNotFoundError | SessionRunnerModel.Error | Instructions.InitializationBlocked
+  >
   readonly resolveModel: (
     session: SessionSchema.Info,
   ) => Effect.Effect<SessionRunnerModel.Resolved, SessionRunnerModel.Error>
@@ -65,7 +71,6 @@ export interface Interface {
       }
     | undefined
   >
-  readonly request: SessionModelRequest.Interface
 }
 
 /** Location-scoped model-context loader for durable Session Steps. */
@@ -84,7 +89,6 @@ const layer = Layer.effect(
     const mcpInstructions = yield* McpInstructions.Service
     const mcpTools = yield* McpTool.Service
     const models = yield* SessionRunnerModel.Service
-    const request = yield* SessionModelRequest.Service
     const referenceInstructions = yield* ReferenceInstructions.Service
     const skillInstructions = yield* SkillInstructions.Service
     const store = yield* SessionStore.Service
@@ -178,7 +182,25 @@ const layer = Layer.effect(
       }
     })
 
-    return Service.of({ select, load, resolveModel, selectTitle, request })
+    const preview = Effect.fn("SessionContext.preview")(function* (sessionID: SessionSchema.ID) {
+      const selection = yield* select(sessionID)
+      const model = yield* resolveModel(selection.session)
+      const history = yield* SessionHistory.preview(
+        db,
+        selection.session.id,
+        selection.instructions,
+        SessionProviderContext.provenance(model) ?? "local",
+      )
+      return {
+        session: selection.session,
+        agent: selection.agent,
+        model,
+        tools: selection.tools,
+        ...history,
+      }
+    })
+
+    return Service.of({ select, load, preview, resolveModel, selectTitle })
   }),
 )
 
@@ -200,7 +222,6 @@ export const node = makeLocationNode({
     McpTool.node,
     ReferenceInstructions.node,
     SessionRunnerModel.node,
-    SessionModelRequest.node,
     SessionStore.node,
     SkillInstructions.node,
     Tool.node,
