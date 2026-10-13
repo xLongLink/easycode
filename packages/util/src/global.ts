@@ -3,7 +3,6 @@ import fs from "fs"
 import os from "os"
 import { Context, Effect, Layer } from "effect"
 import { roots } from "./global-roots.js"
-import { Flock } from "./flock.js"
 import { makeGlobalNode } from "./effect/app-node.js"
 
 const app = "uncode"
@@ -24,8 +23,6 @@ const paths = {
 }
 
 export const Path = paths
-
-Flock.setGlobal({ state })
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Global") {}
 

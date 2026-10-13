@@ -61,7 +61,14 @@ serviceTest(
   async () => {
     await using home = await serviceHome()
     const old = Bun.spawn(
-      [process.execPath, "--define", 'OPENCODE_VERSION:"2.0.0-old"', home.entry, "serve", "--service"],
+      [
+        process.execPath,
+        "--preload",
+        path.join(import.meta.dir, "fixture/old-version.ts"),
+        home.entry,
+        "serve",
+        "--service",
+      ],
       { env: home.env, stdout: "ignore", stderr: "ignore" },
     )
     const before = await settled(home, "2.0.0-old")

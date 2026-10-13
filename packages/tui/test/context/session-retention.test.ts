@@ -6,7 +6,7 @@ import { createRoot, createSignal } from "solid-js"
 import { createSessionRetention } from "../../src/context/session-retention"
 import { createApi, createFetch, directory, json } from "../fixture/tui-client"
 
-function setup(options: { keep?: string[]; current?: string; limit?: number } = {}) {
+function setup(options: { current?: string; limit?: number } = {}) {
   return createRoot((dispose) => {
     const events = createGlobalEmitter<{
       [Type in OpenCodeEvent["type"]]: Extract<OpenCodeEvent, { type: Type }>
@@ -24,7 +24,6 @@ function setup(options: { keep?: string[]; current?: string; limit?: number } = 
     )
     const data = createData({ api: () => api, event: events, directory })
     const [current, setCurrent] = createSignal(options.current)
-    const [keep, setKeep] = createSignal(options.keep ?? [])
     const evictions: string[] = []
     createSessionRetention({
       session: {
@@ -35,7 +34,6 @@ function setup(options: { keep?: string[]; current?: string; limit?: number } = 
         },
       },
       current,
-      keep,
       limit: options.limit ?? 3,
     })
     return {
@@ -44,7 +42,6 @@ function setup(options: { keep?: string[]; current?: string; limit?: number } = 
       events,
       evictions,
       setCurrent,
-      setKeep,
       remember(id: string, parentID?: string, updated = 0) {
         data.session.remember({
           id,
@@ -88,30 +85,6 @@ test("retains three recently viewed families and child views touch their root", 
     expect(["a", "child", "grandchild"].some(scope.cached)).toBe(false)
     expect(["c", "d", "e"].every(scope.cached)).toBe(true)
     expect(scope.data.session.family("a").toSorted()).toEqual(["a", "child", "grandchild"])
-  } finally {
-    scope.dispose()
-  }
-})
-
-test("explicitly kept families are exempt from the recent-family budget", async () => {
-  const scope = setup({ keep: ["a", "b", "c", "d"] })
-  try {
-    for (const id of ["a", "b", "c", "d", "e", "f", "g", "h"]) {
-      scope.remember(id)
-      await scope.view(id)
-    }
-    expect(["a", "b", "c", "d", "f", "g", "h"].every(scope.cached)).toBe(true)
-    expect(scope.cached("e")).toBe(false)
-
-    scope.setKeep(["b", "c", "d"])
-    expect(scope.cached("a")).toBe(false)
-    await scope.view("b")
-    scope.setKeep(["c", "d"])
-    expect(scope.cached("b")).toBe(true)
-    expect(scope.cached("f")).toBe(false)
-    scope.setKeep([])
-    expect(["c", "d"].some(scope.cached)).toBe(false)
-    expect(["b", "g", "h"].every(scope.cached)).toBe(true)
   } finally {
     scope.dispose()
   }
@@ -190,13 +163,13 @@ test("current child protects late-arriving ancestry and reopening restores an ev
 })
 
 test("uses the caller's recent-family limit", async () => {
-  const scope = setup({ keep: ["a"], limit: 1 })
+  const scope = setup({ limit: 1 })
   try {
     for (const id of ["a", "b", "c"]) {
       scope.remember(id)
       await scope.view(id)
     }
-    expect(scope.cached("a")).toBe(true)
+    expect(scope.cached("a")).toBe(false)
     expect(scope.cached("b")).toBe(false)
     expect(scope.cached("c")).toBe(true)
   } finally {

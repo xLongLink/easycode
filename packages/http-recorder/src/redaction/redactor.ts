@@ -64,50 +64,11 @@ export const redactHeaders = (
 
 const DEFAULT_REQUEST_HEADERS: ReadonlyArray<string> = ["content-type", "accept", "openai-beta"]
 const DEFAULT_RESPONSE_HEADERS: ReadonlyArray<string> = ["content-type"]
-const identity = <T>(value: T) => value
 
 export interface Redactor {
   readonly request: (snapshot: RequestSnapshot) => RequestSnapshot
   readonly response: (snapshot: ResponseSnapshot) => ResponseSnapshot
 }
-
-export const compose = (...redactors: ReadonlyArray<Partial<Redactor>>): Redactor => {
-  const requests = redactors
-    .map((redactor) => redactor.request)
-    .filter((fn): fn is Redactor["request"] => fn !== undefined)
-  const responses = redactors
-    .map((redactor) => redactor.response)
-    .filter((fn): fn is Redactor["response"] => fn !== undefined)
-  return {
-    request: requests.length === 0 ? identity : (snapshot) => requests.reduce((value, fn) => fn(value), snapshot),
-    response: responses.length === 0 ? identity : (snapshot) => responses.reduce((value, fn) => fn(value), snapshot),
-  }
-}
-
-interface HeaderOptions {
-  readonly allow?: ReadonlyArray<string>
-  readonly redact?: ReadonlyArray<string>
-}
-const requestHeaders = (options: HeaderOptions = {}): Partial<Redactor> => ({
-  request: (snapshot) => ({
-    ...snapshot,
-    headers: redactHeaders(snapshot.headers, options.allow ?? DEFAULT_REQUEST_HEADERS, options.redact),
-  }),
-})
-const responseHeaders = (options: HeaderOptions = {}): Partial<Redactor> => ({
-  response: (snapshot) => ({
-    ...snapshot,
-    headers: redactHeaders(snapshot.headers, options.allow ?? DEFAULT_RESPONSE_HEADERS, options.redact),
-  }),
-})
-
-interface UrlOptions {
-  readonly query?: ReadonlyArray<string>
-  readonly transform?: (url: string) => string
-}
-const url = (options: UrlOptions = {}): Partial<Redactor> => ({
-  request: (snapshot) => ({ ...snapshot, url: redactUrl(snapshot.url, options.query, options.transform) }),
-})
 
 const DEFAULT_REDACT_JSON_FIELDS = [
   "access_token",
@@ -155,19 +116,27 @@ const redactBody = (value: string, fields: ReadonlySet<string>, transform: ((bod
 
 export const make = (options: RedactOptions = {}): Redactor => {
   const fields = new Set([...DEFAULT_REDACT_JSON_FIELDS, ...(options.jsonFields ?? [])].map(normalizeField))
-  return compose(
-    requestHeaders({
-      allow: [...DEFAULT_REQUEST_HEADERS, ...(options.allowRequestHeaders ?? []), ...(options.headers ?? [])],
-      redact: options.headers,
+  const requestHeaders = [
+    ...DEFAULT_REQUEST_HEADERS,
+    ...(options.allowRequestHeaders ?? []),
+    ...(options.headers ?? []),
+  ]
+  const responseHeaders = [
+    ...DEFAULT_RESPONSE_HEADERS,
+    ...(options.allowResponseHeaders ?? []),
+    ...(options.headers ?? []),
+  ]
+  return {
+    request: (snapshot) => ({
+      ...snapshot,
+      headers: redactHeaders(snapshot.headers, requestHeaders, options.headers),
+      url: redactUrl(snapshot.url, options.queryParameters, options.url),
+      body: redactBody(snapshot.body, fields, options.body),
     }),
-    responseHeaders({
-      allow: [...DEFAULT_RESPONSE_HEADERS, ...(options.allowResponseHeaders ?? []), ...(options.headers ?? [])],
-      redact: options.headers,
+    response: (snapshot) => ({
+      ...snapshot,
+      headers: redactHeaders(snapshot.headers, responseHeaders, options.headers),
+      body: redactBody(snapshot.body, fields, options.body),
     }),
-    url({ query: options.queryParameters, transform: options.url }),
-    {
-      request: (snapshot) => ({ ...snapshot, body: redactBody(snapshot.body, fields, options.body) }),
-      response: (snapshot) => ({ ...snapshot, body: redactBody(snapshot.body, fields, options.body) }),
-    },
-  )
+  }
 }

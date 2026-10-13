@@ -22,6 +22,10 @@ const binary = path.join(directory, nodeBuild ? "opencode2-node" : "uncode")
 if (!(await Bun.file(binary).exists())) throw new Error(`Missing compiled CLI in ${directory}`)
 
 const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "opencode-service-smoke-")))
+// Both contenders must share a port without colliding with an installed service.
+const listener = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response(null) })
+const port = listener.port
+await listener.stop(true)
 const env = {
   ...process.env,
   HOME: root,
@@ -108,7 +112,11 @@ if (failure)
   })
 
 function spawnService() {
-  const process = Bun.spawn([binary, "serve", "--service"], { env, stdout: "ignore", stderr: "pipe" })
+  const process = Bun.spawn([binary, "serve", "--service", "--port", String(port)], {
+    env,
+    stdout: "ignore",
+    stderr: "pipe",
+  })
   processes.push(process)
   errors.push(new Response(process.stderr).text())
   return process

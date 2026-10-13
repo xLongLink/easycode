@@ -4,22 +4,7 @@ import { randomBytes, randomUUID } from "crypto"
 import { mkdir, readFile, rm, stat, utimes, writeFile } from "fs/promises"
 import { Hash } from "./hash.js"
 
-export type FlockGlobal = {
-  state: string
-}
-
 export namespace Flock {
-  let global: FlockGlobal | undefined
-
-  export function setGlobal(g: FlockGlobal) {
-    global = g
-  }
-
-  const root = () => {
-    if (!global) throw new Error("Flock global not set")
-    return path.join(global.state, "locks")
-  }
-
   // Defaults for callers that do not provide timing options.
   const defaultOpts = {
     staleMs: 60_000,
@@ -38,7 +23,7 @@ export namespace Flock {
   export type Wait = (input: WaitEvent) => void | Promise<void>
 
   export interface Options {
-    dir?: string
+    dir: string
     signal?: AbortSignal
     staleMs?: number
     timeoutMs?: number
@@ -306,7 +291,7 @@ export namespace Flock {
     }
   }
 
-  export async function acquire(key: string, input: Options = {}): Promise<Lease> {
+  export async function acquire(key: string, input: Options): Promise<Lease> {
     input.signal?.throwIfAborted()
     const cfg: Opts = {
       staleMs: input.staleMs ?? defaultOpts.staleMs,
@@ -314,10 +299,8 @@ export namespace Flock {
       baseDelayMs: input.baseDelayMs ?? defaultOpts.baseDelayMs,
       maxDelayMs: input.maxDelayMs ?? defaultOpts.maxDelayMs,
     }
-    const dir = input.dir ?? root()
-
-    await mkdir(dir, { recursive: true })
-    const lockfile = path.join(dir, Hash.fast(key) + ".lock")
+    await mkdir(input.dir, { recursive: true })
+    const lockfile = path.join(input.dir, Hash.fast(key) + ".lock")
     const lock = await acquireLockDir(
       lockfile,
       {
@@ -338,7 +321,7 @@ export namespace Flock {
     }
   }
 
-  export async function withLock<T>(key: string, fn: () => Promise<T>, input: Options = {}) {
+  export async function withLock<T>(key: string, fn: () => Promise<T>, input: Options) {
     await using _ = await acquire(key, input)
     input.signal?.throwIfAborted()
     return await fn()

@@ -5,6 +5,82 @@ import { make, redactHeaders, redactUrl } from "../src/redaction/redactor"
 import { secretFindings } from "../src/redaction/secrets"
 
 describe("redaction", () => {
+  test("applies built-in redaction before callbacks in request and response order", () => {
+    const calls: string[] = []
+    const redactor = make({
+      headers: ["x-secret"],
+      allowResponseHeaders: ["x-visible"],
+      url: (url) => {
+        calls.push(url)
+        return url.replace("/path", "/custom")
+      },
+      body: (body) => {
+        calls.push(body)
+        return `custom:${body}`
+      },
+    })
+    const request = {
+      method: "POST",
+      url: "https://example.test/path?token=secret",
+      headers: { "content-type": "application/json", "x-secret": "secret", ignored: "value" },
+      body: '{"password":"secret","safe":true}',
+    }
+    expect(redactor.request(request)).toEqual({
+      ...request,
+      url: "https://example.test/custom?token=%5BREDACTED%5D",
+      headers: { "content-type": "application/json", "x-secret": "[REDACTED]" },
+      body: 'custom:{"password":"[REDACTED]","safe":true}',
+    })
+    expect(
+      redactor.response({
+        status: 200,
+        headers: { "x-secret": "secret", "x-visible": "visible", ignored: "value" },
+        body: '{"token":"secret"}',
+      }),
+    ).toEqual({
+      status: 200,
+      headers: { "x-secret": "[REDACTED]", "x-visible": "visible" },
+      body: 'custom:{"token":"[REDACTED]"}',
+    })
+    expect(calls).toEqual([
+      "https://example.test/path?token=%5BREDACTED%5D",
+      '{"password":"[REDACTED]","safe":true}',
+      '{"token":"[REDACTED]"}',
+    ])
+    expect(request.body).toBe('{"password":"secret","safe":true}')
+    expect(request.headers["x-secret"]).toBe("secret")
+  })
+
+  test("propagates URL callback failure without running body redaction", () => {
+    const error = new Error("URL transform failed")
+    const calls: string[] = []
+    const redactor = make({
+      url: () => {
+        throw error
+      },
+      body: (body) => {
+        calls.push(body)
+        return body
+      },
+    })
+    expect(() => redactor.request({ method: "GET", url: "https://example.test", headers: {}, body: "" })).toThrow(error)
+    expect(calls).toEqual([])
+  })
+
+  test.each(["request", "response"] as const)("propagates %s body callback failure", (kind) => {
+    const error = new Error("Body transform failed")
+    const redactor = make({
+      body: () => {
+        throw error
+      },
+    })
+    expect(() =>
+      kind === "request"
+        ? redactor.request({ method: "POST", url: "https://example.test", headers: {}, body: "" })
+        : redactor.response({ status: 200, headers: {}, body: "" }),
+    ).toThrow(error)
+  })
+
   test("redacts sensitive URL query parameters", () => {
     expect(
       redactUrl(
