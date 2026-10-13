@@ -182,6 +182,7 @@ describe("Agent", () => {
         "compaction",
         "explore",
         "general",
+        "loop",
         "summary",
         "title",
       ])
@@ -214,6 +215,32 @@ describe("Agent", () => {
       for (const item of agents) {
         expect(item.permissions.some((rule) => rule.action === "bash" && rule.effect !== "deny")).toBe(false)
       }
+    }),
+  )
+
+  it.effect("registers Loop with the repository instructions and Build permissions", () =>
+    Effect.gen(function* () {
+      const agent = yield* Agent.Service
+      yield* AgentPlugin.Plugin.effect(host({ agent: agentHost(agent) }))
+
+      const loop = yield* agent.get(Agent.ID.make("loop"))
+      const build = yield* agent.resolve()
+      const definition = yield* Effect.promise(() =>
+        Bun.file(new URL("../../../.opencode/agents/loop.md", import.meta.url)).text(),
+      )
+
+      expect(loop).toMatchObject({
+        name: "Loop",
+        description:
+          "Iteratively identifies, implements, and verifies LongLink improvements after the user selects them.",
+        mode: "primary",
+        hidden: false,
+        system: definition.split("\n---\n")[1].trim(),
+      })
+      expect(loop?.permissions).toEqual(build?.permissions)
+      expect(Permission.evaluate("question", "*", loop?.permissions ?? []).effect).toBe("allow")
+      expect(build?.id).toBe(Agent.defaultID)
+      expect((yield* agent.select("loop")).info).toEqual(loop)
     }),
   )
 
