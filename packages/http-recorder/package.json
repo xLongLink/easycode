@@ -10,8 +10,6 @@
     "url": "git+https://github.com/anomalyco/opencode.git",
     "directory": "packages/http-recorder"
   },
-  "homepage": "https://github.com/anomalyco/opencode/tree/dev/packages/http-recorder",
-  "bugs": "https://github.com/anomalyco/opencode/issues",
   "keywords": [
     "effect",
     "http",

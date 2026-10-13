@@ -25,5 +25,3 @@ _If this is a UI change, please include a screenshot or recording._
 
 - [ ] I have tested my changes locally
 - [ ] I have not included unrelated changes in this PR
-
-_If you do not follow this template your PR will be automatically rejected._

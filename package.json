@@ -24,7 +24,6 @@
     "typecheck:profile:packages": "bun script/profile-typecheck-packages.ts",
     "upgrade-opentui": "bun run script/upgrade-opentui.ts",
     "postinstall": "bun run --cwd packages/core fix-node-pty",
-    "sso": "aws sso login --sso-session=opencode --no-browser",
     "test": "echo 'do not run tests from root' && exit 1"
   },
   "workspaces": {
@@ -67,22 +66,16 @@
     }
   },
   "devDependencies": {
-    "@actions/artifact": "5.0.1",
     "@ast-grep/cli": "0.44.0",
-    "@opencode/client": "workspace:*",
     "@tsconfig/bun": "catalog:",
     "@types/bun": "catalog:",
     "@types/mime-types": "3.0.1",
     "@typescript/native-preview": "catalog:",
-    "glob": "13.0.5",
     "prettier": "3.6.2",
-    "semver": "^7.6.0",
     "vite-plus": "1.1.0"
   },
   "dependencies": {
     "@opencode/plugin": "workspace:*",
-    "@opencode/script": "workspace:*",
-    "heap-snapshot-toolkit": "1.1.3",
     "typescript": "catalog:"
   },
   "repository": {
@@ -96,8 +89,7 @@
   },
   "trustedDependencies": [
     "esbuild",
-    "node-pty",
-    "protobufjs"
+    "node-pty"
   ],
   "overrides": {
     "@opentui/core": "catalog:",

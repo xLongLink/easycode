@@ -74,7 +74,7 @@ Follow the repository [style guide](./AGENTS.md).
 
 ### Link Issues When Required
 
-Bug fixes, chores, and tests must reference an existing issue. Documentation, refactor, and feature PRs are exempt from the automated linked-issue check. When required, use `Fixes #123` or `Closes #123` in the PR description.
+Bug fixes, chores, and tests must reference an existing issue. Documentation, refactor, and feature PRs are exempt. When required, use `Fixes #123` or `Closes #123` in the PR description.
 
 Before implementing new functionality, open a feature request describing the problem, why it belongs in OpenCode, and your proposed approach if you have one. Wait for design approval before opening the implementation PR.
 
@@ -101,9 +101,3 @@ Examples:
 - `docs: update contributing guide`
 - `fix(tui): restore scroll position`
 - `feat(tui): add workspace search`
-
-## Issues
-
-Bug reports and feature requests must use their issue templates. Blank issues are not allowed; ask support and how-to questions in the [Discord community](https://discord.gg/opencode).
-
-Automated checks flag missing templates, placeholder text, AI-generated walls of text, and missing meaningful content. You have two hours to correct a flagged issue before it closes automatically. Ask a maintainer if an issue was flagged incorrectly.
