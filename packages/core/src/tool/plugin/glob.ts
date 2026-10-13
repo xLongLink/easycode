@@ -9,20 +9,20 @@ import { FileSystem } from "../../filesystem.js"
 import { Location } from "../../location.js"
 import { FileAccess } from "../../file-access.js"
 import { Ripgrep } from "../../ripgrep.js"
-import { RelativePath } from "../../schema.js"
+import { PositiveInt, RelativePath } from "../../schema.js"
 import { Permission } from "../../permission.js"
 
 export const name = "glob"
 
 export const Input = Schema.Struct({
-  pattern: FileSystem.GlobInput.fields.pattern.annotate({ description: "Glob pattern to match files against" }),
+  pattern: Schema.String.annotate({ description: "Glob pattern to match files against" }),
   path: Schema.optionalKey(RelativePath).annotate({
     description: "Directory to search. Defaults to the current working directory.",
   }),
-  hidden: FileSystem.GlobInput.fields.hidden.annotate({
+  hidden: Schema.optionalKey(Schema.Boolean).annotate({
     description: "Include hidden files and directories (default: false).",
   }),
-  limit: FileSystem.GlobInput.fields.limit.annotate({
+  limit: Schema.optionalKey(PositiveInt).annotate({
     description: `Maximum number of matching files to return (default: ${FileSystem.DEFAULT_SEARCH_LIMIT})`,
   }),
 })

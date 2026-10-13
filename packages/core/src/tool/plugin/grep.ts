@@ -10,29 +10,27 @@ import { Location } from "../../location.js"
 import { FileAccess } from "../../file-access.js"
 import { Permission } from "../../permission.js"
 import { Ripgrep } from "../../ripgrep.js"
-import { RelativePath } from "../../schema.js"
+import { PositiveInt, RelativePath } from "../../schema.js"
 
 export const name = "grep"
 
 export const Input = Schema.Struct({
-  pattern: FileSystem.GrepInput.fields.pattern
-    .check(Schema.isMinLength(1, { message: "Pattern must not be empty" }))
-    .annotate({
-      description: "Regular expression or literal text to match in file contents.",
-    }),
+  pattern: Schema.String.check(Schema.isMinLength(1, { message: "Pattern must not be empty" })).annotate({
+    description: "Regular expression or literal text to match in file contents.",
+  }),
   path: Schema.optionalKey(RelativePath).annotate({
     description: "File or directory to search. Defaults to the current working directory.",
   }),
-  include: FileSystem.GrepInput.fields.include.annotate({
+  include: Schema.optionalKey(Schema.String).annotate({
     description: 'Glob pattern to filter files (for example, "*.js" or "*.{ts,tsx}")',
   }),
-  literal: FileSystem.GrepInput.fields.literal.annotate({
+  literal: Schema.optionalKey(Schema.Boolean).annotate({
     description: "Treat `pattern` as exact text instead of a regular expression (default: false).",
   }),
-  caseSensitive: FileSystem.GrepInput.fields.caseSensitive.annotate({
+  caseSensitive: Schema.optionalKey(Schema.Boolean).annotate({
     description: "Use case-sensitive matching (default: true).",
   }),
-  limit: FileSystem.GrepInput.fields.limit.annotate({
+  limit: Schema.optionalKey(PositiveInt).annotate({
     description: `Maximum number of matching lines to return (default: ${FileSystem.DEFAULT_SEARCH_LIMIT})`,
   }),
 })

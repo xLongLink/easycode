@@ -44,7 +44,6 @@ import { DialogIntegration } from "./component/dialog-integration"
 import { ErrorComponent } from "./component/error-component"
 import { PluginRouteMissing } from "./component/plugin-route-missing"
 import { EditorContextProvider } from "./context/editor"
-import { useEvent } from "./context/event"
 import { ClientProvider, useClient } from "./context/client"
 import { StartupLoading } from "./component/startup-loading"
 import { DevToolsBar } from "./component/devtools-bar"
@@ -406,7 +405,6 @@ function App() {
   const local = useLocal()
   const panels = usePanel()
   const keymap = Keymap.use()
-  const event = useEvent()
   const client = useClient()
   const toast = useToast()
   const theme = useTheme()
@@ -1041,13 +1039,13 @@ function App() {
     bindings: ["app.exit"],
   }))
 
-  event.on("tui.command.execute", (evt, { directory }) => {
-    if (directory !== (location.current?.directory ?? data.location.default().directory)) return
+  client.event.on("tui.command.execute", (evt) => {
+    if (evt.location?.directory !== (location.current?.directory ?? data.location.default().directory)) return
     keymap.dispatch(evt.data.command)
   })
 
-  event.on("tui.toast.show", (evt, { directory }) => {
-    if (directory !== (location.current?.directory ?? data.location.default().directory)) return
+  client.event.on("tui.toast.show", (evt) => {
+    if (evt.location?.directory !== (location.current?.directory ?? data.location.default().directory)) return
     toast.show({
       title: evt.data.title,
       message: evt.data.message,
@@ -1056,21 +1054,21 @@ function App() {
     })
   })
 
-  event.on("tui.session.select", (evt, { directory }) => {
-    if (directory !== (location.current?.directory ?? data.location.default().directory)) return
+  client.event.on("tui.session.select", (evt) => {
+    if (evt.location?.directory !== (location.current?.directory ?? data.location.default().directory)) return
     route.navigate({
       type: "session",
       sessionID: evt.data.sessionID,
     })
   })
 
-  event.on("session.moved", (evt) => {
+  client.event.on("session.moved", (evt) => {
     setOpenSessions((sessions) =>
       sessions.map((session) => (session.id !== evt.data.sessionID ? session : moveOpenSession(session, evt))),
     )
   })
 
-  event.on("session.deleted", (evt) => {
+  client.event.on("session.deleted", (evt) => {
     setOpenSessions((sessions) => sessions.filter((session) => session.id !== evt.data.sessionID))
     if (route.data.type === "session" && route.data.sessionID === evt.data.sessionID) {
       const title = active?.id === evt.data.sessionID ? active.title : undefined

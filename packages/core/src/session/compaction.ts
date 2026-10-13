@@ -90,6 +90,8 @@ type Streamed = {
   readonly providerState?: SessionMessage.ProviderState
 }
 
+type Spent = { usage?: SessionUsage.Recorded }
+
 const NOTHING_TO_COMPACT: Failure = { error: { type: "compaction.unavailable", message: "Nothing to compact yet" } }
 /** After each "too long" rejection, the next attempt aims at this share of the first rejected request's size. */
 const SHRINK_STEPS = [0.7, 0.5, 0.35]
@@ -202,7 +204,10 @@ export const layer = Layer.effect(
       }),
     })
 
-    const compact = Effect.fn("SessionCompaction.compact")(function* (trigger: Trigger): Effect.fn.Return<Outcome> {
+    const compact = Effect.fn("SessionCompaction.compact")(function* (
+      trigger: Trigger,
+      spent: Spent,
+    ): Effect.fn.Return<Outcome> {
       const settings = state.get()
       const context = trigger.context
 
@@ -229,12 +234,12 @@ export const layer = Layer.effect(
 
       const selected = model === context.model ? trigger : { ...trigger, context: { ...context, model } }
       const compaction = native
-        ? compactNatively(selected, budget, settings.keep)
-        : summarize(selected, budget, settings.keep)
+        ? compactNatively(selected, budget, settings.keep, spent)
+        : summarize(selected, budget, settings.keep, spent)
       return yield* compaction.pipe(
         Effect.matchEffect({
-          onSuccess: (result) => publish(selected, result),
-          onFailure: (failure) => publish(selected, failure),
+          onSuccess: (result) => publish(selected, result, spent),
+          onFailure: (failure) => publish(selected, failure, spent),
         }),
       )
     })
@@ -273,6 +278,7 @@ export const layer = Layer.effect(
       trigger: Trigger,
       budget: number,
       keep: number,
+      spent: Spent,
     ): Effect.fn.Return<Result, Failure> {
       const context = trigger.context
       const split = splitConversation(context.messages, keep)
@@ -289,11 +295,11 @@ export const layer = Layer.effect(
       const send = (request: LLMRequest) =>
         Effect.gen(function* () {
           const prompted = LLMRequest.update(request, { messages: [...request.messages, Message.user(prompt)] })
-          const reply = yield* stream(context, prompted, prepared.options)
+          const reply = yield* stream(context, prompted, prepared.options, spent)
           if (filled(reply.text)) return { ...reply, recent: split.recent }
 
           const nudged = LLMRequest.update(prompted, { messages: [...prompted.messages, Message.user(NUDGE)] })
-          const retry = yield* stream(context, nudged, prepared.options)
+          const retry = yield* stream(context, nudged, prepared.options, spent)
           if (filled(retry.text)) return { ...retry, recent: split.recent }
           return yield* Effect.fail<Failure>({
             error: {
@@ -306,7 +312,7 @@ export const layer = Layer.effect(
         })
 
       const overhead = Token.estimate(prompt) + Token.estimate(NUDGE)
-      return yield* deliver(trigger, prepared, split.recent, budget - overhead, send)
+      return yield* deliver(trigger, prepared, split.recent, budget - overhead, send, spent)
     })
 
     /**
@@ -325,6 +331,7 @@ export const layer = Layer.effect(
       trigger: Trigger,
       budget: number,
       keep: number,
+      spent: Spent,
     ): Effect.fn.Return<Result, Failure> {
       const context = trigger.context
       if (!context.messages.some(messageToText)) return yield* Effect.fail(NOTHING_TO_COMPACT)
@@ -343,7 +350,7 @@ export const layer = Layer.effect(
       }
 
       const toResult = (window: ReadonlyArray<Message>, usage: Usage | undefined) =>
-        spend(context.session.id, usage && SessionUsage.record(usage, context.model.cost)).pipe(
+        spend(context.session.id, usage && SessionUsage.record(usage, context.model.cost), spent).pipe(
           Effect.as<Result>({
             text: "",
             recent: "",
@@ -368,7 +375,7 @@ export const layer = Layer.effect(
         return unsupported(`Native compaction is not supported for ${request.model.provider}/${request.model.route.id}`)
       }
 
-      return yield* deliver(trigger, prepared, "", budget, send)
+      return yield* deliver(trigger, prepared, "", budget, send, spent)
     })
 
     /**
@@ -387,13 +394,14 @@ export const layer = Layer.effect(
       recent: string,
       target: number,
       send: (request: LLMRequest) => Effect.Effect<Result, AIError | Failure>,
+      spent: Spent,
     ): Effect.fn.Return<Result, Failure> {
       const context = trigger.context
       // The runner opened the manual compaction's message when it delivered the `/compact` item.
       if (trigger.reason !== "manual") {
         yield* bus.publish(SessionEvent.Compaction.Started, { sessionID: context.session.id, reason: "auto", recent })
       }
-      if (prepared.event.result) return yield* fromHook(context, prepared.event.result, recent)
+      if (prepared.event.result) return yield* fromHook(context, prepared.event.result, recent, spent)
 
       const policy = yield* SessionRunnerRetry.policy(context.session.id)
       let rejections = 0
@@ -503,7 +511,7 @@ export const layer = Layer.effect(
       })
     }
 
-    const stream = (context: SessionContext.Loaded, request: LLMRequest, options: StreamOptions) => {
+    const stream = (context: SessionContext.Loaded, request: LLMRequest, options: StreamOptions, spent: Spent) => {
       const sessionID = context.session.id
       const metadataKey = context.model.model.route.providerMetadataKey ?? context.model.model.provider
       const unusable = (error: SessionError.Error) => Effect.fail<Failure>({ error })
@@ -529,7 +537,7 @@ export const layer = Layer.effect(
             }
 
             if (LLMEvent.is.stepFinish(event)) {
-              return spend(sessionID, SessionUsage.record(event.usage, context.model.cost)).pipe(
+              return spend(sessionID, SessionUsage.record(event.usage, context.model.cost), spent).pipe(
                 Effect.as({ ...streamed, providerState: event.providerMetadata?.[metadataKey] }),
               )
             }
@@ -592,12 +600,17 @@ export const layer = Layer.effect(
     }
 
     /** A request hook supplied the summary itself, so no model call happens. */
-    const fromHook = (context: SessionContext.Loaded, supplied: SessionCompactionResult, recent: string) => {
+    const fromHook = (
+      context: SessionContext.Loaded,
+      supplied: SessionCompactionResult,
+      recent: string,
+      spent: Spent,
+    ) => {
       const usage = supplied.tokens && {
         tokens: supplied.tokens,
         cost: SessionUsage.calculateCost(context.model.cost, supplied.tokens),
       }
-      return spend(context.session.id, usage).pipe(
+      return spend(context.session.id, usage, spent).pipe(
         Effect.as<Result>({
           text: supplied.summary,
           recent,
@@ -609,25 +622,28 @@ export const layer = Layer.effect(
 
     /**
      * Each model call is billed as soon as it finishes, so failed and interrupted compactions are billed too. The
-     * compaction's message shows the total across all of its calls. A session never runs two compactions at once.
+     * compaction's message shows the total across all of its calls, held only for this execution.
      */
-    const spent = new Map<SessionContext.Loaded["session"]["id"], SessionUsage.Recorded>()
-    const spend = (sessionID: SessionContext.Loaded["session"]["id"], usage: SessionUsage.Recorded | undefined) =>
+    const spend = (
+      sessionID: SessionContext.Loaded["session"]["id"],
+      usage: SessionUsage.Recorded | undefined,
+      spent: Spent,
+    ) =>
       Effect.gen(function* () {
         if (!usage) return
-        const total = spent.get(sessionID)
-        spent.set(sessionID, total ? SessionUsage.add(total, usage) : usage)
+        spent.usage = spent.usage ? SessionUsage.add(spent.usage, usage) : usage
         yield* bus.publish(SessionEvent.UsageRecorded, { sessionID, source: "compaction", ...usage })
       })
 
     const publish = Effect.fnUntraced(function* (
       trigger: Trigger,
       outcome: Result | Failure,
+      spent: Spent,
     ): Effect.fn.Return<Outcome> {
       const context = trigger.context
       const sessionID = context.session.id
       const reason = trigger.reason === "manual" ? "manual" : "auto"
-      const usage = spent.get(sessionID)
+      const usage = spent.usage
 
       if ("error" in outcome) {
         yield* bus.publish(SessionEvent.Compaction.Failed, {
@@ -662,14 +678,20 @@ export const layer = Layer.effect(
       reload: state.reload,
       // A manual compaction settles through its `/compact` inbox item, which the runner owns.
       compact: (trigger) =>
-        compact(trigger).pipe(
-          Effect.onInterrupt(() =>
-            trigger.reason === "manual"
-              ? Effect.void
-              : publish(trigger, { error: { type: "compaction.interrupted", message: "Compaction was interrupted" } }),
-          ),
-          Effect.ensuring(Effect.sync(() => spent.delete(trigger.context.session.id))),
-        ),
+        Effect.suspend(() => {
+          const spent: Spent = {}
+          return compact(trigger, spent).pipe(
+            Effect.onInterrupt(() =>
+              trigger.reason === "manual"
+                ? Effect.void
+                : publish(
+                    trigger,
+                    { error: { type: "compaction.interrupted", message: "Compaction was interrupted" } },
+                    spent,
+                  ),
+            ),
+          )
+        }),
     })
   }),
 )

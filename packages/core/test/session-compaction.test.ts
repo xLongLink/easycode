@@ -48,7 +48,7 @@ const cost = [
     },
   },
 ]
-const client = Layer.mock(LLMClient.Service)({
+const clientLayer = Layer.mock(LLMClient.Service)({
   stream: (request: LLMRequest) => {
     requests.push(request)
     return Stream.make(
@@ -77,23 +77,157 @@ const resolved = SessionRunnerModel.resolved(model, {
   cost,
   limit: { context: 200_000, output: 32_000 },
 })
-const it = testEffect(
-  AppNodeBuilder.build(
-    LayerNode.group([
-      Database.node,
-      Bus.node,
-      SessionProjector.node,
-      SessionStore.node,
-      SessionCompaction.node,
-      SessionModelRequest.node,
-      PluginHooks.node,
-    ]),
-    [
-      Bus.node.replace(Bus.configured({ persist: true })),
-      llmClient.replace(client),
-      Location.node.replace(Location.boundNode({ directory: AbsolutePath.make("/project") })),
-    ],
-  ),
+const suite = (client: typeof clientLayer) =>
+  testEffect(
+    AppNodeBuilder.build(
+      LayerNode.group([
+        Database.node,
+        Bus.node,
+        SessionProjector.node,
+        SessionStore.node,
+        SessionCompaction.node,
+        SessionModelRequest.node,
+        PluginHooks.node,
+      ]),
+      [
+        Bus.node.replace(Bus.configured({ persist: true })),
+        llmClient.replace(client),
+        Location.node.replace(Location.boundNode({ directory: AbsolutePath.make("/project") })),
+      ],
+    ),
+  )
+const it = suite(clientLayer)
+
+const billing = suite(
+  Layer.mock(LLMClient.Service)({
+    stream: (request: LLMRequest) => {
+      const interrupted = request.promptCacheKey?.includes("interrupt")
+      const failed = request.promptCacheKey?.includes("failed")
+      const nudged = JSON.stringify(request.messages.at(-1)).includes("previous response")
+      return Stream.make(
+        LLMEvent.textDelta({ id: "summary", text: !failed && nudged ? "## Objective\n- summary" : "invalid summary" }),
+        LLMEvent.stepFinish({
+          index: 0,
+          reason: { normalized: "stop" },
+          usage: { inputTokens: 10, nonCachedInputTokens: 10, outputTokens: 2 },
+        }),
+      ).pipe(
+        Stream.concat(interrupted ? Stream.never : Stream.make(LLMEvent.finish({ reason: { normalized: "stop" } }))),
+      )
+    },
+  }),
+)
+
+billing.effect("compaction totals are fresh for each execution of the same effect", () =>
+  Effect.gen(function* () {
+    const compaction = yield* SessionCompaction.Service
+    const store = yield* SessionStore.Service
+    const db = (yield* Database.Service).db
+    const session = yield* insertSession(Session.ID.make("ses_billing_replay"))
+    const messages = [
+      SessionMessage.User.make({
+        id: SessionMessage.ID.create(),
+        type: "user",
+        text: "Summarize this.",
+        time: { created: DateTime.makeUnsafe(0) },
+      }),
+    ]
+    const effect = compaction.compact({ reason: "overflow", context: loaded(session, messages) })
+    expect(yield* effect).toEqual({ status: "completed" })
+    expect(yield* effect).toEqual({ status: "completed" })
+    const ended = yield* db
+      .select()
+      .from(EventTable)
+      .where(eq(EventTable.aggregate_id, session.id))
+      .orderBy(asc(EventTable.seq))
+      .all()
+      .pipe(Effect.orDie)
+    expect(
+      ended
+        .filter((event) => event.type === Bus.versionedType(SessionEvent.Compaction.Ended.type, 1))
+        .map((event) => event.data),
+    ).toMatchObject([
+      { tokens: { input: 20, output: 4 }, cost: 0.000028 },
+      { tokens: { input: 20, output: 4 }, cost: 0.000028 },
+    ])
+    expect(yield* store.get(session.id)).toMatchObject({ tokens: { input: 40, output: 8 }, cost: 0.000056 })
+  }),
+)
+
+billing.effect("failed compaction retains billing and totals across both summary calls", () =>
+  Effect.gen(function* () {
+    const compaction = yield* SessionCompaction.Service
+    const store = yield* SessionStore.Service
+    const session = yield* insertSession(Session.ID.make("ses_billing_failed"))
+    const messages = [
+      SessionMessage.User.make({
+        id: SessionMessage.ID.create(),
+        type: "user",
+        text: "Summarize this.",
+        time: { created: DateTime.makeUnsafe(0) },
+      }),
+    ]
+    expect(yield* compaction.compact({ reason: "overflow", context: loaded(session, messages) })).toMatchObject({
+      status: "failed",
+    })
+    expect(yield* store.get(session.id)).toMatchObject({ tokens: { input: 20, output: 4 }, cost: 0.000028 })
+    expect(yield* store.context(session.id)).toMatchObject([
+      { type: "compaction", status: "failed", tokens: { input: 20, output: 4 }, cost: 0.000028 },
+    ])
+  }),
+)
+
+billing.effect("interruption bills immediately without mixing concurrent sessions or settling manual compaction", () =>
+  Effect.gen(function* () {
+    const compaction = yield* SessionCompaction.Service
+    const bus = yield* Bus.Service
+    const store = yield* SessionStore.Service
+    const db = (yield* Database.Service).db
+    const messages = [
+      SessionMessage.User.make({
+        id: SessionMessage.ID.create(),
+        type: "user",
+        text: "Summarize this.",
+        time: { created: DateTime.makeUnsafe(0) },
+      }),
+    ]
+    for (const reason of ["overflow", "manual"] as const) {
+      const session = yield* insertSession(Session.ID.make(`ses_billing_interrupt_${reason}`))
+      const other = yield* insertSession(Session.ID.make(`ses_billing_other_${reason}`))
+      const billed = yield* bus.subscribe(SessionEvent.UsageRecorded).pipe(
+        Stream.filter((event) => event.data.sessionID === session.id),
+        Stream.take(1),
+        Stream.runCollect,
+        Effect.forkScoped,
+      )
+      yield* Effect.yieldNow
+      const inputID = SessionMessage.ID.create()
+      if (reason === "manual")
+        yield* bus.publish(SessionEvent.Compaction.Started, { sessionID: session.id, reason, inputID, recent: "" })
+      const running = yield* compaction
+        .compact({ reason, context: loaded(session, messages), inputID })
+        .pipe(Effect.forkScoped)
+      yield* Fiber.join(billed)
+      expect(yield* store.get(session.id)).toMatchObject({ tokens: { input: 10, output: 2 }, cost: 0.000014 })
+      expect(yield* compaction.compact({ reason: "overflow", context: loaded(other, messages) })).toEqual({
+        status: "completed",
+      })
+      yield* Fiber.interrupt(running)
+      expect(yield* store.get(other.id)).toMatchObject({ tokens: { input: 20, output: 4 }, cost: 0.000028 })
+      const events = yield* db
+        .select()
+        .from(EventTable)
+        .where(eq(EventTable.aggregate_id, session.id))
+        .all()
+        .pipe(Effect.orDie)
+      const failed = events.filter((event) => event.type === Bus.versionedType(SessionEvent.Compaction.Failed.type, 1))
+      if (reason === "manual") expect(failed).toEqual([])
+      if (reason === "overflow")
+        expect(failed.map((event) => event.data)).toMatchObject([
+          { error: { type: "compaction.interrupted" }, tokens: { input: 10, output: 2 }, cost: 0.000014 },
+        ])
+    }
+  }),
 )
 
 test("compaction prompt preserves detailed work state and relevant files", () => {
@@ -521,7 +655,10 @@ it.effect("compaction hooks can supply the summary instead of the model", () =>
         expect(event.sessionID).toBe(sessionID)
         expect(event.agent).toBe(Agent.defaultID)
         expect(JSON.stringify(event.messages)).toContain("Hooked compaction should see this conversation.")
-        event.result = { summary: "## Objective\n- hooked summary" }
+        event.result = {
+          summary: "## Objective\n- hooked summary",
+          tokens: { input: 7, output: 3, reasoning: 0, cache: { read: 0, write: 0 } },
+        }
       }),
     )
 
@@ -532,8 +669,16 @@ it.effect("compaction hooks can supply the summary instead of the model", () =>
     expect(contexts).toBe(0)
     expect(requests).toEqual([])
     expect(yield* store.context(sessionID)).toMatchObject([
-      { type: "compaction", reason: "manual", summary: "## Objective\n- hooked summary", recent: "" },
+      {
+        type: "compaction",
+        reason: "manual",
+        summary: "## Objective\n- hooked summary",
+        recent: "",
+        tokens: { input: 7, output: 3 },
+        cost: 0.000013,
+      },
     ])
+    expect(yield* store.get(sessionID)).toMatchObject({ tokens: { input: 7, output: 3 }, cost: 0.000013 })
     expect(
       yield* db
         .select({ type: EventTable.type })
@@ -544,6 +689,7 @@ it.effect("compaction hooks can supply the summary instead of the model", () =>
         .pipe(Effect.orDie),
     ).toEqual([
       { type: Bus.versionedType(SessionEvent.Compaction.Started.type, 1) },
+      { type: Bus.versionedType(SessionEvent.UsageRecorded.type, 1) },
       { type: Bus.versionedType(SessionEvent.Compaction.Ended.type, 1) },
     ])
   }),
