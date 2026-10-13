@@ -12,4 +12,5 @@ ${OPENCODE_TOOL_GUIDANCE}
 
 # Working in codebases
 - Keep changes consistent with the structure, naming, style, and patterns of the surrounding code.
+- Avoid extra comments that a human wouldn't add or that are inconsistent with the rest of the file. Do not add unsolicited README or documentation changes.
 - Treat unfamiliar files or changes as potential user work and investigate before deleting or overwriting them.
