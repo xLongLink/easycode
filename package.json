@@ -3,7 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "bun check.js",
+    "check": "vp check && bun check.ts",
+    "fmt": "vp fmt",
+    "lint": "vp lint",
     "test": "echo 'Run tests inside text/ or voice/' && exit 1"
-  }
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.3",
+    "vite-plus": "1.1.0"
+  },
+  "packageManager": "bun@1.4.3"
 }

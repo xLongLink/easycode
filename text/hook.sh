@@ -1,5 +1,5 @@
 if [[ $- == *i* ]] && [[ -o emacs ]]; then
-    _text_ai_launcher="${BASH_SOURCE[0]%/*}/launch.js"
+    _text_ai_launcher="${BASH_SOURCE[0]%/*}/launch.ts"
 
     text_ai() {
         bun "$_text_ai_launcher" "$1" "$2" "$3"

@@ -1,9 +1,9 @@
 import { dlopen, ptr } from "bun:ffi"
 import { closeSync, constants, openSync, readSync, writeSync } from "node:fs"
-import { key } from "./hotkey.js"
+import { key, type InputEvent } from "./hotkey.ts"
 
 // Linux x86_64/aarch64 input_event: timeval (16), type (2), code (2), value (4).
-export function decodeEvents(bytes) {
+export function decodeEvents(bytes: Buffer) {
   if (bytes.length % 24) throw new Error("Incomplete Linux input event")
   return Array.from({ length: bytes.length / 24 }, (_, index) => ({
     type: bytes.readUInt16LE(index * 24 + 16),
@@ -12,7 +12,7 @@ export function decodeEvents(bytes) {
   }))
 }
 
-export function encodeEvent(event) {
+export function encodeEvent(event: InputEvent) {
   const bytes = Buffer.alloc(24)
   bytes.writeUInt16LE(event.type, 16)
   bytes.writeUInt16LE(event.code, 18)
@@ -20,14 +20,16 @@ export function encodeEvent(event) {
   return bytes
 }
 
-export function openKeyboard(device, checkOnly = false) {
+export function openKeyboard(device: string, checkOnly?: false): Keyboard
+export function openKeyboard(device: string, checkOnly: true): undefined
+export function openKeyboard(device: string, checkOnly = false) {
   if (process.platform !== "linux" || !["x64", "arm64"].includes(process.arch))
     throw new Error("Voice supports 64-bit x86/ARM Linux only")
   const library = dlopen("libc.so.6", {
     ioctl: { args: ["i32", "u64", "u64"], returns: "i32" },
     poll: { args: ["ptr", "u64", "i32"], returns: "i32" },
   })
-  const ioctl = (fd, request, argument = 0) => {
+  const ioctl = (fd: number, request: number, argument = 0) => {
     if (library.symbols.ioctl(fd, request, argument) < 0)
       throw new Error(`Keyboard ioctl 0x${request.toString(16)} failed; check device permissions`)
   }
@@ -76,10 +78,13 @@ export function openKeyboard(device, checkOnly = false) {
     pressedKeys() {
       const state = Buffer.alloc(96)
       ioctl(keyboard, 0x80604518, ptr(state)) // EVIOCGKEY(96)
-      return new Set(Array.from({ length: state.length * 8 }, (_, code) => code)
-        .filter((code) => state[code >> 3] & (1 << (code & 7))))
+      return new Set(
+        Array.from({ length: state.length * 8 }, (_, code) => code).filter(
+          (code) => state[code >> 3] & (1 << (code & 7)),
+        ),
+      )
     },
-    emit(event) {
+    emit(event: InputEvent) {
       writeSync(output, encodeEvent(event))
     },
     close() {
@@ -89,4 +94,12 @@ export function openKeyboard(device, checkOnly = false) {
       library.close()
     },
   }
+}
+
+export type Keyboard = {
+  grab(): void
+  read(): InputEvent[]
+  pressedKeys(): Set<number>
+  emit(this: void, event: InputEvent): void
+  close(): void
 }

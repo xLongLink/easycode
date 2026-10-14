@@ -1,18 +1,26 @@
 import { expect, test } from "bun:test"
-import { Copilot, key } from "../hotkey.js"
+import { Copilot, key, type InputEvent } from "../hotkey.ts"
 
-function scenario(keys) {
-  const events = []
-  const actions = []
-  const hotkey = new Copilot(events.push.bind(events), () => actions.push("start"), () => actions.push("stop"))
+function scenario(keys: number[][]) {
+  const events: InputEvent[] = []
+  const actions: string[] = []
+  const hotkey = new Copilot(
+    events.push.bind(events),
+    () => actions.push("start"),
+    () => actions.push("stop"),
+  )
   keys.forEach(([code, value]) => hotkey.feed({ type: 1, code, value }))
   return { events, actions, hotkey }
 }
 
 test("Copilot chord is hidden; recording lasts until F23 release", () => {
   const result = scenario([
-    [key.super, 1], [key.shift, 1], [key.copilot, 1],
-    [key.copilot, 0], [key.shift, 0], [key.super, 0],
+    [key.super, 1],
+    [key.shift, 1],
+    [key.copilot, 1],
+    [key.copilot, 0],
+    [key.shift, 0],
+    [key.super, 0],
   ])
   expect(result.actions).toEqual(["start", "stop"])
   expect(result.events).toEqual([])
@@ -20,24 +28,46 @@ test("Copilot chord is hidden; recording lasts until F23 release", () => {
 })
 
 test("bare F23 works and repeated keydown does not restart recording", () => {
-  const result = scenario([[key.copilot, 1], [key.copilot, 2], [key.copilot, 2], [key.copilot, 0]])
+  const result = scenario([
+    [key.copilot, 1],
+    [key.copilot, 2],
+    [key.copilot, 2],
+    [key.copilot, 0],
+  ])
   expect(result.actions).toEqual(["start", "stop"])
   expect(result.events).toEqual([])
 })
 
 test("normal modifier shortcuts are forwarded in order", () => {
-  const keys = [[key.super, 1], [key.shift, 1], [30, 1], [30, 0], [key.shift, 0], [key.super, 0]]
+  const keys = [
+    [key.super, 1],
+    [key.shift, 1],
+    [30, 1],
+    [30, 0],
+    [key.shift, 0],
+    [key.super, 0],
+  ]
   const result = scenario(keys)
   expect(result.events.map((event) => [event.code, event.value])).toEqual(keys)
   expect(result.actions).toEqual([])
 })
 
 test("modifier tap is preserved", () => {
-  expect(scenario([[key.super, 1], [key.super, 0]]).events.map((event) => event.value)).toEqual([1, 0])
+  expect(
+    scenario([
+      [key.super, 1],
+      [key.super, 0],
+    ]).events.map((event) => event.value),
+  ).toEqual([1, 0])
 })
 
 test("other keys remain usable while recording", () => {
-  const result = scenario([[key.copilot, 1], [48, 1], [48, 0], [key.copilot, 0]])
+  const result = scenario([
+    [key.copilot, 1],
+    [48, 1],
+    [48, 0],
+    [key.copilot, 0],
+  ])
   expect(result.events.map((event) => event.code)).toEqual([48, 48])
   expect(result.actions).toEqual(["start", "stop"])
 })
@@ -50,7 +80,13 @@ test("scan codes are hidden but synchronization is forwarded", () => {
 })
 
 test("releasing modifiers first does not stop recording early", () => {
-  const result = scenario([[key.shift, 1], [key.super, 1], [key.copilot, 1], [key.shift, 0], [key.super, 0]])
+  const result = scenario([
+    [key.shift, 1],
+    [key.super, 1],
+    [key.copilot, 1],
+    [key.shift, 0],
+    [key.super, 0],
+  ])
   expect(result.actions).toEqual(["start"])
   result.hotkey.feed({ type: 1, code: key.copilot, value: 0 })
   expect(result.actions).toEqual(["start", "stop"])
@@ -58,7 +94,11 @@ test("releasing modifiers first does not stop recording early", () => {
 })
 
 test("physical key state recovers a missed Copilot and modifier release", () => {
-  const result = scenario([[key.shift, 1], [key.super, 1], [key.copilot, 1]])
+  const result = scenario([
+    [key.shift, 1],
+    [key.super, 1],
+    [key.copilot, 1],
+  ])
   result.hotkey.reconcile(new Set())
   expect(result.actions).toEqual(["start", "stop"])
   expect(result.hotkey.active).toBe(false)

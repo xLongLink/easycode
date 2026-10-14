@@ -1,19 +1,21 @@
+export type InputEvent = { type: number; code: number; value: number }
+
 export const key = { shift: 42, insert: 110, super: 125, copilot: 193 }
 
 export class Copilot {
-  pressed = new Set()
-  pending = []
-  hidden = new Set()
+  pressed = new Set<number>()
+  pending: InputEvent[] = []
+  hidden = new Set<number>()
   active = false
   dropped = false
 
-  constructor(emit, start, stop) {
-    this.emit = emit
-    this.start = start
-    this.stop = stop
-  }
+  constructor(
+    private emit: (event: InputEvent) => void,
+    private start: () => void,
+    private stop: () => void,
+  ) {}
 
-  feed(event) {
+  feed(event: InputEvent) {
     if (event.type === 0 && event.code === 3) {
       this.dropped = true // SYN_DROPPED: ignore unreliable events until SYN_REPORT.
       return
@@ -53,7 +55,7 @@ export class Copilot {
     this.emit(event)
   }
 
-  reconcile(physicalKeys) {
+  reconcile(physicalKeys: Set<number>) {
     if (this.dropped) return
     let released = false
     for (const code of this.pressed) {

@@ -17,9 +17,18 @@ legacy_end='# <<< uncode bash input hook <<<'
 
 if [[ "$1" == install ]]; then
     command -v bun >/dev/null || { printf 'Install Bun first: https://bun.sh\n' >&2; exit 1; }
-    opencode="$(command -v -- "${OPENCODE_BIN:-opencode}" || true)"
-    if [[ "$opencode" != /* || ! -x "$opencode" ]]; then
-        printf 'Installed OpenCode not found. Put it on PATH or set OPENCODE_BIN to its absolute path.\n' >&2
+    pi="$(command -v -- "${PI_BIN:-pi}" || true)"
+    if [[ -z "$pi" && -z "${PI_BIN:-}" && -x "$HOME/.local/bin/pi" ]]; then
+        pi="$HOME/.local/bin/pi"
+    fi
+    if [[ -z "$pi" && -z "${PI_BIN:-}" ]]; then
+        command -v npm >/dev/null || { printf 'Install Node.js 22.19+ and npm first.\n' >&2; exit 1; }
+        node -e 'const [major, minor] = process.versions.node.split(".").map(Number); if (major < 22 || (major === 22 && minor < 19)) { console.error("Pi requires Node.js 22.19+"); process.exit(1) }'
+        npm install -g --prefix "$HOME/.local" --ignore-scripts @earendil-works/pi-coding-agent@1.2.0
+        pi="$HOME/.local/bin/pi"
+    fi
+    if [[ "$pi" != /* || ! -x "$pi" ]]; then
+        printf 'Pi not found. Put it on PATH or set PI_BIN to its absolute path.\n' >&2
         exit 1
     fi
 fi
@@ -42,8 +51,9 @@ if [[ -e "$rc" || "$1" == install ]]; then
     if [[ "$1" == install ]]; then
         mkdir -p "$(dirname "$hook")"
         install -m 644 "$root/hook.sh" "$hook"
-        install -m 644 "$root/launch.js" "$(dirname "$hook")/launch.js"
-        bun "$root/setup.js" "$opencode" "$(dirname "$hook")/config.json"
+        install -m 644 "$root/launch.ts" "$(dirname "$hook")/launch.ts"
+        rm -f "$(dirname "$hook")/launch.js"
+        bun "$root/setup.ts" "$pi" "$(dirname "$hook")/config.json"
         printf '%s\n' "$start" >> "$temp"
         printf 'if [[ -r %q ]]; then source %q; fi\n' "$hook" "$hook" >> "$temp"
         printf '%s\n' "$end" >> "$temp"
@@ -54,8 +64,8 @@ fi
 # Remove only the files owned by the previous checkout-based Bash integration.
 rm -f "$data/bash-hook.sh" "$data/bash-ai.sh" "$data/bash-classify.js"
 if [[ "$1" == uninstall ]]; then
-    rm -f "$hook" "$(dirname "$hook")/launch.js" "$(dirname "$hook")/config.json"
+    rm -f "$hook" "$(dirname "$hook")/launch.js" "$(dirname "$hook")/launch.ts" "$(dirname "$hook")/config.json"
     rmdir "$(dirname "$hook")" 2>/dev/null || true
 fi
 printf 'Text integration %sed. Open a new Bash terminal to apply it.\n' "$1"
-if [[ "$1" == install ]]; then printf 'Connected executable: %s\n' "$opencode"; fi
+if [[ "$1" == install ]]; then printf 'Connected executable: %s\nRun Pi and use /login to configure a provider.\n' "$pi"; fi

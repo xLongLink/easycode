@@ -1,4 +1,4 @@
-function wpctl(...args) {
+function wpctl(...args: string[]) {
   const result = Bun.spawnSync(["wpctl", ...args], {
     stdout: "pipe",
     stderr: "pipe",
@@ -27,11 +27,15 @@ export function muteOutput() {
         wpctl("set-mute", id, "0")
         restored = true
       } catch (error) {
-        console.warn(`Could not restore system audio: ${error.message}`)
+        console.warn(
+          `Could not restore system audio: ${error instanceof Error ? error.message : String(error)}`,
+        )
       }
     }
   } catch (error) {
-    console.warn(`Could not mute system audio: ${error.message}`)
+    console.warn(
+      `Could not mute system audio: ${error instanceof Error ? error.message : String(error)}`,
+    )
     return () => {}
   }
 }

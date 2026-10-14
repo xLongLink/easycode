@@ -1,7 +1,7 @@
 # Voice
 
 Standalone local dictation for Ubuntu/Debian Wayland desktops. No OpenCode runtime,
-cloud transcription, or API key required. Written in **JavaScript**, running on
+cloud transcription, or API key required. Written in **TypeScript**, running on
 **Bun**. Uses Cactus Compute's **Whistle native CPU engine** through Bun FFI in a
 worker thread, PipeWire for microphone capture, and Bun FFI for Linux keyboard access. No Python
 or npm dependencies are required. Supports x86_64 and ARM64 Linux.
@@ -86,11 +86,14 @@ cache, and WASM assets are left untouched and are no longer used. The native `.s
 comes from Cactus's pinned Linux wheel; `unzip` extracts it without installing or
 running Python. The model remains loaded between recordings.
 
-For an existing JavaScript installation with `unzip` already available, update
+After upgrading from JavaScript, re-run `make up:voice` once so the service points
+to `voice.ts` instead of the removed `voice.js`.
+
+For an existing TypeScript installation with `unzip` already available, update
 the engine without re-selecting your keyboard or replacing your config:
 
 ```sh
-bun voice/setup.js download
+bun voice/setup.ts download
 systemctl --user restart uncode-voice.service
 ```
 
@@ -105,7 +108,7 @@ WASM; performance depends on your CPU and recording. Transcription still happens
 after release, not while speaking.
 
 Tests: run `make test:voice` from the repository root. To download the native engine and smoke-test the bundled model
-without installing the service or changing permissions, run `bun setup.js download`.
+without installing the service or changing permissions, run `bun setup.ts download`.
 Run `VOICE_NATIVE_TEST=1 bun test` inside `voice/` to also test the actual native
 engine (downloads the native engine if not cached).
 

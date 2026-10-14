@@ -1,12 +1,12 @@
 # Agent Instructions
 
 This repository contains standalone `text/` and `voice/` integrations, not an
-OpenCode runtime or CLI fork. Text uses an already-installed OpenCode executable.
+OpenCode runtime or CLI fork. Text installs and uses the upstream Pi executable.
 Do not reintroduce bundled runtime packages or alter installed OpenCode data.
 
 ## Style
 
-- Use JavaScript on Bun and Bash where shell integration requires it.
+- Use TypeScript on Bun and Bash where shell integration requires it. Vite+ owns formatting, linting, and type checks; Bun runs integration tests.
 - Keep imports named; avoid import aliases and star imports.
 - Prefer `const`, early returns, and small readable functions.
 - Inline single-use helpers unless they name a meaningful boundary.

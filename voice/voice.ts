@@ -1,15 +1,15 @@
 import { homedir } from "node:os"
-import path from "node:path"
-import { createEngine } from "./engine.js"
-import { Dictation } from "./dictation.js"
-import { Copilot } from "./hotkey.js"
-import { openKeyboard } from "./keyboard.js"
-import { captureAudio } from "./microphone.js"
-import { pasteText } from "./paste.js"
+import { join } from "node:path"
+import { createEngine } from "./engine.ts"
+import { Dictation } from "./dictation.ts"
+import { Copilot } from "./hotkey.ts"
+import { openKeyboard } from "./keyboard.ts"
+import { captureAudio } from "./microphone.ts"
+import { pasteText } from "./paste.ts"
 
 if (!process.env.WAYLAND_DISPLAY) throw new Error("Voice requires a Wayland desktop session")
 const config = await Bun.file(
-  path.join(process.env.XDG_CONFIG_HOME ?? path.join(homedir(), ".config"), "uncode-voice.json"),
+  join(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "uncode-voice.json"),
 ).json()
 if (
   typeof config.keyboard !== "string" ||

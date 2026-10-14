@@ -1,18 +1,20 @@
 import { afterEach, beforeEach, expect, spyOn, test } from "bun:test"
 import { mkdtemp, chmod, rm } from "node:fs/promises"
-import { captureAudio } from "../microphone.js"
-import { muteOutput } from "../output.js"
+import { captureAudio } from "../microphone.ts"
+import { muteOutput } from "../output.ts"
 
-let directory
-let previousPath
-let warning
+let directory: string
+let previousPath: string | undefined
+let warning: ReturnType<typeof spyOn<typeof console, "warn">>
 
 beforeEach(async () => {
   directory = await mkdtemp("/tmp/opencode/voice-output-")
   previousPath = process.env.PATH
   warning = spyOn(console, "warn").mockImplementation(() => {})
   await Bun.write(`${directory}/state.json`, JSON.stringify({ muted: false, volume: 0.65 }))
-  await Bun.write(`${directory}/wpctl.js`, `
+  await Bun.write(
+    `${directory}/wpctl.js`,
+    `
 const root = import.meta.dir
 const args = process.argv.slice(2)
 const state = await Bun.file(root + "/state.json").json()
@@ -27,8 +29,12 @@ if (args[0] === "set-mute") {
   state.muted = args[2] === "1"
   await Bun.write(root + "/state.json", JSON.stringify(state))
 }
-`)
-  await Bun.write(`${directory}/wpctl`, `#!/bin/sh\nexec '${process.execPath}' '${directory}/wpctl.js' "$@"\n`)
+`,
+  )
+  await Bun.write(
+    `${directory}/wpctl`,
+    `#!/bin/sh\nexec '${process.execPath}' '${directory}/wpctl.js' "$@"\n`,
+  )
   await chmod(`${directory}/wpctl`, 0o755)
   process.env.PATH = `${directory}:${previousPath}`
 })
@@ -44,12 +50,15 @@ async function state() {
 }
 
 async function calls() {
-  return Bun.file(`${directory}/calls.json`).json()
+  return (await Bun.file(`${directory}/calls.json`).json()) as string[][]
 }
 
-async function recorder(source) {
+async function recorder(source: string) {
   await Bun.write(`${directory}/pw-record.js`, source)
-  await Bun.write(`${directory}/pw-record`, `#!/bin/sh\nexec '${process.execPath}' '${directory}/pw-record.js' "$@"\n`)
+  await Bun.write(
+    `${directory}/pw-record`,
+    `#!/bin/sh\nexec '${process.execPath}' '${directory}/pw-record.js' "$@"\n`,
+  )
   await chmod(`${directory}/pw-record`, 0o755)
 }
 
@@ -75,14 +84,20 @@ test("an already-muted output stays muted", async () => {
 })
 
 test("audio-control failures warn without blocking dictation", async () => {
-  await Bun.write(`${directory}/state.json`, JSON.stringify({ muted: false, volume: 0.65, fail: "set-mute" }))
+  await Bun.write(
+    `${directory}/state.json`,
+    JSON.stringify({ muted: false, volume: 0.65, fail: "set-mute" }),
+  )
   expect(() => muteOutput()()).not.toThrow()
   expect((await state()).muted).toBe(false)
   expect(warning).toHaveBeenCalledTimes(1)
 })
 
 test("invalid output information never changes mute state", async () => {
-  await Bun.write(`${directory}/state.json`, JSON.stringify({ muted: false, volume: 0.65, invalid: true }))
+  await Bun.write(
+    `${directory}/state.json`,
+    JSON.stringify({ muted: false, volume: 0.65, invalid: true }),
+  )
   muteOutput()()
   expect(await calls()).toEqual([["inspect", "@DEFAULT_AUDIO_SINK@"]])
   expect(warning).toHaveBeenCalledTimes(1)
@@ -96,7 +111,10 @@ test("missing wpctl warns without blocking dictation", () => {
 
 test("restoration failures can be retried during cleanup", async () => {
   const restore = muteOutput()
-  await Bun.write(`${directory}/state.json`, JSON.stringify({ muted: true, volume: 0.65, fail: "set-mute" }))
+  await Bun.write(
+    `${directory}/state.json`,
+    JSON.stringify({ muted: true, volume: 0.65, fail: "set-mute" }),
+  )
   restore()
   expect(warning).toHaveBeenCalledTimes(1)
   await Bun.write(`${directory}/state.json`, JSON.stringify({ muted: true, volume: 0.65 }))
@@ -105,7 +123,7 @@ test("restoration failures can be retried during cleanup", async () => {
 })
 
 test("releasing the button restores playback immediately", async () => {
-  await recorder('setInterval(() => {}, 1000)')
+  await recorder("setInterval(() => {}, 1000)")
   const recording = captureAudio()
   try {
     expect((await state()).muted).toBe(true)
@@ -133,7 +151,7 @@ test("missing microphone command restores playback", async () => {
 })
 
 test("reaching the recording size limit restores playback without release", async () => {
-  await recorder('process.stdout.write(Buffer.alloc(16000 * 30 * 2)); setInterval(() => {}, 1000)')
+  await recorder("process.stdout.write(Buffer.alloc(16000 * 30 * 2)); setInterval(() => {}, 1000)")
   const recording = captureAudio()
   expect((await recording.result).length).toBe(16000 * 30)
   expect((await state()).muted).toBe(false)

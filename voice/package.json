@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "bun voice.js",
+    "start": "bun voice.ts",
     "test": "bun test"
   }
 }

@@ -1,8 +1,11 @@
 import { spawn } from "node:child_process"
-import { muteOutput } from "./output.js"
+import { muteOutput } from "./output.ts"
 
-export function decodePCM(bytes) {
-  return Float32Array.from({ length: Math.floor(bytes.length / 2) }, (_, index) => bytes.readInt16LE(index * 2) / 32768)
+export function decodePCM(bytes: Buffer) {
+  return Float32Array.from(
+    { length: Math.floor(bytes.length / 2) },
+    (_, index) => bytes.readInt16LE(index * 2) / 32768,
+  )
 }
 
 export function captureAudio() {
@@ -26,15 +29,19 @@ export function captureAudio() {
 }
 
 function captureMicrophone() {
-  const child = spawn("pw-record", ["--raw", "--format", "s16", "--rate", "16000", "--channels", "1", "-"], {
-    stdio: ["ignore", "pipe", "pipe"],
-  })
-  const chunks = []
+  const child = spawn(
+    "pw-record",
+    ["--raw", "--format", "s16", "--rate", "16000", "--channels", "1", "-"],
+    {
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  )
+  const chunks: Buffer[] = []
   const maxBytes = 16000 * 30 * 2
   let length = 0
   let stopped = false
   let closed = false
-  let killTimer
+  let killTimer: ReturnType<typeof setTimeout> | undefined
   let stderr = ""
   const stop = () => {
     if (stopped || closed) return
@@ -44,7 +51,7 @@ function captureMicrophone() {
     killTimer = setTimeout(() => child.kill("SIGKILL"), 1000)
   }
   const timer = setTimeout(stop, 30000)
-  const result = new Promise((resolve, reject) => {
+  const result = new Promise<Float32Array>((resolve, reject) => {
     child.stdout.on("data", (chunk) => {
       const bytes = chunk.subarray(0, maxBytes - length)
       chunks.push(bytes)

@@ -48,7 +48,7 @@ if ! command -v bun >/dev/null; then
 fi
 sudo apt-get install -y pipewire-bin wireplumber wl-clipboard unzip
 # Download the native engine and verify the bundled model before changing keyboard permissions.
-bun "$root/setup.js" download
+bun "$root/setup.ts" download
 systemctl --user stop uncode-voice.service 2>/dev/null || true
 
 shopt -s nullglob
@@ -61,7 +61,7 @@ if [[ -n "${VOICE_KEYBOARD:-}" ]]; then
     keyboard="$VOICE_KEYBOARD"
 else
     # Read only during detection; do not grant access to every keyboard.
-    keyboard="$(sudo "$(command -v bun)" "$root/setup.js" detect "${keyboards[@]}")"
+    keyboard="$(sudo "$(command -v bun)" "$root/setup.ts" detect "${keyboards[@]}")"
     printf 'Detected Copilot keyboard: %s\n' "$keyboard"
 fi
 case "$keyboard" in
@@ -86,10 +86,10 @@ if [[ ! -r "$keyboard" || ! -w /dev/uinput ]]; then
     printf 'Device access not yet active. Log out/in, then run make up:voice again.\n' >&2
     exit 1
 fi
-bun "$root/setup.js" check "$keyboard"
+bun "$root/setup.ts" check "$keyboard"
 
 mkdir -p "$(dirname "$unit")"
-bun "$root/setup.js" configure "$root" "$keyboard" "$config" "$unit"
+bun "$root/setup.ts" configure "$root" "$keyboard" "$config" "$unit"
 for name in WAYLAND_DISPLAY DISPLAY XDG_SESSION_TYPE XDG_CURRENT_DESKTOP XDG_CONFIG_HOME; do
     if [[ -v "$name" ]]; then systemctl --user import-environment "$name"; fi
 done

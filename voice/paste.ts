@@ -1,6 +1,6 @@
-import { key } from "./hotkey.js"
+import { key, type InputEvent } from "./hotkey.ts"
 
-export function pasteText(text, emit) {
+export function pasteText(text: string, emit: (event: InputEvent) => void) {
   const started = performance.now()
   // Clipboard is required; primary selection is optional on some compositors.
   for (const selection of [[], ["--primary"]]) {

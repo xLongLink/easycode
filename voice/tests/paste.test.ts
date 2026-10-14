@@ -1,19 +1,21 @@
 import { afterEach, beforeEach, expect, spyOn, test } from "bun:test"
 import { chmod, mkdtemp, rm } from "node:fs/promises"
-import { pasteText } from "../paste.js"
-import { key } from "../hotkey.js"
+import { pasteText } from "../paste.ts"
+import { key, type InputEvent } from "../hotkey.ts"
 
-let directory
-let previousPath
-let info
-let warning
+let directory: string
+let previousPath: string | undefined
+let info: ReturnType<typeof spyOn<typeof console, "info">>
+let warning: ReturnType<typeof spyOn<typeof console, "warn">>
 
 beforeEach(async () => {
   directory = await mkdtemp("/tmp/opencode/voice-paste-")
   previousPath = process.env.PATH
   info = spyOn(console, "info").mockImplementation(() => {})
   warning = spyOn(console, "warn").mockImplementation(() => {})
-  await Bun.write(`${directory}/wl-copy`, `#!/bin/sh
+  await Bun.write(
+    `${directory}/wl-copy`,
+    `#!/bin/sh
 if [ "$1" = --primary ]; then
   [ -f '${directory}/fail-primary' ] && exit 1
   /bin/cat > '${directory}/primary'
@@ -21,7 +23,8 @@ else
   [ -f '${directory}/fail-clipboard' ] && exit 1
   /bin/cat > '${directory}/clipboard'
 fi
-`)
+`,
+  )
   await chmod(`${directory}/wl-copy`, 0o755)
   process.env.PATH = `${directory}:${previousPath}`
 })
@@ -34,7 +37,7 @@ afterEach(async () => {
 })
 
 test("copies both selections before emitting Shift+Insert", async () => {
-  const events = []
+  const events: InputEvent[] = []
   pasteText("spoken text", (event) => events.push(event))
   expect(await Bun.file(`${directory}/clipboard`).text()).toBe("spoken text")
   expect(await Bun.file(`${directory}/primary`).text()).toBe("spoken text")
@@ -50,7 +53,7 @@ test("copies both selections before emitting Shift+Insert", async () => {
 
 test("unsupported primary selection still pastes from the clipboard", async () => {
   await Bun.write(`${directory}/fail-primary`, "")
-  const events = []
+  const events: InputEvent[] = []
   expect(() => pasteText("spoken text", (event) => events.push(event))).not.toThrow()
   expect(await Bun.file(`${directory}/clipboard`).text()).toBe("spoken text")
   expect(events).toHaveLength(6)
@@ -59,7 +62,9 @@ test("unsupported primary selection still pastes from the clipboard", async () =
 
 test("failed clipboard copies do not synthesize a paste of stale text", async () => {
   await Bun.write(`${directory}/fail-clipboard`, "")
-  const events = []
-  expect(() => pasteText("spoken text", (event) => events.push(event))).toThrow("Clipboard copy failed")
+  const events: InputEvent[] = []
+  expect(() => pasteText("spoken text", (event) => events.push(event))).toThrow(
+    "Clipboard copy failed",
+  )
   expect(events).toEqual([])
 })

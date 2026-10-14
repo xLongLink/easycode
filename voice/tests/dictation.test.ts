@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, expect, spyOn, test } from "bun:test"
-import { Dictation } from "../dictation.js"
-import { Copilot, key } from "../hotkey.js"
+import { Dictation } from "../dictation.ts"
+import { Copilot, key } from "../hotkey.ts"
 
-let info
-let error
+let info: ReturnType<typeof spyOn<typeof console, "info">>
+let error: ReturnType<typeof spyOn<typeof console, "error">>
 
 beforeEach(() => {
   info = spyOn(console, "info").mockImplementation(() => {})
@@ -15,31 +15,50 @@ afterEach(() => {
   error.mockRestore()
 })
 
-function deferred() {
-  let resolve
-  let reject
-  const promise = new Promise((yes, no) => { resolve = yes; reject = no })
-  return { promise, resolve, reject }
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason: Error) => void
+  const promise = new Promise<T>((yes, no) => {
+    resolve = yes
+    reject = no
+  })
+  return { promise, resolve, reject, stopped: false }
 }
 
-function session(transcribe = async (audio) => `text${audio[0]}`, paste) {
-  const captures = []
-  const pasted = []
-  const dictation = new Dictation(() => {
-    const capture = deferred()
-    capture.stopped = false
-    captures.push(capture)
-    return { result: capture.promise, stop: () => { capture.stopped = true } }
-  }, transcribe, paste ?? ((text) => pasted.push(text)))
-  const hotkey = new Copilot(() => {}, () => dictation.start(), () => dictation.stop())
+function session(
+  transcribe: (audio: Float32Array) => Promise<string> = async (audio) => `text${audio[0]}`,
+  paste?: (text: string) => void,
+) {
+  const captures: ReturnType<typeof deferred<Float32Array>>[] = []
+  const pasted: string[] = []
+  const dictation = new Dictation(
+    () => {
+      const capture = deferred<Float32Array>()
+      capture.stopped = false
+      captures.push(capture)
+      return {
+        result: capture.promise,
+        stop: () => {
+          capture.stopped = true
+        },
+      }
+    },
+    transcribe,
+    paste ?? ((text) => pasted.push(text)),
+  )
+  const hotkey = new Copilot(
+    () => {},
+    () => dictation.start(),
+    () => dictation.stop(),
+  )
   const press = () => hotkey.feed({ type: 1, code: key.copilot, value: 1 })
   const release = () => hotkey.feed({ type: 1, code: key.copilot, value: 0 })
   return { dictation, hotkey, captures, pasted, press, release }
 }
 
 test("accepts a second recording during transcription and transcribes serially", async () => {
-  const first = deferred()
-  const calls = []
+  const first = deferred<string>()
+  const calls: number[] = []
   const context = session(async (audio) => {
     calls.push(audio[0])
     return audio[0] === 1 ? first.promise : "second"
@@ -105,7 +124,9 @@ test("a transcription failure does not block the next dictation", async () => {
 test("synchronous capture failure allows a new attempt", async () => {
   const context = session()
   const capture = context.dictation.capture
-  context.dictation.capture = () => { throw new Error("spawn failed") }
+  context.dictation.capture = () => {
+    throw new Error("spawn failed")
+  }
   context.press()
   context.release()
   context.dictation.capture = capture
@@ -118,7 +139,9 @@ test("synchronous capture failure allows a new attempt", async () => {
 })
 
 test("clipboard failure does not crash or block later dictation", async () => {
-  const context = session(undefined, () => { throw new Error("clipboard unavailable") })
+  const context = session(undefined, () => {
+    throw new Error("clipboard unavailable")
+  })
   context.press()
   context.release()
   context.captures[0].resolve(new Float32Array([1]))

@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, expect, test } from "bun:test"
 import { appendFile, mkdtemp, rm, symlink } from "node:fs/promises"
-import { detectKeyboard } from "../detect-keyboard.js"
-import { encodeEvent } from "../keyboard.js"
-import { key } from "../hotkey.js"
+import { detectKeyboard } from "../detect-keyboard.ts"
+import { encodeEvent } from "../keyboard.ts"
+import { key } from "../hotkey.ts"
 
-let directory
+let directory: string
 
 beforeEach(async () => {
   directory = await mkdtemp("/tmp/opencode/voice-keyboard-")
@@ -17,11 +17,14 @@ afterEach(async () => {
 test("detects the keyboard receiving Copilot, ignoring other keys and releases", async () => {
   const first = `${directory}/first`
   const second = `${directory}/second`
-  await Bun.write(first, Buffer.concat([
-    encodeEvent({ type: 1, code: key.shift, value: 1 }),
-    encodeEvent({ type: 1, code: key.copilot, value: 0 }),
-    encodeEvent({ type: 1, code: key.copilot, value: 2 }),
-  ]))
+  await Bun.write(
+    first,
+    Buffer.concat([
+      encodeEvent({ type: 1, code: key.shift, value: 1 }),
+      encodeEvent({ type: 1, code: key.copilot, value: 0 }),
+      encodeEvent({ type: 1, code: key.copilot, value: 2 }),
+    ]),
+  )
   await Bun.write(second, encodeEvent({ type: 1, code: key.copilot, value: 1 }))
   expect(await detectKeyboard([first, second])).toBe(second)
 })
@@ -49,7 +52,9 @@ test("skips unavailable devices", async () => {
 })
 
 test("fails clearly when no device can be opened", async () => {
-  await expect(detectKeyboard([`${directory}/missing`])).rejects.toThrow("No keyboard devices could be opened")
+  await expect(detectKeyboard([`${directory}/missing`])).rejects.toThrow(
+    "No keyboard devices could be opened",
+  )
 })
 
 test("times out instead of waiting indefinitely for an unsupported keyboard", async () => {

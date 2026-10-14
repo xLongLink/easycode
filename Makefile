@@ -1,4 +1,8 @@
-.PHONY: up\:text down\:text up\:voice down\:voice test test\:text test\:voice check
+.PHONY: up down up\:text down\:text up\:voice down\:voice test test\:text test\:voice check
+
+up: up\:text up\:voice
+
+down: down\:text down\:voice
 
 up\:text:
 	bash text/setup.sh install
@@ -21,4 +25,4 @@ test\:voice:
 	bun --cwd voice test
 
 check:
-	bun check.js
+	bun run check
