@@ -1,0 +1,9 @@
+{
+  "name": "easycode-integrations",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "bun check.js",
+    "test": "echo 'Run tests inside text/ or voice/' && exit 1"
+  }
+}

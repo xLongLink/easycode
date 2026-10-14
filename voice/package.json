@@ -1,0 +1,9 @@
+{
+  "name": "uncode-voice",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun voice.js",
+    "test": "bun test"
+  }
+}

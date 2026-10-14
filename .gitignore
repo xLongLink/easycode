@@ -1,0 +1,15 @@
+.DS_Store
+node_modules/
+.env
+.env.local
+.idea/
+.vscode/
+.codex/
+.worktrees/
+.cache/
+__pycache__/
+logs/
+*~
+
+# Preserve private local development files outside the standalone integrations.
+/.dev/
