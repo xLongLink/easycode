@@ -1,14 +1,14 @@
 import { expect, test } from "bun:test"
 import { chmod, mkdir, mkdtemp, rm } from "node:fs/promises"
 import { join } from "node:path"
-import { buildRelease } from "../../release.ts"
+import { buildRelease } from "../release.ts"
 
 test("curl installer verifies downloads, preserves existing installs, and runs real text setup", async () => {
   await mkdir("/tmp/opencode", { recursive: true })
   const directory = await mkdtemp("/tmp/opencode/curl-install-tests-")
   try {
     const assets = join(directory, "assets")
-    await buildRelease("text", "v0.0.0", assets)
+    await buildRelease("v0.0.0", assets)
     const installer = Buffer.from(await Bun.file(join(assets, "text.sh")).text())
     const bin = join(directory, "bin")
     await mkdir(bin)

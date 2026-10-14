@@ -62,3 +62,20 @@ Setup manages only its marked `~/.bashrc` block and files under
 `${XDG_DATA_HOME:-~/.local/share}/uncode/text`. Pi, credentials, sessions, and
 unrelated shell settings are retained. The installed hook does not depend on this
 source directory remaining in place.
+
+## Development
+
+This is a standalone Bun package; neither the repository root nor voice is required.
+From this directory:
+
+```sh
+bun install
+bun run check
+bun test
+bun run fmt
+bun run build v0.0.1
+```
+
+Checks cover formatting, linting, types, builds, Bash syntax, and tests without
+contacting AI providers. Release archives, checksums, and the installer are written
+to `dist/`. Building requires GNU tar. See [LICENSE](LICENSE).

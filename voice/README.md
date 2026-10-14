@@ -85,3 +85,21 @@ access. System packages and the native-engine cache are retained.
 
 The bundled model is licensed under [Apache-2.0](models/LICENSE);
 see [model provenance](models/README.md).
+
+## Development
+
+This is a standalone Bun package; neither the repository root nor text is required.
+From this directory:
+
+```sh
+bun install
+bun run check
+bun test
+bun run fmt
+bun run build v0.0.1
+```
+
+Checks cover formatting, linting, types, builds, Bash syntax, and tests without
+contacting AI providers. For actual native inference, run
+`VOICE_NATIVE_TEST=1 bun test`. Release archives, checksums, and the installer are
+written to `dist/`. Building requires GNU tar. See [LICENSE](LICENSE).

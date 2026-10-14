@@ -10,6 +10,6 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["*.ts", "text/**/*.ts", "voice/**/*.ts"],
+  "include": ["*.ts"],
   "exclude": ["node_modules", "target", "voice/.cache", "voice/.venv"]
 }

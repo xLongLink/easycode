@@ -83,7 +83,7 @@ sudo udevadm trigger --subsystem-match=misc --action=change
 sudo udevadm settle
 
 if [[ ! -r "$keyboard" || ! -w /dev/uinput ]]; then
-    printf 'Device access not yet active. Log out/in, then run bun run up:voice again.\n' >&2
+    printf 'Device access not yet active. Log out/in, then run bun run up in the voice directory again.\n' >&2
     exit 1
 fi
 bun "$root/src/setup.ts" check "$keyboard"

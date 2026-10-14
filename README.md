@@ -53,9 +53,17 @@ Use `bun run up` to install both. Uninstall with `bun run down:text`,
 
 ```sh
 bun install
+bun install --cwd text
+bun install --cwd voice
 bun run check
 bun run fmt
 ```
+
+`text/` and `voice/` are independent Bun packages with their own dependencies,
+lockfiles, checks, tests, licenses, and release tooling. Either folder can be copied
+out and developed without the root or the other package. Inside either folder,
+run `bun install`, `bun run check`, `bun test`, or `bun run build`.
+Root commands are convenience wrappers; this is not a Bun workspace.
 
 Checks cover formatting, linting, types, builds, Bash syntax, and both integration
 test suites. Run suites separately with `bun run test:text` or `bun run test:voice`.

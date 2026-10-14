@@ -17,6 +17,8 @@ jobs:
         with:
           bun-version: "1.4.3"
       - run: bun install --frozen-lockfile
+      - run: bun install --cwd text --frozen-lockfile
+      - run: bun install --cwd voice --frozen-lockfile
       - run: bun run check
 
   build:
@@ -37,7 +39,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: uncode-${{ matrix.integration }}
-          path: dist/*
+          path: ${{ matrix.integration }}/dist/*
           if-no-files-found: error
 
   release:

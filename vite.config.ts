@@ -3,7 +3,7 @@ import { defineConfig } from "vite-plus"
 export default defineConfig({
   lint: {
     options: { typeAware: true, typeCheck: true },
-    ignorePatterns: ["target/**", "voice/.cache/**", "voice/.venv/**"],
+    ignorePatterns: ["dist/**", "text/**", "voice/**"],
     overrides: [
       {
         files: ["**/tests/*.test.ts"],
@@ -14,6 +14,6 @@ export default defineConfig({
   },
   fmt: {
     semi: false,
-    ignorePatterns: ["target/**", "voice/.cache/**", "voice/.venv/**", "bun.lock"],
+    ignorePatterns: ["dist/**", "text/**", "voice/**", "bun.lock"],
   },
 })
