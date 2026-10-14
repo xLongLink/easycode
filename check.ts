@@ -1,6 +1,7 @@
 const result = await Bun.build({
   entrypoints: [
     "./check.ts",
+    "./release.ts",
     "./text/src/launch.ts",
     "./text/src/setup.ts",
     "./voice/src/voice.ts",

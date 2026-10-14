@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "bun run build:text && bun run build:voice",
+    "build:text": "bun release.ts text",
+    "build:voice": "bun release.ts voice",
     "up": "bun run up:text && bun run up:voice",
     "down": "bun run down:text && bun run down:voice",
     "up:text": "bash text/setup.sh install",
