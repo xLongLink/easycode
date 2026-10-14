@@ -45,12 +45,20 @@ process.exit(Number(process.env.TEXT_TEST_EXIT ?? 0))
       })
     },
     shell(script: string, args: string[] = []) {
-      return Bun.spawnSync(["bash", "--noprofile", "--norc", "-ic", script, "text-test", ...args], {
-        env: { ...env, HISTFILE: "/dev/null" },
-        stdin: "ignore",
-        stdout: "pipe",
-        stderr: "pipe",
-      })
+      const result = Bun.spawnSync(
+        ["bash", "--noprofile", "--norc", "-ic", script, "text-test", ...args],
+        {
+          env: { ...env, HISTFILE: "/dev/null" },
+          stdin: "ignore",
+          stdout: "pipe",
+          stderr: "pipe",
+        },
+      )
+      if (result.exitCode !== 0)
+        throw new Error(
+          `Bash failed (${result.signalCode ?? result.exitCode}): ${result.stderr.toString()}`,
+        )
+      return result
     },
   }
 }

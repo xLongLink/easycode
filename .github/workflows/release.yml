@@ -10,17 +10,14 @@ permissions:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: "1.4.3"
       - run: bun install --frozen-lockfile
-      # Interactive Bash integration tests need a controlling terminal on CI.
-      - run: script --quiet --return --command "bun run check" /dev/null
-        env:
-          TERM: xterm-256color
+      - run: bun run check
 
   build:
     needs: check
