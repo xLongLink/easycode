@@ -1,17 +1,18 @@
 import { once } from "node:events"
 import { mkdir, rename } from "node:fs/promises"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { Worker } from "node:worker_threads"
 
 // The native library is distributed inside a wheel; only its .so is used.
 // Pin the engine compatible with the bundled speech weights; no Python SDK or telemetry.
 const engineRevision = "93e88ede867e4311c39151285e74df513e4b835b"
 const modelRevision = "ca5287601bef25af26dcf2e1b2bdc0843a7c19e5"
+const root = dirname(import.meta.dir)
 
-export async function createEngine(directory = join(import.meta.dir, ".cache")) {
+export async function createEngine(directory = join(root, ".cache")) {
   if (process.platform !== "linux" || !["x64", "arm64"].includes(process.arch))
     throw new Error("Native Whistle supports Ubuntu/Debian on x86_64 or ARM64")
-  const model = join(import.meta.dir, "models", "whistle.cact")
+  const model = join(root, "models", "whistle.cact")
   if (!(await Bun.file(model).exists())) throw new Error("Bundled Whistle model is missing")
   const arch = process.arch === "x64" ? "x86_64" : "aarch64"
   const wheel = `cactus_needle-3.3.1-py3-none-manylinux2014_${arch}.whl`

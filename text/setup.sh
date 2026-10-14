@@ -22,14 +22,16 @@ if [[ "$1" == install ]]; then
         pi="$HOME/.local/bin/pi"
     fi
     if [[ -z "$pi" && -z "${PI_BIN:-}" ]]; then
-        command -v npm >/dev/null || { printf 'Install Node.js 22.19+ and npm first.\n' >&2; exit 1; }
-        node -e 'const [major, minor] = process.versions.node.split(".").map(Number); if (major < 22 || (major === 22 && minor < 19)) { console.error("Pi requires Node.js 22.19+"); process.exit(1) }'
-        npm install -g --prefix "$HOME/.local" --ignore-scripts @earendil-works/pi-coding-agent@1.2.0
+        BUN_INSTALL="$HOME/.local" bun install -g --ignore-scripts @earendil-works/pi-coding-agent@1.2.0
         pi="$HOME/.local/bin/pi"
     fi
     if [[ "$pi" != /* || ! -x "$pi" ]]; then
         printf 'Pi not found. Put it on PATH or set PI_BIN to its absolute path.\n' >&2
         exit 1
+    fi
+    pi_runner=direct
+    if IFS= read -r pi_first_line < "$pi" && [[ "$pi_first_line" == *node* ]]; then
+        pi_runner=bun
     fi
 fi
 
@@ -50,10 +52,10 @@ if [[ -e "$rc" || "$1" == install ]]; then
     fi
     if [[ "$1" == install ]]; then
         mkdir -p "$(dirname "$hook")"
-        install -m 644 "$root/hook.sh" "$hook"
-        install -m 644 "$root/launch.ts" "$(dirname "$hook")/launch.ts"
+        install -m 644 "$root/src/hook.sh" "$hook"
+        install -m 644 "$root/src/launch.ts" "$(dirname "$hook")/launch.ts"
         rm -f "$(dirname "$hook")/launch.js"
-        bun "$root/setup.ts" "$pi" "$(dirname "$hook")/config.json"
+        bun "$root/src/setup.ts" "$pi" "$pi_runner" "$(dirname "$hook")/config.json"
         printf '%s\n' "$start" >> "$temp"
         printf 'if [[ -r %q ]]; then source %q; fi\n' "$hook" "$hook" >> "$temp"
         printf '%s\n' "$end" >> "$temp"
@@ -68,4 +70,11 @@ if [[ "$1" == uninstall ]]; then
     rmdir "$(dirname "$hook")" 2>/dev/null || true
 fi
 printf 'Text integration %sed. Open a new Bash terminal to apply it.\n' "$1"
-if [[ "$1" == install ]]; then printf 'Connected executable: %s\nRun Pi and use /login to configure a provider.\n' "$pi"; fi
+if [[ "$1" == install ]]; then
+    printf 'Connected executable: %s\n' "$pi"
+    if [[ "$pi_runner" == bun ]]; then
+        printf 'Run bun %q and use /login to configure a provider.\n' "$pi"
+    else
+        printf 'Run %q and use /login to configure a provider.\n' "$pi"
+    fi
+fi

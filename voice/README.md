@@ -7,10 +7,11 @@ worker thread, PipeWire for microphone capture, and Bun FFI for Linux keyboard a
 or npm dependencies are required. Supports x86_64 and ARM64 Linux.
 
 ```sh
-make up:voice       # from repository root
-make down:voice     # stop, disable autostart, remove config and permission rules
+bun run up:voice       # from repository root
+bun run down:voice     # stop, disable autostart, remove config and permission rules
 ```
 
+Make targets remain available; inside `voice/`, use `bun run up` or `bun run down`.
 Install [Bun](https://bun.sh) first. Installation uses sudo for `pipewire-bin`, `wireplumber`,
 `wl-clipboard`, `unzip`, and device permissions, downloads the native engine into
 `voice/.cache`, and uses the bundled `voice/models/whistle.cact` (about 17 MB; no model
@@ -22,7 +23,7 @@ at the installed path. Re-run setup after moving it.
 For unattended keyboard selection:
 
 ```sh
-VOICE_KEYBOARD=/dev/input/by-id/YOUR-KEYBOARD-event-kbd make up:voice
+VOICE_KEYBOARD=/dev/input/by-id/YOUR-KEYBOARD-event-kbd bun run up:voice
 ```
 
 ## Use
@@ -81,19 +82,19 @@ microphone issues, select the correct input in GNOME's Sound settings.
 Uninstall removes only this setup's service, config, udev rules and module-load
 entry. Log out/in to fully revoke device access. Apt packages and `voice/.cache`
 are retained, so other software is not disrupted. There is no SDK telemetry.
-Re-run `make up:voice` to replace an older service. Any old `.venv`, Python model
+Re-run `bun run up:voice` to replace an older service. Any old `.venv`, Python model
 cache, and WASM assets are left untouched and are no longer used. The native `.so`
 comes from Cactus's pinned Linux wheel; `unzip` extracts it without installing or
 running Python. The model remains loaded between recordings.
 
-After upgrading from JavaScript, re-run `make up:voice` once so the service points
-to `voice.ts` instead of the removed `voice.js`.
+After upgrading from JavaScript, re-run `bun run up:voice` once so the service points
+to `src/voice.ts` instead of the removed `voice.js`.
 
 For an existing TypeScript installation with `unzip` already available, update
 the engine without re-selecting your keyboard or replacing your config:
 
 ```sh
-bun voice/setup.ts download
+bun voice/src/setup.ts download
 systemctl --user restart uncode-voice.service
 ```
 
@@ -107,8 +108,8 @@ speech sample took about 0.61 seconds natively versus 1.3 seconds with warmed-up
 WASM; performance depends on your CPU and recording. Transcription still happens
 after release, not while speaking.
 
-Tests: run `make test:voice` from the repository root. To download the native engine and smoke-test the bundled model
-without installing the service or changing permissions, run `bun setup.ts download`.
+Tests: run `bun run test:voice` from the repository root. To download the native engine and smoke-test the bundled model
+without installing the service or changing permissions, run `bun src/setup.ts download`.
 Run `VOICE_NATIVE_TEST=1 bun test` inside `voice/` to also test the actual native
 engine (downloads the native engine if not cached).
 

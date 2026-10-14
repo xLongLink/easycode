@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, spyOn, test } from "bun:test"
 import { mkdtemp, chmod, rm } from "node:fs/promises"
-import { captureAudio } from "../microphone.ts"
-import { muteOutput } from "../output.ts"
+import { captureAudio } from "../src/microphone.ts"
+import { muteOutput } from "../src/output.ts"
 
 let directory: string
 let previousPath: string | undefined

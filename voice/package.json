@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "bun voice.ts",
+    "up": "bash setup.sh install",
+    "down": "bash setup.sh uninstall",
+    "start": "bun src/voice.ts",
     "test": "bun test"
   }
 }

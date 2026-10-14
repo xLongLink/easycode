@@ -5,6 +5,35 @@ if [[ $- == *i* ]] && [[ -o emacs ]]; then
         bun "$_text_ai_launcher" "$1" "$2" "$3"
     }
 
+    text_thinking_feedback() {
+        local messages=('thinking...' 'thinking..' 'thinking.')
+        local i=0
+        while :; do
+            printf '\r\033[K%s' "${messages[$((i % ${#messages[@]}))]}" >&2
+            i=$((i + 1))
+            sleep 0.8
+        done
+    }
+
+    text_ai_with_feedback() {
+        local output feedback_pid status monitor_was_on=''
+        output=$(mktemp "${TMPDIR:-/tmp}/easycode-text.XXXXXX") || return 1
+        case $- in
+            *m*) monitor_was_on=1; set +m ;;
+        esac
+        text_thinking_feedback &
+        feedback_pid=$!
+        text_ai "$1" "$2" "$3" > "$output"
+        status=$?
+        kill "$feedback_pid" >/dev/null 2>&1 || true
+        wait "$feedback_pid" 2>/dev/null || true
+        printf '\r\033[K' >&2
+        [[ -z "$monitor_was_on" ]] || set -m
+        cat "$output"
+        rm -f "$output"
+        return "$status"
+    }
+
     text_before_submit() {
         [[ -n "$1" ]] || return 0
         local line="${1#"${1%%[![:space:]]*}"}"
@@ -51,7 +80,7 @@ if [[ $- == *i* ]] && [[ -o emacs ]]; then
             fi
             _text_directory="$PWD"
         fi
-        text_ai "$_text_session" "$_text_directory" "$message"
+        text_ai_with_feedback "$_text_session" "$_text_directory" "$message"
     }
 
     bind -x '"\C-x\C-g":text_handle_enter'

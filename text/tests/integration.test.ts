@@ -17,6 +17,8 @@ async function fixture() {
   await Bun.write(
     executable,
     `#!${process.execPath}
+const delay = Number(process.env.TEXT_TEST_SLEEP ?? 0)
+if (delay > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delay)
 console.log(JSON.stringify({ args: process.argv.slice(2), directory: process.cwd() }))
 process.exit(Number(process.env.TEXT_TEST_EXIT ?? 0))
 `,
@@ -76,6 +78,7 @@ alias keep_alias='pwd'
   expect(rc.match(/# >>> easycode text hook >>>/g)).toHaveLength(1)
   expect(await Bun.file(join(context.data, "text", "config.json")).json()).toEqual({
     pi: context.executable,
+    runner: "direct",
   })
   for (const file of ["bash-hook.sh", "bash-ai.sh", "bash-classify.js"])
     expect(await Bun.file(join(context.data, file)).exists()).toBe(false)
@@ -113,17 +116,18 @@ async function installerFixture() {
   const context = await fixture()
   const bin = join(context.home, "bin")
   await mkdir(bin)
-  await Bun.write(join(bin, "bun"), `#!/bin/sh\nexec '${process.execPath}' "$@"\n`)
-  await Bun.write(join(bin, "node"), "#!/bin/sh\nexit 0\n")
   await Bun.write(
-    join(bin, "npm"),
+    join(bin, "bun"),
     `#!/bin/bash
-printf '%s\\n' "$@" > "$HOME/npm-args"
+if [[ "$1" != install ]]; then exec '${process.execPath}' "$@"; fi
+printf '%s\\n' "$@" > "$HOME/bun-args"
+printf '%s\\n' "$BUN_INSTALL" > "$HOME/bun-prefix"
 [[ ! -e "$HOME/fail-install" ]] || exit 9
 mkdir -p "$HOME/.local/bin"
 cp "$HOME/installed pi" "$HOME/.local/bin/pi"
 `,
   )
+  for (const command of ["node", "npm"]) await Bun.write(join(bin, command), "#!/bin/sh\nexit 99\n")
   for (const command of ["bun", "node", "npm"]) await chmod(join(bin, command), 0o755)
   context.env.PI_BIN = ""
   context.env.PATH = `${bin}:/usr/bin:/bin`
@@ -133,11 +137,13 @@ cp "$HOME/installed pi" "$HOME/.local/bin/pi"
 test("installs missing Pi into a user prefix without lifecycle scripts and reuses it", async () => {
   const context = await installerFixture()
   expect(context.setup("install").exitCode).toBe(0)
-  expect(await Bun.file(join(context.home, "npm-args")).text()).toBe(
-    `install\n-g\n--prefix\n${context.home}/.local\n--ignore-scripts\n@earendil-works/pi-coding-agent@1.2.0\n`,
+  expect(await Bun.file(join(context.home, "bun-args")).text()).toBe(
+    "install\n-g\n--ignore-scripts\n@earendil-works/pi-coding-agent@1.2.0\n",
   )
+  expect(await Bun.file(join(context.home, "bun-prefix")).text()).toBe(`${context.home}/.local\n`)
   expect(await Bun.file(join(context.data, "text", "config.json")).json()).toEqual({
     pi: join(context.home, ".local/bin/pi"),
+    runner: "direct",
   })
   await Bun.write(join(context.home, "fail-install"), "fail")
   expect(context.setup("install").exitCode).toBe(0)
@@ -159,7 +165,7 @@ test("an invalid explicit PI_BIN fails rather than installing another executable
   const context = await installerFixture()
   context.env.PI_BIN = join(context.home, "missing pi")
   expect(context.setup("install").exitCode).not.toBe(0)
-  expect(await Bun.file(join(context.home, "npm-args")).exists()).toBe(false)
+  expect(await Bun.file(join(context.home, "bun-args")).exists()).toBe(false)
   expect(await Bun.file(join(context.home, ".bashrc")).exists()).toBe(false)
 })
 
@@ -178,6 +184,30 @@ test("launcher uses Pi print mode and thinking without changing the prompt or di
     args: ["--print", "--session-id", "test-session", "--thinking", "high", "--", message],
     directory,
   })
+})
+
+test("Node-shebang Pi runs with Bun without invoking Node", async () => {
+  const context = await installerFixture()
+  context.env.PI_BIN = context.executable
+  const source = await Bun.file(context.executable).text()
+  await Bun.write(context.executable, source.replace(/^#![^\n]+/, "#!/usr/bin/env node"))
+  expect(context.setup("install").exitCode).toBe(0)
+  expect(await Bun.file(join(context.data, "text", "config.json")).json()).toEqual({
+    pi: context.executable,
+    runner: "bun",
+  })
+  const result = Bun.spawnSync(
+    [
+      process.execPath,
+      join(context.data, "text", "launch.ts"),
+      "test-session",
+      context.home,
+      "hello",
+    ],
+    { env: context.env, stdout: "pipe", stderr: "pipe" },
+  )
+  expect(result.exitCode).toBe(0)
+  expect(JSON.parse(result.stdout.toString()).args.at(-1)).toBe("hello")
 })
 
 test("launcher forwards Pi's failure status", async () => {
@@ -202,7 +232,7 @@ test("launcher forwards Pi's failure status", async () => {
 
 test("session IDs are unique UUIDs", () => {
   const values = Array.from({ length: 2 }, () =>
-    Bun.spawnSync([process.execPath, join(import.meta.dir, "../launch.ts"), "--new-session-id"])
+    Bun.spawnSync([process.execPath, join(import.meta.dir, "../src/launch.ts"), "--new-session-id"])
       .stdout.toString()
       .trim(),
   )
@@ -222,7 +252,7 @@ for line in "$@"; do
   if text_before_submit "$line"; then printf 'command\n'; else printf 'message\n'; fi
 done`,
     [
-      join(import.meta.dir, "../hook.sh"),
+      join(import.meta.dir, "../src/hook.sh"),
       "",
       "   ",
       "git status",
@@ -247,6 +277,29 @@ done`,
     "message",
     "message",
   ])
+})
+
+test("the hook shows thinking feedback before printing the answer", async () => {
+  const context = await fixture()
+  expect(context.setup("install").exitCode).toBe(0)
+  const result = context.shell(
+    `set -o emacs
+source "$1"
+PS1=''
+export TEXT_TEST_SLEEP=250
+READLINE_LINE='explain this project'
+text_handle_enter`,
+    [join(context.data, "text", "hook.sh")],
+  )
+  expect(result.exitCode).toBe(0)
+  expect(result.stderr.toString()).toMatch(/thinking\.{1,3}/)
+  expect(result.stderr.toString()).not.toMatch(/[|/\\-] thinking/)
+  expect(
+    result.stdout
+      .toString()
+      .split("\n")
+      .filter((line) => line.startsWith("{")),
+  ).toHaveLength(1)
 })
 
 test("the hook reuses one session and its first directory across later cd commands", async () => {

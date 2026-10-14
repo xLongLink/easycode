@@ -4,20 +4,22 @@ Standalone Bash integration using upstream [Pi](https://github.com/earendil-work
 No bundled AI runtime, local AI model, or API server setup.
 
 ```sh
-make up:text
-make down:text
+bun run up:text
+bun run down:text
 ```
 
 Run from the repository root. Requires Bun and Bash 4.4+ with Emacs
-editing mode. When Pi is absent, setup requires Node.js 22.19+ and npm, and installs
+editing mode. When Pi is absent, setup uses Bun to install
 `@earendil-works/pi-coding-agent@1.2.0` under `~/.local` with lifecycle scripts
 disabled. No sudo is needed. Existing Pi installations are reused, not upgraded.
-Run Pi and use `/login` to configure your preferred provider before chatting.
+Node-shebang Pi executables run with Bun, so Node.js and npm are not required.
+Run `bun ~/.local/bin/pi` and use `/login` to configure your preferred provider before chatting.
+Make targets remain available; inside `text/`, use `bun run up` or `bun run down`.
 
 Setup resolves `pi` on PATH or under `~/.local/bin`. To select a specific installation:
 
 ```sh
-PI_BIN="$HOME/.local/bin/pi" make up:text
+PI_BIN="$HOME/.local/bin/pi" bun run up:text
 ```
 
 Open a **new Bash terminal**, then use the normal prompt:
@@ -33,8 +35,10 @@ $ what should I change first?
 
 Known executables, aliases, functions, builtins, and recognized shell syntax run
 normally. Other text goes to `pi --print --session-id <id> --thinking high`, which
-runs once and prints the final response. Each terminal gets a unique session;
-its working directory is the directory of its first message, even after `cd`.
+runs once and prints the final response. A small `AI thinking...` spinner is shown
+in the terminal while Pi is working, then cleared before the response is printed.
+Each terminal gets a unique session; its working directory is the directory of its
+first message, even after `cd`.
 Pi handles provider configuration and session persistence. **Pi has no built-in
 tool permission system:** it can read/write files and run commands with your
 user's permissions. Use a sandbox if you need stronger isolation.
@@ -55,4 +59,4 @@ Uninstall removes the copied files and marked Bash block, retaining Pi and its
 credentials and sessions in `~/.pi`. Open a new Bash terminal
 afterwards. To start a new AI conversation, open a new terminal.
 
-Tests: `make test:text` from the repository root; these never contact an AI provider.
+Tests: `bun run test:text` from the repository root; these never contact an AI provider.

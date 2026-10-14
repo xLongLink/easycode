@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { createEngine } from "../engine.ts"
+import { createEngine } from "../src/engine.ts"
 
 test("bundled Whistle model matches the pinned upstream weights", async () => {
   const model = await Bun.file(new URL("../models/whistle.cact", import.meta.url)).arrayBuffer()

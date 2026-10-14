@@ -31,7 +31,7 @@ PartOf=graphical-session.target
 After=graphical-session.target
 
 [Service]
-ExecStart=${quote(process.execPath)} ${quote(join(root, "voice.ts"))}
+ExecStart=${quote(process.execPath)} ${quote(join(root, "src", "voice.ts"))}
 Restart=on-failure
 RestartSec=3
 

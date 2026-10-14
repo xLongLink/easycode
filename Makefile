@@ -5,24 +5,24 @@ up: up\:text up\:voice
 down: down\:text down\:voice
 
 up\:text:
-	bash text/setup.sh install
+	bun run up:text
 
 down\:text:
-	bash text/setup.sh uninstall
+	bun run down:text
 
 up\:voice:
-	bash voice/setup.sh install
+	bun run up:voice
 
 down\:voice:
-	bash voice/setup.sh uninstall
+	bun run down:voice
 
 test: test\:text test\:voice
 
 test\:text:
-	bun --cwd text test
+	bun run test:text
 
 test\:voice:
-	bun --cwd voice test
+	bun run test:voice
 
 check:
 	bun run check

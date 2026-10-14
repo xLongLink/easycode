@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { Copilot, key, type InputEvent } from "../hotkey.ts"
+import { Copilot, key, type InputEvent } from "../src/hotkey.ts"
 
 function scenario(keys: number[][]) {
   const events: InputEvent[] = []

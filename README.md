@@ -4,27 +4,29 @@ Two independent local integrations written in TypeScript on Bun, with Vite+
 formatting, linting, and type checks. Text chats use upstream
 [Pi](https://github.com/earendil-works/pi); voice transcribes locally.
 
-| Integration              | Install         | Uninstall         |
-| ------------------------ | --------------- | ----------------- |
-| [Text](text/README.md)   | `make up:text`  | `make down:text`  |
-| [Voice](voice/README.md) | `make up:voice` | `make down:voice` |
+| Integration              | Install            | Uninstall            |
+| ------------------------ | ------------------ | -------------------- |
+| [Text](text/README.md)   | `bun run up:text`  | `bun run down:text`  |
+| [Voice](voice/README.md) | `bun run up:voice` | `bun run down:voice` |
 
-Run all Make commands from the repository root.
+Run these commands from the repository root. Make targets remain available as aliases.
 
-Use `make up` to install both integrations, or `make down` to uninstall both.
+Use `bun run up` to install both integrations, or `bun run down` to uninstall both.
+Inside `text/` or `voice/`, use `bun run up` and `bun run down` for that integration only.
 
 ## Text
 
 Requires [Bun](https://bun.sh) and Bash 4.4+. If Pi is not installed, setup uses
-Node.js 22.19+ and npm to install Pi 1.2.0 under `~/.local` without sudo.
+Bun to install Pi 1.2.0 under `~/.local` without sudo or lifecycle scripts.
+The text integration runs Node-shebang Pi executables with Bun; Node.js and npm are not required.
 Set `PI_BIN` to select an existing executable instead.
 
 ```sh
-make up:text
+bun run up:text
 ```
 
 Open a new Bash terminal. Commands run normally; natural-language input goes to
-Pi. Run `~/.local/bin/pi` (or your selected executable) and use `/login` to
+Pi. Run `bun ~/.local/bin/pi` (or your selected executable) and use `/login` to
 configure a provider first. Each terminal keeps a separate conversation. Prefix a line
 with `cmd` to force Bash execution. Installation replaces the old checkout-based
 shell hook while preserving unrelated settings and installed OpenCode data.
@@ -35,7 +37,7 @@ Pi runs tools with your user's permissions, without built-in permission prompts.
 Requires Bun and an Ubuntu/Debian Wayland desktop.
 
 ```sh
-make up:voice
+bun run up:voice
 ```
 
 Select the physical keyboard containing Copilot. Hold Copilot to record, then
@@ -51,9 +53,9 @@ Install the project-local Vite+ toolchain first. No bundled AI runtime build is 
 bun install
 bun run check
 bun run fmt
-make test:text
-make test:voice
-VOICE_NATIVE_TEST=1 make test:voice
+bun run test:text
+bun run test:voice
+VOICE_NATIVE_TEST=1 bun run test:voice
 ```
 
 The optional native test downloads Whistle assets if absent. Ordinary tests never

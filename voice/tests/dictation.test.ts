@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, spyOn, test } from "bun:test"
-import { Dictation } from "../dictation.ts"
-import { Copilot, key } from "../hotkey.ts"
+import { Dictation } from "../src/dictation.ts"
+import { Copilot, key } from "../src/hotkey.ts"
 
 let info: ReturnType<typeof spyOn<typeof console, "info">>
 let error: ReturnType<typeof spyOn<typeof console, "error">>

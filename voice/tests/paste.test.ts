@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, spyOn, test } from "bun:test"
 import { chmod, mkdtemp, rm } from "node:fs/promises"
-import { pasteText } from "../paste.ts"
-import { key, type InputEvent } from "../hotkey.ts"
+import { pasteText } from "../src/paste.ts"
+import { key, type InputEvent } from "../src/hotkey.ts"
 
 let directory: string
 let previousPath: string | undefined

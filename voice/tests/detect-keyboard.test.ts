@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, test } from "bun:test"
 import { appendFile, mkdtemp, rm, symlink } from "node:fs/promises"
-import { detectKeyboard } from "../detect-keyboard.ts"
-import { encodeEvent } from "../keyboard.ts"
-import { key } from "../hotkey.ts"
+import { detectKeyboard } from "../src/detect-keyboard.ts"
+import { encodeEvent } from "../src/keyboard.ts"
+import { key } from "../src/hotkey.ts"
 
 let directory: string
 

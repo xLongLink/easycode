@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
-import { decodeEvents, encodeEvent } from "../keyboard.ts"
-import { decodePCM } from "../microphone.ts"
+import { decodeEvents, encodeEvent } from "../src/keyboard.ts"
+import { decodePCM } from "../src/microphone.ts"
 
 test("Linux input events preserve key presses, repeats, releases and synchronization", () => {
   const events = [
