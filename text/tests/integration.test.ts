@@ -47,15 +47,22 @@ process.exit(Number(process.env.TEXT_TEST_EXIT ?? 0))
     },
     shell(script: string, args: string[] = []) {
       const errorFile = join(home, "shell.stderr")
-      const command = ["bash", "--noprofile", "--norc", "-ic", script, "text-test", ...args]
-        .map((value) => `'${value.replaceAll("'", "'\\''")}'`)
-        .join(" ")
-      // Readline bindings can crash older Bash when an interactive shell has no TTY.
+      const parameters = args.map((value) => `'${value.replaceAll("'", "'\\''")}'`).join(" ")
+      // Start the Readline loop before loading bindings; Bash -ic does not initialize it.
       const result = Bun.spawnSync(
-        ["script", "--quiet", "--return", "--command", `${command} 2>'${errorFile}'`, "/dev/null"],
+        [
+          "script",
+          "--quiet",
+          "--return",
+          "--echo",
+          "never",
+          "--command",
+          `bash --noprofile --norc -i 2>'${errorFile}'`,
+          "/dev/null",
+        ],
         {
-          env: { ...env, HISTFILE: "/dev/null" },
-          stdin: "ignore",
+          env: { ...env, HISTFILE: "/dev/null", PS1: "", PS2: "", TERM: "dumb" },
+          stdin: Buffer.from(`set -- ${parameters}\n{\n${script}\n}\nexit\n`),
           stdout: "pipe",
           stderr: "pipe",
         },
