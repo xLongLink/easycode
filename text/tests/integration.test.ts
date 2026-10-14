@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from "bun:test"
+import { readFileSync } from "node:fs"
 import { chmod, mkdir, mkdtemp, rm } from "node:fs/promises"
 import { join } from "node:path"
 
@@ -45,8 +46,13 @@ process.exit(Number(process.env.TEXT_TEST_EXIT ?? 0))
       })
     },
     shell(script: string, args: string[] = []) {
+      const errorFile = join(home, "shell.stderr")
+      const command = ["bash", "--noprofile", "--norc", "-ic", script, "text-test", ...args]
+        .map((value) => `'${value.replaceAll("'", "'\\''")}'`)
+        .join(" ")
+      // Readline bindings can crash older Bash when an interactive shell has no TTY.
       const result = Bun.spawnSync(
-        ["bash", "--noprofile", "--norc", "-ic", script, "text-test", ...args],
+        ["script", "--quiet", "--return", "--command", `${command} 2>'${errorFile}'`, "/dev/null"],
         {
           env: { ...env, HISTFILE: "/dev/null" },
           stdin: "ignore",
@@ -54,11 +60,16 @@ process.exit(Number(process.env.TEXT_TEST_EXIT ?? 0))
           stderr: "pipe",
         },
       )
+      const stderr = readFileSync(errorFile)
       if (result.exitCode !== 0)
         throw new Error(
-          `Bash failed (${result.signalCode ?? result.exitCode}): ${result.stderr.toString()}`,
+          `Bash failed (${result.signalCode ?? result.exitCode}): ${stderr.toString()}`,
         )
-      return result
+      return {
+        ...result,
+        stderr,
+        stdout: Buffer.from(result.stdout.toString().replaceAll("\r\n", "\n")),
+      }
     },
   }
 }
