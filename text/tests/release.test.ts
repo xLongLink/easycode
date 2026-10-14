@@ -10,14 +10,30 @@ test("release archives contain standalone integrations and valid checksums", asy
     for (const integration of ["text", "voice"]) {
       const name = `uncode-${integration}-v1.2.3-rc.1`
       const archive = await buildRelease(integration, "v1.2.3-rc.1", directory)
+      const installer = join(directory, `${integration}.sh`)
+      expect(Bun.spawnSync(["bash", "-n", installer]).exitCode).toBe(0)
+      const script = await Bun.file(installer).text()
+      expect(script).toContain(`integration='${integration}'`)
+      expect(script).toContain("version='v1.2.3-rc.1'")
+      expect(script).not.toContain("@VERSION@")
       const checksum = Bun.spawnSync(["sha256sum", "-c", `${archive}.sha256`], { cwd: directory })
       expect(checksum.exitCode).toBe(0)
       const extract = Bun.spawnSync(["tar", "-xzf", archive, "-C", directory])
       expect(extract.exitCode).toBe(0)
       const root = join(directory, name)
       expect(await Bun.file(join(root, "VERSION")).text()).toBe("v1.2.3-rc.1\n")
-      for (const file of ["setup.sh", "package.json", "README.md", "LICENSE", "src/setup.ts"])
+      for (const file of [
+        "setup.sh",
+        "package.json",
+        "README.md",
+        "LICENSE",
+        "NOTICE",
+        "src/setup.ts",
+      ])
         expect(await Bun.file(join(root, file)).exists()).toBe(true)
+      expect(await Bun.file(join(root, "LICENSE")).text()).toContain("Apache License")
+      expect(await Bun.file(join(root, "NOTICE")).text()).toContain("Copyright (c) 2025 opencode")
+      expect((await Bun.file(join(root, "package.json")).json()).license).toBe("Apache-2.0")
       expect(Bun.spawnSync(["bash", "-n", join(root, "setup.sh")]).exitCode).toBe(0)
       const files = [...new Bun.Glob("**/*").scanSync({ cwd: root, dot: true })]
       expect(files.some((file) => /tests|\.cache|node_modules|\.env/.test(file))).toBe(false)

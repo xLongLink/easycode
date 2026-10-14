@@ -30,6 +30,7 @@ export async function buildRelease(integration: string, version: string, output:
       await copyFile(join(root, integration, file), target)
     }
     await copyFile(join(root, "LICENSE"), join(directory, "LICENSE"))
+    await copyFile(join(root, "NOTICE"), join(directory, "NOTICE"))
     await Bun.write(join(directory, "VERSION"), `${version}\n`)
     const child = Bun.spawn(
       [
@@ -52,6 +53,10 @@ export async function buildRelease(integration: string, version: string, output:
       .update(await Bun.file(archive).arrayBuffer())
       .digest("hex")
     await Bun.write(`${archive}.sha256`, `${digest}  ${name}.tar.gz\n`)
+    const installer = (await Bun.file(join(root, "install-release.sh")).text())
+      .replaceAll("@INTEGRATION@", integration)
+      .replaceAll("@VERSION@", version)
+    await Bun.write(join(destination, `${integration}.sh`), installer)
     return archive
   } finally {
     await rm(staging, { recursive: true, force: true })

@@ -1,62 +1,64 @@
-# Text
+# Uncode Text
 
-Standalone Bash integration using upstream [Pi](https://github.com/earendil-works/pi).
-No bundled AI runtime, local AI model, or API server setup.
+[![Bun](https://img.shields.io/badge/runtime-Bun-14151a)](https://bun.sh)
+[![Bash](https://img.shields.io/badge/shell-Bash%204.4%2B-4eaa25)](https://www.gnu.org/software/bash/)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/xLongLink/uncode/blob/main/LICENSE)
 
-```sh
-bun run up:text
-bun run down:text
-```
+Use natural language at your Bash prompt with upstream
+[Pi](https://github.com/earendil-works/pi). Commands continue to run normally.
 
-Run from the repository root. Requires Bun and Bash 4.4+ with Emacs
-editing mode. When Pi is absent, setup uses Bun to install
-`@earendil-works/pi-coding-agent@1.2.0` under `~/.local` with lifecycle scripts
-disabled. No sudo is needed. Existing Pi installations are reused, not upgraded.
-Node-shebang Pi executables run with Bun, so Node.js and npm are not required.
-Run `bun ~/.local/bin/pi` and use `/login` to configure your preferred provider before chatting.
-Make targets remain available; inside `text/`, use `bun run up` or `bun run down`.
+## Install
 
-Setup resolves `pi` on PATH or under `~/.local/bin`. To select a specific installation:
+Requires Bun and Bash 4.4+ with Emacs editing mode (`set -o emacs`).
 
 ```sh
-PI_BIN="$HOME/.local/bin/pi" bun run up:text
+curl -fsSL https://github.com/xLongLink/uncode/releases/latest/download/text.sh | bash
 ```
 
-Open a **new Bash terminal**, then use the normal prompt:
+Alternatively, from this directory or an extracted release archive:
+
+```sh
+bun run up
+```
+
+From the repository root, use `bun run up:text` instead. Setup installs Pi 1.2.0
+under `~/.local` if absent, without sudo or lifecycle scripts. Existing Pi
+installations are reused. Node.js and npm are not required.
+
+Configure a provider with `bun ~/.local/bin/pi` and `/login`, then open a **new
+Bash terminal**. To use another executable, set `PI_BIN` when installing:
+
+```sh
+PI_BIN=/absolute/path/to/pi bun run up
+```
+
+Configure that executable's provider before chatting.
+
+## Use
 
 ```text
 $ git status
-…normal command output…
 $ explain the files in this directory
-…Pi's answer…
 $ what should I change first?
-…answer continuing this terminal's conversation…
 ```
 
-Known executables, aliases, functions, builtins, and recognized shell syntax run
-normally. Other text goes to `pi --print --session-id <id> --thinking high`, which
-runs once and prints the final response. A small `AI thinking...` spinner is shown
-in the terminal while Pi is working, then cleared before the response is printed.
-Each terminal gets a unique session; its working directory is the directory of its
-first message, even after `cd`.
-Pi handles provider configuration and session persistence. **Pi has no built-in
-tool permission system:** it can read/write files and run commands with your
-user's permissions. Use a sandbox if you need stronger isolation.
+- Executables, aliases, functions, builtins, and recognized shell syntax run in Bash.
+- Other input goes to Pi; prefix a line with `cmd` to force shell execution.
+- Each terminal has its own conversation, anchored to the first message's directory.
+  Open a new terminal to start a new conversation.
+- Routing is not a full Bash parser: a typo such as `gti status` goes to Pi.
 
-Routing is a convenience, not a Bash parser: `find` is treated as a command and a
-typo such as `gti status` is treated as an AI message. Prefix a line with `cmd` to
-force shell execution (`cmd gti status`). `text`, `voice`, and other existing shell
-commands are not intercepted. Voice pastes text but does not submit it.
+**Security:** Pi can read and write files and execute commands with your user's
+permissions, without built-in permission prompts. Use a sandbox for isolation.
 
-The installer copies the hook and TypeScript launcher to
-`${XDG_DATA_HOME:-~/.local/share}/uncode/text` and adds one marked block to
-`~/.bashrc`. It replaces the previous checkout-based hook and removes that hook's
-launcher/classifier files, without touching other shell settings or OpenCode
-configuration, credentials, or session data. Reinstalling does not duplicate blocks.
-The installed integration does not depend on this checkout remaining in place.
+## Uninstall
 
-Uninstall removes the copied files and marked Bash block, retaining Pi and its
-credentials and sessions in `~/.pi`. Open a new Bash terminal
-afterwards. To start a new AI conversation, open a new terminal.
+```sh
+bun run down
+```
 
-Tests: `bun run test:text` from the repository root; these never contact an AI provider.
+From the repository root, use `bun run down:text`. Open a new Bash terminal afterward.
+Setup manages only its marked `~/.bashrc` block and files under
+`${XDG_DATA_HOME:-~/.local/share}/uncode/text`. Pi, credentials, sessions, and
+unrelated shell settings are retained. The installed hook does not depend on this
+source directory remaining in place.
