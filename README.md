@@ -6,7 +6,6 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 AI assistance in your Bash terminal and local voice dictation for your desktop.
-Install either integration independently, or use both together.
 
 | Integration              | What it does                                                                                              | Requirements                                                              |
 | ------------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
@@ -75,17 +74,6 @@ Ordinary tests do not contact AI providers. For native inference, run
 Commit and push changes, then push an annotated version tag:
 
 ```sh
-git tag -a v0.0.1 -m "Uncode v0.0.1"
+git tag -a v0.0.1
 git push origin v0.0.1
 ```
-
-GitHub Actions runs checks and publishes separate text and voice archives,
-one-command installers, SHA-256 checksums, and release notes.
-Tags such as `v0.0.1-rc.1` create prereleases.
-Build locally with `bun run build`, or `bun run build:text v0.0.1` and
-`bun run build:voice v0.0.1`. Output is written to `dist/`; building requires GNU tar.
-
-## License
-
-[Apache-2.0](LICENSE). Original third-party notices are preserved in [NOTICE](NOTICE).
-The bundled speech model is also [Apache-2.0](voice/models/LICENSE).
